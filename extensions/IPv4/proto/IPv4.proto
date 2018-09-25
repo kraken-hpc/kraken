@@ -1,0 +1,46 @@
+/* IPv4.proto: describes IPv4 specific state structures
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Los Alamos National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message IPv4 {
+    bytes ip      = 2;
+    bytes subnet  = 3;
+}
+
+message Ethernet {
+    string  iface   = 1; /* interface name, e.g. eth0 */
+    bytes   mac     = 2; /* mac address of the interface */
+    uint32  mtu     = 3;
+    bool    control = 4; /* should we assume control (if we can)? */
+}
+
+message IPv4OverEthernet { /* Extension */
+    message ConfiguredInterface {
+        Ethernet eth = 1;
+        IPv4 ip = 2;
+    }
+    repeated ConfiguredInterface ifaces = 1;
+    repeated IPv4 routes = 2;
+    repeated IPv4 dns_nameservers = 3;
+    repeated IPv4 dns_domains = 4;
+    DNSA hostname = 5;
+}
+
+message DNSA { /* implies a ptr record */
+    string hostname = 1;
+    string domainname = 2;
+    IPv4 ip = 3;
+}
+
+message DNSCNAME {
+    string cname = 1;
+    string hostname = 2;
+}

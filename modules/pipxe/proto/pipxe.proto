@@ -1,0 +1,22 @@
+/* pipxe.proto: describes the PiPXEConfig object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Los Alamos National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message PiPXEConfig {
+    string srv_iface_url = 1; // interface DHCP/TFTP listen on
+    string srv_ip_url = 2; // interface DHCP/TFTP listen on
+    string ip_url = 3;
+    string mac_url = 4;
+    string subnet_url = 5;
+    string tftp_dir = 6;
+    string arp_deadline = 7;
+    uint32 dhcp_retry = 8;
+}
