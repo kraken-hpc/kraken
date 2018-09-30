@@ -3,11 +3,13 @@
 
 package proto3_proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import test_proto "github.com/golang/protobuf/proto/test_proto"
-import any "github.com/golang/protobuf/ptypes/any"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	test_proto "github.com/golang/protobuf/proto/test_proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -82,14 +84,15 @@ func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{0}
 }
+
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Message.Unmarshal(m, b)
 }
 func (m *Message) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Message.Marshal(b, m, deterministic)
 }
-func (dst *Message) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Message.Merge(dst, src)
+func (m *Message) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Message.Merge(m, src)
 }
 func (m *Message) XXX_Size() int {
 	return xxx_messageInfo_Message.Size(m)
@@ -247,14 +250,15 @@ func (*Nested) ProtoMessage()    {}
 func (*Nested) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{1}
 }
+
 func (m *Nested) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Nested.Unmarshal(m, b)
 }
 func (m *Nested) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Nested.Marshal(b, m, deterministic)
 }
-func (dst *Nested) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Nested.Merge(dst, src)
+func (m *Nested) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Nested.Merge(m, src)
 }
 func (m *Nested) XXX_Size() int {
 	return xxx_messageInfo_Nested.Size(m)
@@ -292,14 +296,15 @@ func (*MessageWithMap) ProtoMessage()    {}
 func (*MessageWithMap) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{2}
 }
+
 func (m *MessageWithMap) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MessageWithMap.Unmarshal(m, b)
 }
 func (m *MessageWithMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MessageWithMap.Marshal(b, m, deterministic)
 }
-func (dst *MessageWithMap) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MessageWithMap.Merge(dst, src)
+func (m *MessageWithMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MessageWithMap.Merge(m, src)
 }
 func (m *MessageWithMap) XXX_Size() int {
 	return xxx_messageInfo_MessageWithMap.Size(m)
@@ -330,14 +335,15 @@ func (*IntMap) ProtoMessage()    {}
 func (*IntMap) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{3}
 }
+
 func (m *IntMap) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IntMap.Unmarshal(m, b)
 }
 func (m *IntMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IntMap.Marshal(b, m, deterministic)
 }
-func (dst *IntMap) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IntMap.Merge(dst, src)
+func (m *IntMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntMap.Merge(m, src)
 }
 func (m *IntMap) XXX_Size() int {
 	return xxx_messageInfo_IntMap.Size(m)
@@ -368,14 +374,15 @@ func (*IntMaps) ProtoMessage()    {}
 func (*IntMaps) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{4}
 }
+
 func (m *IntMaps) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IntMaps.Unmarshal(m, b)
 }
 func (m *IntMaps) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IntMaps.Marshal(b, m, deterministic)
 }
-func (dst *IntMaps) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IntMaps.Merge(dst, src)
+func (m *IntMaps) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntMaps.Merge(m, src)
 }
 func (m *IntMaps) XXX_Size() int {
 	return xxx_messageInfo_IntMaps.Size(m)
@@ -412,14 +419,15 @@ func (*TestUTF8) ProtoMessage()    {}
 func (*TestUTF8) Descriptor() ([]byte, []int) {
 	return fileDescriptor_1c50d9b824d4ac38, []int{5}
 }
+
 func (m *TestUTF8) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TestUTF8.Unmarshal(m, b)
 }
 func (m *TestUTF8) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_TestUTF8.Marshal(b, m, deterministic)
 }
-func (dst *TestUTF8) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TestUTF8.Merge(dst, src)
+func (m *TestUTF8) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TestUTF8.Merge(m, src)
 }
 func (m *TestUTF8) XXX_Size() int {
 	return xxx_messageInfo_TestUTF8.Size(m)
@@ -534,6 +542,7 @@ func _TestUTF8_OneofSizer(msg proto.Message) (n int) {
 }
 
 func init() {
+	proto.RegisterEnum("proto3_proto.Message_Humour", Message_Humour_name, Message_Humour_value)
 	proto.RegisterType((*Message)(nil), "proto3_proto.Message")
 	proto.RegisterMapType((map[string]*test_proto.SubDefaults)(nil), "proto3_proto.Message.Proto2ValueEntry")
 	proto.RegisterMapType((map[string]string)(nil), "proto3_proto.Message.StringMapEntry")
@@ -547,7 +556,6 @@ func init() {
 	proto.RegisterType((*TestUTF8)(nil), "proto3_proto.TestUTF8")
 	proto.RegisterMapType((map[string]int64)(nil), "proto3_proto.TestUTF8.MapKeyEntry")
 	proto.RegisterMapType((map[int64]string)(nil), "proto3_proto.TestUTF8.MapValueEntry")
-	proto.RegisterEnum("proto3_proto.Message_Humour", Message_Humour_name, Message_Humour_value)
 }
 
 func init() { proto.RegisterFile("proto3_proto/proto3.proto", fileDescriptor_1c50d9b824d4ac38) }

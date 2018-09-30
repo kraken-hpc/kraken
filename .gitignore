@@ -1,4 +1,5 @@
 .vscode
-kraken
+build
+tmp
 munge.key
 ssh_host_*key*
