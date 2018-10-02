@@ -48,14 +48,11 @@ var cmdList = []command{
 	},
 	*/
 	command{
-<<<<<<< HEAD
 		Cmd:        "/bbin/ip",
 		Background: false,
 		Args:       []string{"/bbin/ip", "addr", "add", myIP + "/" + myNet, "dev", "eth0"},
 	},
 	command{
-=======
->>>>>>> 9119f46075a75a8808fa274acbf66bd36b849113
 		Cmd:        "/bin/dssh",
 		Background: true,
 	},
