@@ -34,6 +34,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/pipower/proto"
 )
@@ -337,6 +338,28 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
 			pp.mutex.Unlock()
+			url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
+			ev := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				core.DiscoveryEvent{
+					Module:  pp.Name(),
+					URL:     url,
+					ValueID: "RUN_UK",
+				},
+			)
+			pp.dchan <- ev
+			url = lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
+			ev = core.NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				core.DiscoveryEvent{
+					Module:  pp.Name(),
+					URL:     url,
+					ValueID: "PXE_NONE",
+				},
+			)
+			pp.dchan <- ev
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -377,6 +400,12 @@ func init() {
 		drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 	discovers["/PhysState"] = drstate
+	discovers["/RunState"] = map[string]reflect.Value{
+		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
+	}
+	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
+		"PXE_NONE": reflect.ValueOf(pipb.RPi3_NONE),
+	}
 	discovers["/Services/pipower/State"] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 	si := core.NewServiceInstance("pipower", module.Name(), module.Entry, nil)
