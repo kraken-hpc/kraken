@@ -79,11 +79,8 @@ srun -N $SLURM_NNODES ch-tar2dir "$TAR" "$IMGDIR"
 # MPI version in container.
 printf 'container: '
 ch-run "$IMG" -- mpirun --version | grep -E '^mpirun'
-```
 
 ## Run the app
-
-```shell
 srun --cpus-per-task=1 ch-run "$IMG" -- /hello/hello
 ```
 
