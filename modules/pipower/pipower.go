@@ -12,7 +12,7 @@
 /*
  * This module will manipulate the PhysState state field.
  * It will be restricted to Arch = aarch64 & Platform = rpi3.
- * It requires a special nodename format: c<chass_num>n<pi_num>.
+ * This requires at least Chassis & Rank to be set in the RPi3 extension.
  * This nodename format is a key to knowing which PiPower server to talk to.
  */
 
@@ -36,6 +36,11 @@ import (
 	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/pipower/proto"
+)
+
+const (
+	ChassisURL string = "type.googleapis.com/proto.RPi3/Chassis"
+	RankURL    string = "type.googleapis.com/proto.RPi3/Rank"
 )
 
 // ppNode is the PiPower node struct
@@ -314,7 +319,11 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 		fmt.Println("got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
-	nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
+	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
+	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
+	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
+	// mostly for historical convenience
+	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
 		switch me.Mutation[1] {
