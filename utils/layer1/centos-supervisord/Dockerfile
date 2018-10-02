@@ -5,8 +5,8 @@
 # Pull base image.
 FROM centos:latest
 
-LABEL org.label-schema.vcs-url="https://github.com/lanl/kraken" \
-      org.label-schema.docker.cmd="docker run -dt -p 3222:22 -h c1 kraken/layer1-supervisord:1.0" \
+LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
+      org.label-schema.docker.cmd="docker run -dt -p 6818:6818 -p 3222:22 -h c1 --name layer1 --security-opt='seccomp=unconfined' kraken/layer1-supervisord:1.0" \
       org.label-schema.name="layer1-supervisord" \
       org.label-schema.description="Layer1 running CentOS 7 with supervisord" \
       maintainer="Paul Peltz Jr."
@@ -15,7 +15,7 @@ LABEL org.label-schema.vcs-url="https://github.com/lanl/kraken" \
 ARG SLURM_VERSION=slurm-17.11.9-2
 ARG SLURM_DOWNLOAD_MD5=f0d0fbc730a0f7d1fa02081e2c514ee8
 ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.9-2.tar.bz2
-ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl"
+ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl git"
 ARG SLURMD_PACKAGES="slurm-17.11* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
 
 # Variables for services to run persistently within the layer1
@@ -24,8 +24,8 @@ ARG RUNNING_SERVICE_PACKAGES="munge openssh-server ntp rsyslog"
 # Use local repos
 COPY repos/*.repo /etc/yum.repos.d/
 
-# Install OHPC and tools for Supervisor.
-RUN set -x \
+# Install epel-release and tools for Supervisor.
+RUN set -e \
     && yum -y install epel-release \
     && yum update -y \
     && yum install -y ${RUNNING_SERVICE_PACKAGES} \
@@ -35,9 +35,12 @@ RUN set -x \
          yum-utils \
          which \
          jq \
-         rsync
+         rsync \
+    && yum clean all \
+    && rm -rf /var/cache/yum
 
-RUN set -x \
+# Install both slurm and charliecloud
+RUN set -e \
     && yum install -y $SLURM_BUILD_PACKAGES \
     && mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
     && cd /root/rpmbuild/SOURCES/ \
@@ -48,17 +51,23 @@ RUN set -x \
     && yum -y install $SLURMD_PACKAGES \
     && cd \
     && rm -rf /root/rpmbuild \
-    && groupadd -r slurm --gid=101 \
-    && useradd -r -g slurm --uid=101 slurm \
+    && useradd -r -U --uid=101 slurm \
+    && cd /usr/local/src \
+    && git clone --recursive https://github.com/hpc/charliecloud.git \
+    && cd charliecloud \
+    && make \
+    && make install PREFIX=/usr/local \
+    && ch-run --version \
+#   && printf "export CH_TEST_TARDIR=/var/tmp/tarballs\nexport CH_TEST_IMGDIR=/var/tmp/images\nexport CH_TEST_PERMDIRS=skip\n" > /etc/profile.d/charliecloud.sh \
     && echo "clean_requirements_on_remove=1" >> /etc/yum.conf \
     && yum -y autoremove $SLURM_BUILD_PACKAGES epel-release \
     && yum clean all \
-    && rm -rf /var/cache/yum
+    && rm -rf /var/cache/yum /usr/local/src/charliecloud
 
 COPY container-files /
 
 # Modify permissions and enable services
-RUN set -x \
+RUN set -e \
     && chmod 0700 /root/ /root/.ssh \
     && chmod 0600 /root/.ssh/authorized_keys \
     && chmod 0644 /etc/ssh/*.pub /etc/ssh/moduli \
@@ -74,15 +83,16 @@ RUN set -x \
     && chmod 0600 /etc/munge/munge.key \
     && rm /etc/localtime \
     && ln -s /usr/share/zoneinfo/America/Denver /etc/localtime \
-    && echo "test" | passwd --stdin root
+    && echo "test" | passwd --stdin root \
+    && useradd -u 5611 -U -m peltz
 
-RUN \
-  easy_install supervisor && \
-  mkdir /etc/supervisor
+RUN set -e \
+  && easy_install supervisor \
+  && mkdir /etc/supervisor \
+  && chmod +x /config/bootstrap.sh
 
 # Expose slurmd sshd port
 EXPOSE 6818:6818 3222:22
 
 # Define default command.
-RUN chmod +x /config/bootstrap.sh
 ENTRYPOINT ["/config/bootstrap.sh"]
