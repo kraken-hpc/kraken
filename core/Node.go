@@ -296,6 +296,7 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 		for i := range eleft {
 			if eleft[i] == u {
 				eleft = append(eleft[:i], eleft[i+1:]...)
+				break
 			}
 		}
 	}
