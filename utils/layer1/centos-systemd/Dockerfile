@@ -30,7 +30,8 @@ RUN set -x \
     && yum update -y \
     && yum install -y ${RUNNING_SERVICE_PACKAGES}
 
-RUN set -x \
+# Install both slurm and charliecloud
+RUN set -e \
     && yum install -y $SLURM_BUILD_PACKAGES \
     && mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
     && cd /root/rpmbuild/SOURCES/ \
@@ -41,27 +42,18 @@ RUN set -x \
     && yum -y install $SLURMD_PACKAGES \
     && cd \
     && rm -rf /root/rpmbuild \
-    && mkdir /etc/sysconfig/slurm \
-        /var/spool/slurm \
-        /var/run/slurmd \
-        /var/lib/slurmd \
-        /var/log/slurm \
-        /data \
-    && touch /var/lib/slurmd/node_state \
-        /var/lib/slurmd/front_end_state \
-        /var/lib/slurmd/job_state \
-        /var/lib/slurmd/resv_state \
-        /var/lib/slurmd/trigger_state \
-        /var/lib/slurmd/assoc_mgr_state \
-        /var/lib/slurmd/assoc_usage \
-        /var/lib/slurmd/qos_usage \
-        /var/lib/slurmd/fed_mgr_state \
-    && groupadd -r slurm --gid=995 && useradd -r -g slurm --uid=995 slurm \
-    && chown -R slurm:slurm /var/*/slurm* \
+    && useradd -r -U --uid=101 slurm \
+    && cd /usr/local/src \
+    && git clone --recursive https://github.com/hpc/charliecloud.git \
+    && cd charliecloud \
+    && make \
+    && make install PREFIX=/usr/local \
+    && ch-run --version \
+#   && printf "export CH_TEST_TARDIR=/var/tmp/tarballs\nexport CH_TEST_IMGDIR=/var/tmp/images\nexport CH_TEST_PERMDIRS=skip\n" > /etc/profile.d/charliecloud.sh \
     && echo "clean_requirements_on_remove=1" >> /etc/yum.conf \
     && yum -y autoremove $SLURM_BUILD_PACKAGES epel-release \
     && yum clean all \
-    && rm -rf /var/cache/yum
+    && rm -rf /var/cache/yum /usr/local/src/charliecloud
 
 COPY container-files /
 
