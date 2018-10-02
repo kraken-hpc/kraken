@@ -51,7 +51,6 @@ Once you have created the mpihello.tar.gz file and it is in a place that both th
 ```bash
 #!/bin/bash
 #SBATCH --time=0:10:00
-#SBATCH -p container
 
 # Arguments: Path to tarball, path to image parent directory.
 
@@ -87,7 +86,7 @@ srun --cpus-per-task=1 ch-run "$IMG" -- /hello/hello
 Submit the job:
 
 ```shell
-sbatch -N 1 mpihello.sbatch ~/mpihello.tar.gz /var/tmp
+sbatch -p containers -N 1 mpihello.sbatch ~/mpihello.tar.gz /var/tmp
 ```
 
 Check the output:
