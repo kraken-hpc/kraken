@@ -129,6 +129,9 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 	return sse
 }
 
+// implement lib.Module
+func (*StateSyncEngine) Name() string { return "sse" }
+
 var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
 
 // RPCPhoneHome is a gRPC call.  It establishes state sync properties with a child.
@@ -158,6 +161,18 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 	// ok, proceed
 	//_, e = sse.query.SetValue(lib.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
 	// Node_SYNC should probably be propagated up?  But something needs to keep other nodes from interjecting themselves perhaps.
+	// We do this as a discovery instead...
+	url := lib.NodeURLJoin(id.String(), "/RunState")
+	ev := NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		DiscoveryEvent{
+			Module:  "sse",
+			URL:     url,
+			ValueID: "SYNC",
+		},
+	)
+	sse.EmitOne(ev)
 	sse.addNeighbor(id.String(), false)
 	msg, e := sse.nodeToMessage(n.ID().String(), n)
 	if e != nil {
@@ -640,3 +655,40 @@ func (sse *StateSyncEngine) Unsubscribe(id string) error { return sse.em.Unsubsc
 func (sse *StateSyncEngine) Emit(v []lib.Event)          { sse.em.Emit(v) }
 func (sse *StateSyncEngine) EmitOne(v lib.Event)         { sse.em.EmitOne(v) }
 func (sse *StateSyncEngine) EventType() lib.EventType    { return sse.em.EventType() }
+
+//////////
+// Init /
+////////
+
+// we need to declare a couple of mutations & discoveries
+func init() {
+	discoverables := map[string]map[string]reflect.Value{
+		"/RunState": {
+			"INIT":  reflect.ValueOf(pb.Node_INIT),
+			"SYNC":  reflect.ValueOf(pb.Node_SYNC),
+			"ERROR": reflect.ValueOf(pb.Node_ERROR),
+		},
+		"/PhysState": {
+			"HANG": reflect.ValueOf(pb.Node_PHYS_HANG),
+		},
+	}
+	mutations := map[string]lib.StateMutation{
+		"UKtoINIT": NewStateMutation(
+			map[string][2]reflect.Value{
+				"/RunState": [2]reflect.Value{
+					reflect.ValueOf(pb.Node_INIT),
+					reflect.ValueOf(pb.Node_SYNC),
+				},
+			},
+			map[string]reflect.Value{
+				"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+			},
+			map[string]reflect.Value{},
+			lib.StateMutationContext_CHILD,
+			time.Second*20, // FIXME: don't hardcode values
+			[3]string{"sse", "PhysState", "HANG"},
+		),
+	}
+	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
+	Registry.RegisterMutations(&StateSyncEngine{}, mutations)
+}
