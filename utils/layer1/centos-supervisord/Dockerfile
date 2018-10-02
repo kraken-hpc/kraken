@@ -58,7 +58,7 @@ RUN set -e \
     && make \
     && make install PREFIX=/usr/local \
     && ch-run --version \
-    && printf "export CH_TEST_TARDIR=/var/tmp/tarballs\nexport CH_TEST_IMGDIR=/var/tmp/images\nexport CH_TEST_PERMDIRS=skip\n" > /etc/profile.d/charliecloud.sh \
+#   && printf "export CH_TEST_TARDIR=/var/tmp/tarballs\nexport CH_TEST_IMGDIR=/var/tmp/images\nexport CH_TEST_PERMDIRS=skip\n" > /etc/profile.d/charliecloud.sh \
     && echo "clean_requirements_on_remove=1" >> /etc/yum.conf \
     && yum -y autoremove $SLURM_BUILD_PACKAGES epel-release \
     && yum clean all \
