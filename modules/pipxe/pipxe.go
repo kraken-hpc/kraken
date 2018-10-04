@@ -249,9 +249,10 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 
 	c, e := conn.NewUDP4FilterListener(iface, ":67")
 	if e != nil {
-		fmt.Printf("%v\n", e)
+		fmt.Printf("%v: %s\n", e, iface)
 		return
 	}
+	fmt.Printf("started DHCP listener on: %s\n", iface)
 	buffer := make([]byte, 1500)
 	netIf, _ := net.InterfaceByName(iface)
 	ac, e := arp.Dial(netIf)
@@ -401,18 +402,21 @@ func (px *PiPXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-
 }
 
 // NodeCreate creates a new node in our node pool -- concurrency safe
-func (px *PiPXE) NodeCreate(n lib.Node) {
+func (px *PiPXE) NodeCreate(n lib.Node) (e error) {
 	v := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	if len(v) != 2 {
+		return fmt.Errorf("missing ip or mac for node, aborting\n")
+	}
 	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
 	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	if ip == nil || mac == nil { // incomplete node
-		fmt.Printf("won't add incomplete node\n")
-		return
+		return fmt.Errorf("won't add incomplete node\n")
 	}
 	px.mutex.Lock()
 	px.nodeBy[queryByIP][ip.String()] = n
 	px.nodeBy[queryByMAC][mac.String()] = n
 	px.mutex.Unlock()
+	return
 }
 
 /*
@@ -433,7 +437,7 @@ var _ lib.Module = (*PiPXE)(nil)
 // NewConfig returns a fully initialized default config
 func (*PiPXE) NewConfig() proto.Message {
 	r := &pb.PiPXEConfig{
-		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface",
 		SrvIpUrl:    "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
@@ -572,7 +576,10 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 	case core.MutationEvent_MUTATE:
 		switch m.Mutation[1] {
 		case "NONEtoWAIT": // starting a new mutation, register the node
-			px.NodeCreate(m.NodeCfg)
+			if e := px.NodeCreate(m.NodeCfg); e != nil {
+				fmt.Printf("%v\n", e)
+				break
+			}
 			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), PxeURL)
 			ev := core.NewEvent(
 				lib.Event_DISCOVERY,
