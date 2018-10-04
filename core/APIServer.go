@@ -20,10 +20,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 ///////////////////////
@@ -37,6 +37,10 @@ type DiscoveryEvent struct {
 	Module  string
 	URL     string // fully qualified, with node
 	ValueID string
+}
+
+func (de *DiscoveryEvent) String() string {
+	return fmt.Sprintf("(%s) %s == %s", de.Module, de.URL, de.ValueID)
 }
 
 //////////////////////
