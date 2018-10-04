@@ -28,6 +28,11 @@ const (
 	MutationEvent_INTERRUPT pb.MutationControl_Type = pb.MutationControl_INTERRUPT
 )
 
+var MutationEventString = map[pb.MutationControl_Type]string{
+	MutationEvent_MUTATE:    "MUTATE",
+	MutationEvent_INTERRUPT: "INTERRUPT",
+}
+
 type MutationEvent struct {
 	Type pb.MutationControl_Type
 	// strictly speaking, we may only need the Cfg
@@ -35,6 +40,10 @@ type MutationEvent struct {
 	NodeCfg  lib.Node
 	NodeDsc  lib.Node
 	Mutation [2]string // [0] = module, [1] = mutid
+}
+
+func (me *MutationEvent) String() string {
+	return fmt.Sprintf("(%s) %s : %s -> %s", MutationEventString[me.Type], me.NodeCfg.ID().String(), me.Mutation[0], me.Mutation[1])
 }
 
 type mutationEdge struct {
@@ -139,32 +148,16 @@ func (sme *StateMutationEngine) NodeMatch(node lib.Node) (i int) {
 	return len(sme.nodeSearch(node))
 }
 
-func (*StateMutationEngine) dumpValueToString(v reflect.Value) (s string) {
-	switch v.Kind() {
-	case reflect.String:
-		s = v.String()
-	case reflect.Uint:
-		s = fmt.Sprintf("%d", v.Uint())
-	case reflect.Int:
-		s = fmt.Sprintf("%d", v.Int())
-	case reflect.Bool:
-		s = fmt.Sprintf("%t", v.Bool())
-	default:
-		s = fmt.Sprintf("%v", v)
-	}
-	return
-}
-
 func (sme *StateMutationEngine) dumpMapOfValues(m map[string]reflect.Value) (s string) {
 	for k := range m {
-		s += fmt.Sprintf("%s: %s, ", k, sme.dumpValueToString(m[k]))
+		s += fmt.Sprintf("%s: %s, ", k, lib.ValueToString(m[k]))
 	}
 	return
 }
 
 func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s string) {
 	for k := range m {
-		s += fmt.Sprintf("%s: %s -> %s, ", k, sme.dumpValueToString(m[k][0]), sme.dumpValueToString(m[k][1]))
+		s += fmt.Sprintf("%s: %s -> %s, ", k, lib.ValueToString(m[k][0]), lib.ValueToString(m[k][1]))
 	}
 	return
 }

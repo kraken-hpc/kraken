@@ -88,7 +88,7 @@ func (v *EventDispatchEngine) Run() {
 				v.Log(ERROR, "got empty event list")
 				break
 			} else {
-				v.Logf(DEBUG, "dispatching event: %v %v %v\n", e[0].Type(), e[0].URL(), e[0].Data())
+				v.Logf(DEBUG, "dispatching event: %s %s %v\n", lib.EventTypeString[e[0].Type()], e[0].URL(), e[0].Data())
 			}
 			go v.sendEvents(e)
 			break

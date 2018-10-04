@@ -32,11 +32,22 @@ const (
 	StateChange_DELETE StateChangeType = 3
 )
 
+var StateChangeTypeString = map[StateChangeType]string{
+	StateChange_CREATE: "CREATE",
+	StateChange_READ:   "READ",
+	StateChange_UPDATE: "UPDATE",
+	StateChange_DELETE: "DELETE",
+}
+
 // A StateChangeEvent is emitted when the StateDifferenceEngine detects a change to either Dsc or Cfg
 type StateChangeEvent struct {
 	Type  StateChangeType
 	URL   string
 	Value reflect.Value
+}
+
+func (sce *StateChangeEvent) String() string {
+	return fmt.Sprintf("(%s) %s = %s", StateChangeTypeString[sce.Type], sce.URL, lib.ValueToString(sce.Value))
 }
 
 // NewStateChangeEvent creates a new event of this time, fully specified
