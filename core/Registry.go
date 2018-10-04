@@ -47,7 +47,7 @@ func MarshalJSON(m proto.Message) ([]byte, error) {
 // UnmarshalJSON is a helper for default JSON unmarshaling
 func UnmarshalJSON(in []byte, p proto.Message) error {
 	um := &jsonpb.Unmarshaler{
-		AllowUnknownFields: true,
+		AllowUnknownFields: false,
 		AnyResolver:        Registry,
 	}
 	return um.Unmarshal(strings.NewReader(string(in)), p)
