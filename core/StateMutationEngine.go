@@ -404,7 +404,7 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 		if n != sme.graph && n.spec.NodeMatchWithMutators(startMerge, sme.mutators) {
 			gstart = append(gstart, n)
 		}
-		if n != sme.graph && n.spec.NodeMatchWithMutators(end, sme.mutators) {
+		if n != sme.graph && n.spec.NodeMatchWithMutators(end, sme.mutators) { // maybe ends can be more lenient?
 			gend = append(gend, n)
 		}
 	}
@@ -417,7 +417,16 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 
 // drijkstra implements the Drijkstra shortest path graph algorithm.
 // NOTE: An alternative would be to pre-compute trees for every node
-func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNode) *mutationPath {
+func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutationNode) *mutationPath {
+	isEnd := func(i *mutationNode) (r bool) {
+		for _, j := range gend {
+			if i == j {
+				return true
+			}
+		}
+		return
+	}
+
 	dist := make(map[*mutationNode]uint32)
 	prev := make(map[*mutationNode]*mutationEdge)
 	queue := make(map[*mutationNode]*mutationNode)
@@ -428,7 +437,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 		queue[n] = n
 	}
 
-	dist[gend] = 0
+	dist[gstart] = 0
 
 	for len(queue) > 0 {
 		min := ^uint32(0)
@@ -441,17 +450,17 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 		}
 		u := queue[idx]
 
-		if u == gstart {
+		if isEnd(u) {
 			// found it!
 			var chain []*mutationEdge
-			i := gstart
+			i := u
 			for prev[i] != nil {
-				chain = append(chain, prev[i])
-				i = prev[i].to
+				chain = append([]*mutationEdge{prev[i]}, chain...)
+				i = prev[i].from
 			}
 			path := &mutationPath{
 				gstart: gstart,
-				gend:   gend,
+				gend:   u,
 				chain:  chain,
 			}
 			return path
@@ -459,14 +468,14 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 
 		delete(queue, idx)
 
-		for _, v := range u.in {
-			if _, ok := queue[v.from]; !ok { // v should be in queue
+		for _, v := range u.out {
+			if _, ok := queue[v.to]; !ok { // v should be in queue
 				continue
 			}
 			alt := dist[u] + v.cost
-			if alt < dist[v.from] {
-				dist[v.from] = alt
-				prev[v.from] = v
+			if alt < dist[v.to] {
+				dist[v.to] = alt
+				prev[v.to] = v
 			}
 		}
 	}
@@ -488,7 +497,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
 		}
-	} else if len(ge) > 1 {
+	} /*else if len(ge) > 1 {
 		e = fmt.Errorf("could not find path: ambiguous end")
 		sme.Log(DEBUG, "could not find path: ambiguous end")
 		if sme.GetLoggerLevel() >= DDEBUG {
@@ -496,11 +505,11 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			fmt.Printf("ends: %v\n", ge)
 			sme.DumpGraph()
 		}
-	}
+	}*/
 	if e != nil {
 		return
 	}
-	path = sme.drijkstra(gs[0], ge[0])
+	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
 	path.end = end
 	path.cur = 0
@@ -551,6 +560,20 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	nid := p.start.ID()
 	d := p.chain[p.cur].mut.FailTo()
 	sme.Logf(INFO, "mutation timeout for %s, emitting: %s:%s:%s", nid.String(), d[0], d[1], d[2])
+
+	// reset all mutators to zero, except the failure mutator
+	// FIXME: setting things without discovery isn't very polite
+	node, _ := sme.query.ReadDsc(nid)
+	for m := range sme.mutators {
+		if m == d[1] {
+			continue
+		}
+		v, _ := node.GetValue(m)
+		node.SetValue(m, reflect.Zero(v.Type()))
+	}
+	sme.query.UpdateDsc(node)
+
+	// now send a discover to whatever failed state
 	url := lib.NodeURLJoin(nid.String(), d[1])
 	dv := NewEvent(
 		lib.Event_DISCOVERY,
@@ -561,6 +584,8 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 			ValueID: d[2],
 		},
 	)
+
+	// send a mutation interrupt
 	iv := NewEvent(
 		lib.Event_STATE_MUTATION,
 		url,
