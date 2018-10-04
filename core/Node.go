@@ -167,7 +167,7 @@ func (n *Node) GetValues(urls []string) (v map[string]reflect.Value) {
 	v = make(map[string]reflect.Value)
 	for _, url := range urls {
 		t, e := n.GetValue(url)
-		if e != nil {
+		if e == nil {
 			v[url] = t
 		}
 	}

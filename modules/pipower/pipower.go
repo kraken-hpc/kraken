@@ -324,6 +324,10 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
+	if len(vs) != 2 {
+		fmt.Printf("incomplete RPi3 data for power control: %v\n", vs)
+		return
+	}
 	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
@@ -338,28 +342,30 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
 			pp.mutex.Unlock()
-			url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
-			ev := core.NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				core.DiscoveryEvent{
-					Module:  pp.Name(),
-					URL:     url,
-					ValueID: "RUN_UK",
-				},
-			)
-			pp.dchan <- ev
-			url = lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
-			ev = core.NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				core.DiscoveryEvent{
-					Module:  pp.Name(),
-					URL:     url,
-					ValueID: "PXE_NONE",
-				},
-			)
-			pp.dchan <- ev
+			/*
+					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
+					ev := core.NewEvent(
+						lib.Event_DISCOVERY,
+						url,
+						&core.DiscoveryEvent{
+							Module:  pp.Name(),
+							URL:     url,
+							ValueID: "RUN_UK",
+						},
+					)
+					pp.dchan <- ev
+				url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
+				ev := core.NewEvent(
+					lib.Event_DISCOVERY,
+					url,
+					&core.DiscoveryEvent{
+						Module:  pp.Name(),
+						URL:     url,
+						ValueID: "PXE_NONE",
+					},
+				)
+				pp.dchan <- ev
+			*/
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough

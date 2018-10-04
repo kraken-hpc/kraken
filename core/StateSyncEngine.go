@@ -166,7 +166,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 	ev := NewEvent(
 		lib.Event_DISCOVERY,
 		url,
-		DiscoveryEvent{
+		&DiscoveryEvent{
 			Module:  "sse",
 			URL:     url,
 			ValueID: "SYNC",

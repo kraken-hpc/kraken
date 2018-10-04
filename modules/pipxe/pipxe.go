@@ -438,6 +438,9 @@ func (*PiPXE) NewConfig() proto.Message {
 		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
 		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Mac",
+		TftpDir:     "tftp",
+		ArpDeadline: "1s",
+		DhcpRetry:   9,
 	}
 	return r
 }
@@ -492,7 +495,7 @@ func (px *PiPXE) Entry() {
 		&core.DiscoveryEvent{
 			Module:  px.Name(),
 			URL:     url,
-			ValueID: "WAIT",
+			ValueID: "RUN",
 		},
 	)
 	px.dchan <- ev
@@ -517,6 +520,7 @@ func (px *PiPXE) Init(api lib.APIClient) {
 	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)
 	px.nodeBy[queryByIP] = make(map[string]lib.Node)
 	px.nodeBy[queryByMAC] = make(map[string]lib.Node)
+	px.cfg = px.NewConfig().(*pb.PiPXEConfig)
 }
 
 // Stop should perform a graceful exit

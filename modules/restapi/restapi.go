@@ -187,6 +187,7 @@ func (r *RestAPI) updateNode(w http.ResponseWriter, req *http.Request) {
 	if e != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(e.Error()))
+		return
 	}
 	w.Write(nn.JSON())
 }
