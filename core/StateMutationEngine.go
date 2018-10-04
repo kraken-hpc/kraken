@@ -483,13 +483,19 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	if len(ge) < 1 {
 		e = fmt.Errorf("could not find path: end not in graph")
-		fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-		sme.DumpGraph()
+		sme.Log(DEBUG, "could not find path: end not in graph")
+		if sme.GetLoggerLevel() >= DDEBUG {
+			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			sme.DumpGraph()
+		}
 	} else if len(ge) > 1 {
 		e = fmt.Errorf("could not find path: ambiguous end")
-		sme.DumpGraph()
-		fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-		fmt.Printf("ends: %v\n", ge)
+		sme.Log(DEBUG, "could not find path: ambiguous end")
+		if sme.GetLoggerLevel() >= DDEBUG {
+			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			fmt.Printf("ends: %v\n", ge)
+			sme.DumpGraph()
+		}
 	}
 	if e != nil {
 		return
