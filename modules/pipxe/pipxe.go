@@ -405,12 +405,12 @@ func (px *PiPXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-
 func (px *PiPXE) NodeCreate(n lib.Node) (e error) {
 	v := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
 	if len(v) != 2 {
-		return fmt.Errorf("missing ip or mac for node, aborting\n")
+		return fmt.Errorf("missing ip or mac for node, aborting")
 	}
 	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
 	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	if ip == nil || mac == nil { // incomplete node
-		return fmt.Errorf("won't add incomplete node\n")
+		return fmt.Errorf("won't add incomplete node: ip: %v, mac: %v", ip, mac)
 	}
 	px.mutex.Lock()
 	px.nodeBy[queryByIP][ip.String()] = n
@@ -441,7 +441,7 @@ func (*PiPXE) NewConfig() proto.Message {
 		SrvIpUrl:    "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Mac",
+		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
 		TftpDir:     "tftp",
 		ArpDeadline: "1s",
 		DhcpRetry:   9,
@@ -661,6 +661,9 @@ func init() {
 	discovers[PxeURL] = dpxe
 	discovers["/RunState"] = map[string]reflect.Value{
 		"NODE_INIT": reflect.ValueOf(cpb.Node_INIT),
+	}
+	discovers["/PhysState"] = map[string]reflect.Value{
+		"PHYS_HANG": reflect.ValueOf(cpb.Node_PHYS_HANG),
 	}
 	discovers[SrvStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
