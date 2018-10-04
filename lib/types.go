@@ -307,6 +307,7 @@ type QueryResponse interface {
 // values for specific URLs.
 type StateSpec interface {
 	NodeMatch(Node) bool
+	NodeCompat(Node) bool
 	SpecCompat(StateSpec) bool
 	SpecMerge(StateSpec) (StateSpec, error)
 	SpecMergeMust(StateSpec) StateSpec
