@@ -226,3 +226,20 @@ func (g *GenericProtoMessage) UnmarshalJSON(b []byte) error {
 	return UnmarshalJSON(b, g.m)
 }
 */
+
+// ValueToString does its best to convert values into sensible strings for printing
+func ValueToString(v reflect.Value) (s string) {
+	switch v.Kind() {
+	case reflect.String:
+		s = v.String()
+	case reflect.Uint:
+		s = fmt.Sprintf("%d", v.Uint())
+	case reflect.Int:
+		s = fmt.Sprintf("%d", v.Int())
+	case reflect.Bool:
+		s = fmt.Sprintf("%t", v.Bool())
+	default:
+		s = fmt.Sprintf("%v", v)
+	}
+	return
+}

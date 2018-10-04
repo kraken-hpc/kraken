@@ -65,12 +65,35 @@ func (s *StateSpec) NodeMatch(n lib.Node) (r bool) {
 	return
 }
 
+// NodeCompat is like NodeMatch, but if a required value is zero still matches
+func (s *StateSpec) NodeCompat(n lib.Node) (r bool) {
+	r = true
+	// Are required values correct?
+	for u, v := range s.req {
+		val, e := n.GetValue(u)
+		if e != nil || val.Interface() != v.Interface() {
+			if val.Interface() == reflect.Zero(val.Type()).Interface() { // value just isn't set?
+				continue
+			}
+			return false
+		}
+	}
+	// Are excluded values incorrect?
+	for u, v := range s.exc {
+		val, e := n.GetValue(u)
+		if e == nil && val.Interface() == v.Interface() {
+			return false
+		}
+	}
+	return
+}
+
 // NodeMatchWithMutators is like NodeMatch, but requires any mutators be present and match
 // if they are non-zero in the node
 func (s *StateSpec) NodeMatchWithMutators(n lib.Node, muts map[string]uint32) bool {
 	for m := range muts {
 		val, e := n.GetValue(m)
-		if e == nil && val.Interface() != reflect.Zero(val.Type()).Interface() {
+		if e == nil && val.IsValid() && val.Interface() != reflect.Zero(val.Type()).Interface() {
 			if v, ok := s.req[m]; ok {
 				if v.Interface() != val.Interface() {
 					return false

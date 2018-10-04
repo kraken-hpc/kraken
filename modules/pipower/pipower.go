@@ -12,7 +12,7 @@
 /*
  * This module will manipulate the PhysState state field.
  * It will be restricted to Arch = aarch64 & Platform = rpi3.
- * It requires a special nodename format: c<chass_num>n<pi_num>.
+ * This requires at least Chassis & Rank to be set in the RPi3 extension.
  * This nodename format is a key to knowing which PiPower server to talk to.
  */
 
@@ -34,8 +34,14 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/pipower/proto"
+)
+
+const (
+	ChassisURL string = "type.googleapis.com/proto.RPi3/Chassis"
+	RankURL    string = "type.googleapis.com/proto.RPi3/Rank"
 )
 
 // ppNode is the PiPower node struct
@@ -314,7 +320,15 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 		fmt.Println("got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
-	nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
+	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
+	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
+	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
+	// mostly for historical convenience
+	if len(vs) != 2 {
+		fmt.Printf("incomplete RPi3 data for power control: %v\n", vs)
+		return
+	}
+	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
 		switch me.Mutation[1] {
@@ -328,6 +342,30 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
 			pp.mutex.Unlock()
+			/*
+					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
+					ev := core.NewEvent(
+						lib.Event_DISCOVERY,
+						url,
+						&core.DiscoveryEvent{
+							Module:  pp.Name(),
+							URL:     url,
+							ValueID: "RUN_UK",
+						},
+					)
+					pp.dchan <- ev
+				url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
+				ev := core.NewEvent(
+					lib.Event_DISCOVERY,
+					url,
+					&core.DiscoveryEvent{
+						Module:  pp.Name(),
+						URL:     url,
+						ValueID: "PXE_NONE",
+					},
+				)
+				pp.dchan <- ev
+			*/
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -368,6 +406,12 @@ func init() {
 		drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 	discovers["/PhysState"] = drstate
+	discovers["/RunState"] = map[string]reflect.Value{
+		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
+	}
+	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
+		"PXE_NONE": reflect.ValueOf(pipb.RPi3_NONE),
+	}
 	discovers["/Services/pipower/State"] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 	si := core.NewServiceInstance("pipower", module.Name(), module.Entry, nil)

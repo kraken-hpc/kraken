@@ -165,6 +165,15 @@ const (
 	Event_DISCOVERY
 )
 
+var EventTypeString = map[EventType]string{
+	Event_CONTROL:        "CONTROL",
+	Event_STATE_CHANGE:   "STATE_CHANGE",
+	Event_STATE_MUTATION: "STATE_MUTATION",
+	Event_STATE_SYNC:     "STATE_SYNC",
+	Event_API:            "API",
+	Event_DISCOVERY:      "DISCOVERY",
+}
+
 // Event 's capture a happening's type, location, and optional data
 type Event interface {
 	Type() EventType   // We may need to handle event types differently
@@ -298,6 +307,7 @@ type QueryResponse interface {
 // values for specific URLs.
 type StateSpec interface {
 	NodeMatch(Node) bool
+	NodeCompat(Node) bool
 	SpecCompat(StateSpec) bool
 	SpecMerge(StateSpec) (StateSpec, error)
 	SpecMergeMust(StateSpec) StateSpec
