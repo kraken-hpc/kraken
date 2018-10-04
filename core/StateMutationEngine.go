@@ -139,6 +139,36 @@ func (sme *StateMutationEngine) NodeMatch(node lib.Node) (i int) {
 	return len(sme.nodeSearch(node))
 }
 
+func (*StateMutationEngine) dumpValueToString(v reflect.Value) (s string) {
+	switch v.Kind() {
+	case reflect.String:
+		s = v.String()
+	case reflect.Uint:
+		s = fmt.Sprintf("%d", v.Uint())
+	case reflect.Int:
+		s = fmt.Sprintf("%d", v.Int())
+	case reflect.Bool:
+		s = fmt.Sprintf("%t", v.Bool())
+	default:
+		s = fmt.Sprintf("%v", v)
+	}
+	return
+}
+
+func (sme *StateMutationEngine) dumpMapOfValues(m map[string]reflect.Value) (s string) {
+	for k := range m {
+		s += fmt.Sprintf("%s: %s, ", k, sme.dumpValueToString(m[k]))
+	}
+	return
+}
+
+func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s string) {
+	for k := range m {
+		s += fmt.Sprintf("%s: %s -> %s, ", k, sme.dumpValueToString(m[k][0]), sme.dumpValueToString(m[k][1]))
+	}
+	return
+}
+
 // DumpGraph FIXME: REMOVE -- for debugging
 func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n")
@@ -157,11 +187,11 @@ func (sme *StateMutationEngine) DumpGraph() {
 		fmt.Printf(`
 		Node: %p
 		 Spec: %p
-		  req: %v
-		  exc: %v
+		  req: %s
+		  exc: %s
 		 In: %v
 		 Out: %v
-		 `, m, m.spec, m.spec.Requires(), m.spec.Excludes(), m.in, m.out)
+		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
 	}
 	fmt.Printf("\n=== END: Node list ===\n")
 	fmt.Printf("\n=== START: Edge list ===\n")
@@ -169,12 +199,12 @@ func (sme *StateMutationEngine) DumpGraph() {
 		fmt.Printf(`
 		Edge: %p
 		 Mutation: %p
-		  mut: %v
-		  req: %v
-		  exc: %v
+		  mut: %s
+		  req: %s
+		  exc: %s
 		 From: %p
 		 To: %p
-		`, m, m.mut, m.mut.Mutates(), m.mut.Requires(), m.mut.Excludes(), m.from, m.to)
+		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
 	}
 	fmt.Printf("\n=== END: Edge list ===\n")
 }
@@ -199,7 +229,9 @@ func (sme *StateMutationEngine) Run() {
 		}
 	}
 	sme.onUpdate()
-	//sme.DumpGraph() // Use this to debug your graph
+	if sme.GetLoggerLevel() >= DDEBUG {
+		sme.DumpGraph() // Use this to debug your graph
+	}
 
 	// create a listener for state change events we care about
 	sme.selist = NewEventListener(
