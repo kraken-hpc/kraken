@@ -65,23 +65,40 @@ func (s *StateSpec) NodeMatch(n lib.Node) (r bool) {
 	return
 }
 
-// NodeCompat is like NodeMatch, but if a required value is zero still matches
-func (s *StateSpec) NodeCompat(n lib.Node) (r bool) {
+// NodeCompatWithMutators is how we find endpoints for mutation paths
+// 1) For each mutator that is in the node, the spec must be equal
+// 2) For each requires in the spec that is not a mutator, node must be equal
+// 3) For each excludes in the spec that is not a mutator, node must not be equal
+func (s *StateSpec) NodeCompatWithMutators(n lib.Node, muts map[string]uint32) (r bool) {
 	r = true
-	// Are required values correct?
-	for u, v := range s.req {
-		val, e := n.GetValue(u)
-		if e != nil || val.Interface() != v.Interface() {
-			if val.Interface() == reflect.Zero(val.Type()).Interface() { // value just isn't set?
-				continue
+	// 1) For each mutator that is in the node, the spec must be equal
+	for m := range muts {
+		v, e := n.GetValue(m)
+		if e == nil && v.IsValid() && v.Interface() != reflect.Zero(v.Type()).Interface() { // valid & non-zero
+			// must be in spec requires
+			sv, ok := s.req[m]
+			if !ok {
+				return false
 			}
+			if sv.Interface() != v.Interface() {
+				return false
+			}
+		}
+	}
+	// 2) For each requires in the spec that is not a mutator, node must be equal
+	for u, v := range s.req {
+		if _, ok := muts[u]; ok {
+			continue
+		}
+		nv, e := n.GetValue(u)
+		if e != nil || nv.Interface() != v.Interface() {
 			return false
 		}
 	}
-	// Are excluded values incorrect?
+	// 3) For each excludes in the spec that is not a mutator, node must not be equal (should this check for mutator status?)
 	for u, v := range s.exc {
-		val, e := n.GetValue(u)
-		if e == nil && val.Interface() == v.Interface() {
+		nv, e := n.GetValue(u)
+		if e == nil && nv.Interface() == v.Interface() {
 			return false
 		}
 	}

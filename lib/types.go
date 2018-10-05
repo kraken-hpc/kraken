@@ -307,14 +307,14 @@ type QueryResponse interface {
 // values for specific URLs.
 type StateSpec interface {
 	NodeMatch(Node) bool
-	NodeCompat(Node) bool
 	SpecCompat(StateSpec) bool
 	SpecMerge(StateSpec) (StateSpec, error)
 	SpecMergeMust(StateSpec) StateSpec
 	Requires() map[string]reflect.Value
 	Excludes() map[string]reflect.Value
 	Equal(StateSpec) bool
-	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)
+	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
+	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
 }
 
 // StateMutationContext specifies the context in which a mutation is activated

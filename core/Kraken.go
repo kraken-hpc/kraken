@@ -152,6 +152,7 @@ func (k *Kraken) Bootstrap() {
 	// setup the RPC listener, to be shared
 	if e := setupRPCListener(&k.Ctx.RPC); e != nil {
 		k.Logf(FATAL, "%v", e)
+		os.Exit(1)
 		return
 	}
 	k.Logf(INFO, "RPC is listening on %s:%s:%d", k.Ctx.RPC.Network, k.Ctx.RPC.Addr, k.Ctx.RPC.Port)

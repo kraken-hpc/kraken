@@ -404,7 +404,7 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 		if n != sme.graph && n.spec.NodeMatchWithMutators(startMerge, sme.mutators) {
 			gstart = append(gstart, n)
 		}
-		if n != sme.graph && n.spec.NodeMatchWithMutators(end, sme.mutators) { // maybe ends can be more lenient?
+		if n != sme.graph && n.spec.NodeCompatWithMutators(end, sme.mutators) { // ends can be more lenient
 			gend = append(gend, n)
 		}
 	}
