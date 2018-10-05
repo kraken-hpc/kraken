@@ -309,6 +309,19 @@ func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {
 	return
 }
 
+// LoggerInit initializes and RPC logger stream
+func (s *APIServer) LoggerInit(stream pb.API_LoggerInitServer) (e error) {
+	for {
+		msg, e := stream.Recv()
+		if e != nil {
+			s.Logf(INFO, "logger stream closted: %v", e)
+			break
+		}
+		s.Logf(lib.LoggerLevel(msg.Level), "%s:%s", msg.Origin, msg.Msg)
+	}
+	return
+}
+
 // Run starts the API service listener
 func (s *APIServer) Run() {
 	s.Log(INFO, "starting API")

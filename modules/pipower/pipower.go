@@ -274,26 +274,26 @@ func (pp *PiPower) fireChanges() {
 func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {
 	srv, ok := pp.cfg.Servers[c]
 	if !ok {
-		fmt.Printf("cannot control power for unknown chassis: %s\n", c)
+		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 	nlist := strings.Join(ns, ",")
 	url := "http://" + addr + "/nodes/" + nlist + cmd
 	resp, e := http.Get(url)
 	if e != nil {
-		fmt.Printf("http GET to API failed: %v\n", e)
+		pp.api.Logf(lib.LLERROR, "http GET to API failed: %v", e)
 		return
 	}
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		fmt.Printf("http GET failed to read body: %v\n", e)
+		pp.api.Logf(lib.LLERROR, "http GET failed to read body: %v", e)
 		return
 	}
 	rs := []ppNode{}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		fmt.Printf("got invalid JSON response: %v\n", e)
+		pp.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
 		return
 	}
 	for _, r := range rs {
@@ -317,7 +317,7 @@ func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]stri
 
 func (pp *PiPower) handleMutation(m lib.Event) {
 	if m.Type() != lib.Event_STATE_MUTATION {
-		fmt.Println("got an unexpected event type on mutation channel")
+		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
 	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
@@ -325,7 +325,7 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
 	if len(vs) != 2 {
-		fmt.Printf("incomplete RPi3 data for power control: %v\n", vs)
+		pp.api.Logf(lib.LLERROR, "incomplete RPi3 data for power control: %v", vs)
 		return
 	}
 	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
@@ -370,7 +370,7 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
 		default:
-			fmt.Printf("unexpected event: %s\n", me.Mutation[1])
+			pp.api.Logf(lib.LLDEBUG, "unexpected event: %s", me.Mutation[1])
 		}
 		break
 	case core.MutationEvent_INTERRUPT:

@@ -359,16 +359,16 @@ type StateMutationEngine interface {
 type LoggerLevel uint8
 
 const (
-	LLPANIC LoggerLevel = iota
-	LLFATAL
-	LLCRITICAL
-	LLERROR
-	LLWARNING
-	LLNOTICE
-	LLINFO
-	LLDEBUG
-	LLDDEBUG
-	LLDDDEBUG
+	LLPANIC    LoggerLevel = iota
+	LLFATAL    LoggerLevel = iota
+	LLCRITICAL LoggerLevel = iota
+	LLERROR    LoggerLevel = iota
+	LLWARNING  LoggerLevel = iota
+	LLNOTICE   LoggerLevel = iota
+	LLINFO     LoggerLevel = iota
+	LLDEBUG    LoggerLevel = iota
+	LLDDEBUG   LoggerLevel = iota
+	LLDDDEBUG  LoggerLevel = iota
 )
 
 var LoggerLevels = [...]string{
@@ -500,6 +500,7 @@ type ModuleWithDiscovery interface {
 }
 
 type APIClient interface {
+	Logger
 	Self() NodeID
 	QueryCreate(Node) (Node, error)
 	QueryRead(string) (Node, error)
