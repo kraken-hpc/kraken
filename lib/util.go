@@ -121,10 +121,8 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 	switch context.Kind() {
 	case reflect.Map:
 		log.Println("map resolution is not yet implemented")
-		break
 	case reflect.Ptr: // resolve pointers to their target
 		v, e = ResolveURL(url, context.Elem())
-		break
 	case reflect.Slice: // root should be a slice index
 		i, err := strconv.Atoi(root)
 		if err != nil {
@@ -134,17 +132,59 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 		if context.Len()-1 < i {
 			e = fmt.Errorf("no such slice index: %d", i)
 			return
-		} else {
-			v, e = ResolveURL(sub, context.Index(i))
 		}
-		break
+		v, e = ResolveURL(sub, context.Index(i))
 	case reflect.Struct: // root should be a field name
 		if f := context.FieldByName(root); !f.IsValid() {
 			e = fmt.Errorf("field not found in struct, %s", root)
 		} else {
 			v, e = ResolveURL(sub, f)
 		}
-		break
+	default:
+		e = fmt.Errorf("cannot resolve property, %s, in simple type, %s", root, context.Kind().String())
+	}
+	return
+}
+
+// ResolveOrMakeURL is like ResolveURL, except it will create any referenced but non-defined objects
+func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e error) {
+	if url == "" {
+		v = context
+		return
+	}
+
+	root, sub := URLShift(url)
+
+	switch context.Kind() {
+	case reflect.Map:
+		log.Println("map resolution is not yet implemented")
+	case reflect.Ptr: // resolve pointers to their target
+		if !context.Elem().IsValid() {
+			// we need to allocate an object here
+			new := reflect.New(context.Type().Elem())
+			context.Set(new)
+		}
+		v, e = ResolveOrMakeURL(url, context.Elem())
+	case reflect.Slice: // root should be a slice index
+		i, err := strconv.Atoi(root)
+		if err != nil {
+			e = fmt.Errorf("non-integer child of slice: %s", root)
+			return
+		}
+		if context.Len()-1 < i {
+			// grow the slice as needed
+			len := i + 1 - context.Len()
+			t := context.Type()
+			a := reflect.MakeSlice(t, len, len)
+			context.Set(reflect.AppendSlice(context, a))
+		}
+		v, e = ResolveOrMakeURL(sub, context.Index(i))
+	case reflect.Struct: // root should be a field name
+		if f := context.FieldByName(root); !f.IsValid() {
+			e = fmt.Errorf("field not found in struct, %s", root)
+		} else {
+			v, e = ResolveOrMakeURL(sub, f)
+		}
 	default:
 		e = fmt.Errorf("cannot resolve property, %s, in simple type, %s", root, context.Kind().String())
 	}
