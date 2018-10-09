@@ -32,37 +32,39 @@ type IPv4OverEthernet struct{}
 
 func (i IPv4OverEthernet) New() proto.Message {
 	return &pb.IPv4OverEthernet{
-		Ifaces: []*pb.IPv4OverEthernet_ConfiguredInterface{
-			&pb.IPv4OverEthernet_ConfiguredInterface{
-				Eth: &pb.Ethernet{},
-				Ip:  &pb.IPv4{},
-			},
-			&pb.IPv4OverEthernet_ConfiguredInterface{
-				Eth: &pb.Ethernet{},
-				Ip:  &pb.IPv4{},
-			},
-			&pb.IPv4OverEthernet_ConfiguredInterface{
-				Eth: &pb.Ethernet{},
-				Ip:  &pb.IPv4{},
-			},
-			&pb.IPv4OverEthernet_ConfiguredInterface{
-				Eth: &pb.Ethernet{},
-				Ip:  &pb.IPv4{},
-			},
-		},
-		Routes: []*pb.IPv4{
-			&pb.IPv4{},
-			&pb.IPv4{},
-			&pb.IPv4{},
-			&pb.IPv4{},
-		},
-		DnsNameservers: []*pb.IPv4{
-			&pb.IPv4{},
-			&pb.IPv4{},
-			&pb.IPv4{},
-			&pb.IPv4{},
-		},
-		Hostname: &pb.DNSA{Ip: &pb.IPv4{}},
+		/*
+				Ifaces: []*pb.IPv4OverEthernet_ConfiguredInterface{
+					&pb.IPv4OverEthernet_ConfiguredInterface{
+						Eth: &pb.Ethernet{},
+						Ip:  &pb.IPv4{},
+					},
+					&pb.IPv4OverEthernet_ConfiguredInterface{
+						Eth: &pb.Ethernet{},
+						Ip:  &pb.IPv4{},
+					},
+					&pb.IPv4OverEthernet_ConfiguredInterface{
+						Eth: &pb.Ethernet{},
+						Ip:  &pb.IPv4{},
+					},
+					&pb.IPv4OverEthernet_ConfiguredInterface{
+						Eth: &pb.Ethernet{},
+						Ip:  &pb.IPv4{},
+					},
+				},
+				Routes: []*pb.IPv4{
+					&pb.IPv4{},
+					&pb.IPv4{},
+					&pb.IPv4{},
+					&pb.IPv4{},
+				},
+				DnsNameservers: []*pb.IPv4{
+					&pb.IPv4{},
+					&pb.IPv4{},
+					&pb.IPv4{},
+					&pb.IPv4{},
+				},
+			Hostname: &pb.DNSA{Ip: &pb.IPv4{}},
+		*/
 	}
 }
 

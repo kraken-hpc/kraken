@@ -106,15 +106,15 @@ func (r *RestAPI) startServer() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	fmt.Printf("restapi is listening on: %s\n", r.srv.Addr)
+	r.api.Logf(lib.LLINFO, "restapi is listening on: %s\n", r.srv.Addr)
 	if e := r.srv.ListenAndServe(); e != nil {
-		fmt.Printf("Error: %v\n", e)
+		r.api.Logf(lib.LLERROR, "%v\n", e)
 	}
-	fmt.Printf("restapi listener stopped")
+	r.api.Log(lib.LLNOTICE, "restapi listener stopped")
 }
 
 func (r *RestAPI) srvStop() {
-	fmt.Println("restapi is shutting down listener")
+	r.api.Log(lib.LLNOTICE, "restapi is shutting down listener")
 	r.srv.Shutdown(context.Background())
 }
 
@@ -187,6 +187,7 @@ func (r *RestAPI) updateNode(w http.ResponseWriter, req *http.Request) {
 	if e != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(e.Error()))
+		return
 	}
 	w.Write(nn.JSON())
 }
@@ -198,7 +199,7 @@ func (r *RestAPI) updateMulti(w http.ResponseWriter, req *http.Request) {
 	var pbs cpb.NodeList
 	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
 	if e != nil {
-		fmt.Printf("unmarshal JSON error: %v\n", e)
+		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -239,7 +240,7 @@ func (r *RestAPI) updateMultiDsc(w http.ResponseWriter, req *http.Request) {
 	var pbs cpb.NodeList
 	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
 	if e != nil {
-		fmt.Printf("unmarshal JSON error: %v\n", e)
+		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -292,7 +293,7 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 	var pbs cpb.NodeList
 	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
 	if e != nil {
-		fmt.Printf("unmarshal JSON error: %v\n", e)
+		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

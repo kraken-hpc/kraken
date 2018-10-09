@@ -147,7 +147,7 @@ func (l *ServiceLogger) GetModule() string                 { return l.m }
 func (l *ServiceLogger) SetLoggerLevel(lv lib.LoggerLevel) { l.lv = lv }
 func (l *ServiceLogger) GetLoggerLevel() lib.LoggerLevel   { return l.lv }
 func (l *ServiceLogger) IsEnabledFor(lv lib.LoggerLevel) (r bool) {
-	if lv >= l.lv {
+	if lv <= l.lv {
 		return true
 	}
 	return

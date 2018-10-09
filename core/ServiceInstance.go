@@ -171,12 +171,18 @@ func ModuleExecute(id, module, sock string) {
 		return
 	}
 
+	// Setup logger stream
+	if e = api.LoggerInit(id); e != nil {
+		fmt.Printf("failed to create logger stream: %v\n", e)
+		return
+	}
+
 	// Setup mutation stream if we need it
 	mm, ok := m.(lib.ModuleWithMutations)
 	if ok {
 		cc, e := api.MutationInit(id, module)
 		if e != nil {
-			fmt.Printf("failed to create mutation stream: %v\n", e)
+			api.Logf(ERROR, "failed to create mutation stream: %v\n", e)
 			return
 		}
 		mm.SetMutationChan(cc)
@@ -187,7 +193,7 @@ func ModuleExecute(id, module, sock string) {
 	if ok {
 		cc, e := api.DiscoveryInit()
 		if e != nil {
-			fmt.Printf("failed to create discovery stream: %v\n", e)
+			api.Logf(ERROR, "failed to create discovery stream: %v\n", e)
 			return
 		}
 		md.SetDiscoveryChan(cc)
@@ -205,17 +211,17 @@ func ModuleExecute(id, module, sock string) {
 				break
 			case lib.ServiceControl_UPDATE:
 				if !config {
-					fmt.Printf("tried to update config on module with no config")
+					api.Logf(ERROR, "tried to update config on module with no config")
 					break
 				}
 				p, e := Registry.Resolve(cmd.Config.GetTypeUrl())
 				if e != nil {
-					fmt.Printf("resolve config error: %v\n", e)
+					api.Logf(ERROR, "resolve config error: %v\n", e)
 					break
 				}
 				e = ptypes.UnmarshalAny(cmd.Config, p)
 				if e != nil {
-					fmt.Printf("unmarshal config failure: %v\n", e)
+					api.Logf(ERROR, "unmarshal config failure: %v\n", e)
 					break
 				}
 				mc.UpdateConfig(p)

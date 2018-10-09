@@ -1,6 +1,7 @@
 /* pipxe.go: provides PXE-boot capabilities for Raspberry Pis
  *           this manages both DHCP and TFTP services.
  *           It incorperates some hacks to get the Rpi3B to boot consistently.
+ *			 If <file> doesn't exist, but <file>.tpl does, tftp will fill it as as template.
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -14,7 +15,9 @@
 package pipxe
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"os"
@@ -59,12 +62,13 @@ var muts = map[string]pxmut{
 		reqs:    reqs,
 		timeout: "3s",
 	},
+	/* special case has to be made manually b/c it's a double mutation
 	"WAITtoINIT": pxmut{ // this one is doesn't do any work, but provides a timeout
 		f:       rpipb.RPi3_WAIT,
 		t:       rpipb.RPi3_INIT,
 		reqs:    reqs,
 		timeout: "20s",
-	},
+	}, */
 	"INITtoCOMP": pxmut{
 		f: rpipb.RPi3_INIT,
 		t: rpipb.RPi3_COMP,
@@ -131,19 +135,19 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 	switch t {
 	case dhcp4.Discover:
 		hardwareAddr := p.CHAddr()
-		fmt.Printf("got DHCP discover from %s\n", hardwareAddr.String())
+		px.api.Logf(lib.LLDEBUG, "got DHCP discover from %s", hardwareAddr.String())
 		n := px.NodeGet(queryByMAC, hardwareAddr.String())
 		if n == nil {
-			fmt.Printf("ignoring DHCP discover from unknown %s\n", hardwareAddr.String())
+			px.api.Logf(lib.LLDEBUG, "ignoring DHCP discover from unknown %s", hardwareAddr.String())
 			return
 		}
 		v, e := n.GetValue(px.cfg.IpUrl)
 		if e != nil {
-			fmt.Printf("node does not have an IP in state %s\n", hardwareAddr.String())
+			px.api.Logf(lib.LLDEBUG, "node does not have an IP in state %s", hardwareAddr.String())
 			return
 		}
 		ip := IPv4.BytesToIP(v.Bytes())
-		fmt.Printf("sending DHCP offer of %s to %s\n", ip.String(), hardwareAddr.String())
+		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), hardwareAddr.String())
 		d = dhcp4.ReplyPacket(
 			p,
 			dhcp4.Offer,
@@ -153,6 +157,29 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 			//h.options.SelectOrderOrAll(o[dhcp4.OptionParameterRequestList]),
 			o.SelectOrderOrAll(nil),
 		)
+		// we discover PXE INIT and RunState INIT
+		url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
+		ev1 := core.NewEvent(
+			lib.Event_DISCOVERY,
+			url1,
+			core.DiscoveryEvent{
+				Module:  px.Name(),
+				URL:     url1,
+				ValueID: "INIT",
+			},
+		)
+		url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+		ev2 := core.NewEvent(
+			lib.Event_DISCOVERY,
+			url1,
+			core.DiscoveryEvent{
+				Module:  px.Name(),
+				URL:     url2,
+				ValueID: "NODE_INIT",
+			},
+		)
+		px.dchan <- ev1
+		px.dchan <- ev2
 		//d.AddOption(dhcp4.OptionHostName, []byte(l.hostname))
 		return
 	case dhcp4.Request: /* we shoudln't ever get Requests
@@ -198,7 +225,7 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 		return */
 	case dhcp4.Release: // don't need these either
 	default:
-		fmt.Println("Unhandled DHCP packet.")
+		px.api.Log(lib.LLDEBUG, "Unhandled DHCP packet.")
 	}
 	return nil
 }
@@ -222,21 +249,22 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 
 	c, e := conn.NewUDP4FilterListener(iface, ":67")
 	if e != nil {
-		fmt.Printf("%v\n", e)
+		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
+	px.api.Logf(lib.LLINFO, "started DHCP listener on: %s", iface)
 	buffer := make([]byte, 1500)
 	netIf, _ := net.InterfaceByName(iface)
 	ac, e := arp.Dial(netIf)
 	if e != nil {
-		fmt.Printf("%v\n", e)
+		px.api.Logf(lib.LLERROR, "%v", e)
 		return
 	}
 
 	for {
 		n, addr, e := c.ReadFrom(buffer)
 		if e != nil {
-			fmt.Printf("%v\n", e)
+			px.api.Logf(lib.LLERROR, "%v", e)
 		}
 		if n < 240 {
 			continue
@@ -259,7 +287,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		if res := px.ServeDHCP(req, reqType, options); res != nil {
 			ipStr, portStr, e := net.SplitHostPort(addr.String())
 			if e != nil {
-				fmt.Printf("%v\n", e)
+				px.api.Logf(lib.LLERROR, "%v", e)
 			}
 			if net.ParseIP(ipStr).Equal(net.IPv4zero) || req.Broadcast() {
 				port, _ := strconv.Atoi(portStr)
@@ -271,26 +299,26 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 				_, e = c.WriteTo(res, addr)
 			}
 			if e != nil {
-				fmt.Printf("%v\n", e)
+				px.api.Logf(lib.LLERROR, "%v", e)
 			}
 		}
 	}
-	fmt.Println("DHCP stopped.")
+	px.api.Log(lib.LLNOTICE, "DHCP stopped.")
 }
 
 // StartTFTP starts up the TFTP service
 func (px *PiPXE) StartTFTP(ip net.IP) {
-	fmt.Println("starting TFTP service")
+	px.api.Log(lib.LLNOTICE, "starting TFTP service")
 	srv := tftp.NewServer(px.writeToTFTP, nil)
 	srv.ListenAndServe(ip.String() + ":69")
-	fmt.Println("TFTP service stopped")
+	px.api.Log(lib.LLNOTICE, "TFTP service stopped")
 }
 
 func (px *PiPXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 	ip := rf.(tftp.OutgoingTransfer).RemoteAddr().IP
 	n := px.NodeGet(queryByIP, ip.String())
 	if n == nil {
-		fmt.Printf("got TFTP request from unknown node: %s\n", ip.String())
+		px.api.Logf(lib.LLDEBUG, "got TFTP request from unknown node: %s", ip.String())
 		return fmt.Errorf("got TFTP request from unknown node: %s", ip.String())
 	}
 	vs := n.GetValues([]string{"/Arch", "/Platform"})
@@ -300,14 +328,43 @@ func (px *PiPXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		vs["/Platform"].String(),
 		filename,
 	)
-	f, e := os.Open(lfile)
-	defer f.Close()
-	if e != nil {
-		fmt.Printf("no such file: %s\n", lfile)
-		return fmt.Errorf("no such file: %s", lfile)
+	var f io.Reader
+	if _, e = os.Stat(lfile); os.IsNotExist(e) {
+		if _, e = os.Stat(lfile + ".tpl"); os.IsNotExist(e) {
+			// neither file nor template exist
+			px.api.Logf(lib.LLDEBUG, "no such file: %s", lfile)
+			return fmt.Errorf("no such file: %s", lfile)
+		}
+		// file doesn't exist, but template does
+		// we could potentially make a lot more data than this available
+		type tplData struct {
+			IP       string
+			CIDR     string
+			ID       string
+			ParentIP string
+		}
+		data := tplData{}
+		i, _ := n.GetValue(px.cfg.IpUrl)
+		data.IP = IPv4.BytesToIP(i.Bytes()).String()
+		i, _ = n.GetValue(px.cfg.NmUrl)
+		data.CIDR = IPv4.BytesToIP(i.Bytes()).String()
+		data.ID = n.ID().String()
+		data.ParentIP = px.selfIP.String()
+		tpl, e := template.ParseFiles(lfile + ".tpl")
+		if e != nil {
+			px.api.Logf(lib.LLDEBUG, "template parse error: %v", e)
+			return fmt.Errorf("template parse error: %v", e)
+		}
+		f := &bytes.Buffer{}
+		tpl.Execute(f, &data)
+	} else {
+		// file exists
+		f, e = os.Open(lfile)
+		defer f.(*os.File).Close()
 	}
+
 	written, e := rf.ReadFrom(f)
-	fmt.Printf("wrote %s (%s), %d bytes\n", filename, lfile, written)
+	px.api.Logf(lib.LLDEBUG, "wrote %s (%s), %d bytes", filename, lfile, written)
 	return
 }
 
@@ -320,7 +377,7 @@ func (px *PiPXE) NodeGet(qb nodeQueryBy, q string) (n lib.Node) { // returns nil
 	var ok bool
 	px.mutex.RLock()
 	if n, ok = px.nodeBy[qb][q]; !ok {
-		fmt.Printf("tried to acquire node that doesn't exist: %s %s\n", qb, q)
+		px.api.Logf(lib.LLERROR, "tried to acquire node that doesn't exist: %s %s", qb, q)
 		px.mutex.RUnlock()
 	}
 	px.mutex.RUnlock()
@@ -345,18 +402,21 @@ func (px *PiPXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-
 }
 
 // NodeCreate creates a new node in our node pool -- concurrency safe
-func (px *PiPXE) NodeCreate(n lib.Node) {
+func (px *PiPXE) NodeCreate(n lib.Node) (e error) {
 	v := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	if len(v) != 2 {
+		return fmt.Errorf("missing ip or mac for node, aborting")
+	}
 	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
 	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	if ip == nil || mac == nil { // incomplete node
-		fmt.Printf("won't add incomplete node\n")
-		return
+		return fmt.Errorf("won't add incomplete node: ip: %v, mac: %v", ip, mac)
 	}
 	px.mutex.Lock()
 	px.nodeBy[queryByIP][ip.String()] = n
 	px.nodeBy[queryByMAC][mac.String()] = n
 	px.mutex.Unlock()
+	return
 }
 
 /*
@@ -377,11 +437,14 @@ var _ lib.Module = (*PiPXE)(nil)
 // NewConfig returns a fully initialized default config
 func (*PiPXE) NewConfig() proto.Message {
 	r := &pb.PiPXEConfig{
-		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface",
 		SrvIpUrl:    "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Mac",
+		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
+		TftpDir:     "tftp",
+		ArpDeadline: "1s",
+		DhcpRetry:   9,
 	}
 	return r
 }
@@ -436,7 +499,7 @@ func (px *PiPXE) Entry() {
 		&core.DiscoveryEvent{
 			Module:  px.Name(),
 			URL:     url,
-			ValueID: "WAIT",
+			ValueID: "RUN",
 		},
 	)
 	px.dchan <- ev
@@ -444,7 +507,7 @@ func (px *PiPXE) Entry() {
 		select {
 		case v := <-px.mchan:
 			if v.Type() != lib.Event_STATE_MUTATION {
-				fmt.Printf("got unexpected non-mutation event\n")
+				px.api.Log(lib.LLERROR, "got unexpected non-mutation event")
 				break
 			}
 			m := v.Data().(*core.MutationEvent)
@@ -461,6 +524,7 @@ func (px *PiPXE) Init(api lib.APIClient) {
 	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)
 	px.nodeBy[queryByIP] = make(map[string]lib.Node)
 	px.nodeBy[queryByMAC] = make(map[string]lib.Node)
+	px.cfg = px.NewConfig().(*pb.PiPXEConfig)
 }
 
 // Stop should perform a graceful exit
@@ -475,34 +539,34 @@ func (px *PiPXE) Stop() {
 func (px *PiPXE) transmitDhcpOffer(c dhcp4.ServeConn, ac *arp.Client, addr net.Addr, res dhcp4.Packet) {
 	deadline, _ := time.ParseDuration(px.cfg.ArpDeadline)
 	ac.SetDeadline(time.Now().Add(deadline))
-	fmt.Printf("arping %s...", res.YIAddr())
+	px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr())
 	hw, e := ac.Resolve(res.YIAddr())
 	if e == nil && hw.String() != res.CHAddr().String() {
-		fmt.Printf("address conflict, %s already in use by %s\n", res.YIAddr().String(), hw.String())
+		px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
 		return
 	}
 	if e != nil {
-		fmt.Println("no answer.")
+		px.api.Log(lib.LLDDEBUG, "no answer.")
 	}
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
-		fmt.Println("(re)transmitting DHCP offer")
+		px.api.Log(lib.LLDEBUG, "(re)transmitting DHCP offer")
 		_, e = c.WriteTo(res, addr)
 		if e != nil {
-			fmt.Printf("%v\n", e)
+			px.api.Logf(lib.LLERROR, "%v", e)
 		}
-		fmt.Printf("arping %s...", res.YIAddr().String())
+		px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr().String())
 		ac.SetDeadline(time.Now().Add(deadline))
 		hw, e := ac.Resolve(res.YIAddr())
 		if e == nil {
 			if hw.String() != res.CHAddr().String() {
-				fmt.Printf("address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
+				px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
 				continue
 			} else {
-				fmt.Printf("Got an arp match for %s on %s", res.YIAddr().String(), res.CHAddr().String())
+				px.api.Logf(lib.LLDEBUG, "Got an arp match for %s on %s", res.YIAddr().String(), res.CHAddr().String())
 				break
 			}
 		} else {
-			fmt.Println("no answer.")
+			px.api.Log(lib.LLDEBUG, "no answer.")
 		}
 	}
 }
@@ -512,7 +576,10 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 	case core.MutationEvent_MUTATE:
 		switch m.Mutation[1] {
 		case "NONEtoWAIT": // starting a new mutation, register the node
-			px.NodeCreate(m.NodeCfg)
+			if e := px.NodeCreate(m.NodeCfg); e != nil {
+				px.api.Logf(lib.LLERROR, "%v", e)
+				break
+			}
 			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), PxeURL)
 			ev := core.NewEvent(
 				lib.Event_DISCOVERY,
@@ -572,7 +639,32 @@ func init() {
 		dpxe[rpipb.RPi3_PXE_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 
+	mutations["WAITtoINIT"] = core.NewStateMutation(
+		map[string][2]reflect.Value{
+			PxeURL: [2]reflect.Value{
+				reflect.ValueOf(rpipb.RPi3_WAIT),
+				reflect.ValueOf(rpipb.RPi3_INIT),
+			},
+			"/RunState": [2]reflect.Value{
+				reflect.ValueOf(cpb.Node_UNKNOWN),
+				reflect.ValueOf(cpb.Node_INIT),
+			},
+		},
+		reqs,
+		excs,
+		lib.StateMutationContext_CHILD,
+		time.Second*20,
+		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
+	)
+	dpxe["INIT"] = reflect.ValueOf(rpipb.RPi3_INIT)
+
 	discovers[PxeURL] = dpxe
+	discovers["/RunState"] = map[string]reflect.Value{
+		"NODE_INIT": reflect.ValueOf(cpb.Node_INIT),
+	}
+	discovers["/PhysState"] = map[string]reflect.Value{
+		"PHYS_HANG": reflect.ValueOf(cpb.Node_PHYS_HANG),
+	}
 	discovers[SrvStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 	si := core.NewServiceInstance("pipxe", module.Name(), module.Entry, nil)

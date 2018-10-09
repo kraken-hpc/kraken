@@ -69,6 +69,12 @@ message DiscoveryEvent {
 
 message ReflectValue { }
 
+message LogMessage {
+    string origin = 1;
+    uint32 level = 2;
+    string msg = 3;
+}
+
 service API {
     // Query language
     // TODO: create API for bulk CRUD operations
@@ -90,4 +96,7 @@ service API {
 
     // Discovery management
     rpc DiscoveryInit(stream DiscoveryEvent) returns (google.protobuf.Empty) {}
+
+    // Logging
+    rpc LoggerInit(stream LogMessage) returns (google.protobuf.Empty) {}
 }

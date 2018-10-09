@@ -20,10 +20,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 ///////////////////////
@@ -37,6 +37,10 @@ type DiscoveryEvent struct {
 	Module  string
 	URL     string // fully qualified, with node
 	ValueID string
+}
+
+func (de *DiscoveryEvent) String() string {
+	return fmt.Sprintf("(%s) %s == %s", de.Module, de.URL, de.ValueID)
 }
 
 //////////////////////
@@ -301,6 +305,19 @@ func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {
 			dc.GetUrl(),
 			dv)
 		s.EmitOne(v)
+	}
+	return
+}
+
+// LoggerInit initializes and RPC logger stream
+func (s *APIServer) LoggerInit(stream pb.API_LoggerInitServer) (e error) {
+	for {
+		msg, e := stream.Recv()
+		if e != nil {
+			s.Logf(INFO, "logger stream closted: %v", e)
+			break
+		}
+		s.Logf(lib.LoggerLevel(msg.Level), "%s:%s", msg.Origin, msg.Msg)
 	}
 	return
 }

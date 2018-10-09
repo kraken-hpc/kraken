@@ -149,7 +149,37 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 // Returns the value, post-set (same if input if all went well)
 func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e error) {
 	var r reflect.Value
-	r, e = n.GetValue(url)
+	root, sub := lib.URLShift(url)
+	switch root {
+	case "type.googleapis.com":
+		p, sub := lib.URLShift(sub)
+		ext, ok := n.exts[lib.URLPush(root, p)]
+		if !ok {
+			// ok, if this is a type we know, we'll add it
+			extension, ok := Registry.Extensions[lib.URLPush(root, p)]
+			if !ok {
+				e = fmt.Errorf("unknown extension: %s", ext)
+				return
+			}
+			if err := n.AddExtension(extension.New()); e != nil {
+				e = fmt.Errorf("failed to add extension: %v", err)
+				return
+			}
+			// ok, new extension added...
+		}
+		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(ext))
+	case "Services":
+		p, sub := lib.URLShift(sub)
+		srv := n.GetService(p)
+		if srv == nil {
+			// we don't create services on the fly like this right now
+			e = fmt.Errorf("node does not have service instance: %s", p)
+			return
+		}
+		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(srv.Message()))
+	default:
+		r, e = lib.ResolveOrMakeURL(url, reflect.ValueOf(n.pb))
+	}
 	if e != nil {
 		return
 	}
@@ -167,7 +197,7 @@ func (n *Node) GetValues(urls []string) (v map[string]reflect.Value) {
 	v = make(map[string]reflect.Value)
 	for _, url := range urls {
 		t, e := n.GetValue(url)
-		if e != nil {
+		if e == nil {
 			v[url] = t
 		}
 	}
@@ -444,7 +474,7 @@ const nodeFixture string = `
 {
 	"id": "Ej5FZ+ibEtOkVkJmVUQAAA==",
 	"nodename": "",
-	"runState": "INIT",
+	"runState": "UNKNOWN",
 	"physState": "PHYS_UNKNOWN",
 	"arch": "",
 	"platform": "",
