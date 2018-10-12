@@ -190,7 +190,7 @@ func (pp *PiPower) Entry() {
 		&core.DiscoveryEvent{
 			Module:  pp.Name(),
 			URL:     url,
-			ValueID: "Run",
+			ValueID: "RUN",
 		},
 	)
 	// main loop

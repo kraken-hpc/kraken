@@ -673,7 +673,7 @@ func init() {
 		},
 	}
 	mutations := map[string]lib.StateMutation{
-		"UKtoINIT": NewStateMutation(
+		"INITtoSYNC": NewStateMutation(
 			map[string][2]reflect.Value{
 				"/RunState": [2]reflect.Value{
 					reflect.ValueOf(pb.Node_INIT),

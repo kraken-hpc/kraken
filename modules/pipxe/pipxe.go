@@ -127,16 +127,17 @@ type PiPXE struct {
  */
 
 // ServeDHCP is the main handler for new DHCP packets
-func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options) (d dhcp4.Packet) {
+func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options) (d dhcp4.Packet, n lib.Node) {
 	// ignore if this doesn't appear to be a Pi
-	if string([]rune(strings.ToLower(p.CHAddr().String())[0:8])) != "b8:26:eb" {
+	if string([]rune(strings.ToLower(p.CHAddr().String())[0:8])) != "b8:27:eb" {
+		px.api.Logf(lib.LLDDEBUG, "ignoring packet from non-Pi mac: %s", p.CHAddr().String())
 		return
 	}
 	switch t {
 	case dhcp4.Discover:
 		hardwareAddr := p.CHAddr()
 		px.api.Logf(lib.LLDEBUG, "got DHCP discover from %s", hardwareAddr.String())
-		n := px.NodeGet(queryByMAC, hardwareAddr.String())
+		n = px.NodeGet(queryByMAC, hardwareAddr.String())
 		if n == nil {
 			px.api.Logf(lib.LLDEBUG, "ignoring DHCP discover from unknown %s", hardwareAddr.String())
 			return
@@ -157,29 +158,7 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 			//h.options.SelectOrderOrAll(o[dhcp4.OptionParameterRequestList]),
 			o.SelectOrderOrAll(nil),
 		)
-		// we discover PXE INIT and RunState INIT
-		url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
-		ev1 := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url1,
-			core.DiscoveryEvent{
-				Module:  px.Name(),
-				URL:     url1,
-				ValueID: "INIT",
-			},
-		)
-		url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
-		ev2 := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url1,
-			core.DiscoveryEvent{
-				Module:  px.Name(),
-				URL:     url2,
-				ValueID: "NODE_INIT",
-			},
-		)
-		px.dchan <- ev1
-		px.dchan <- ev2
+
 		//d.AddOption(dhcp4.OptionHostName, []byte(l.hostname))
 		return
 	case dhcp4.Request: /* we shoudln't ever get Requests
@@ -223,11 +202,13 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 		)
 		d.AddOption(dhcp4.OptionHostName, []byte(l.hostname))
 		return */
+		fallthrough
 	case dhcp4.Release: // don't need these either
+		fallthrough
 	default:
 		px.api.Log(lib.LLDEBUG, "Unhandled DHCP packet.")
 	}
-	return nil
+	return
 }
 
 // StartDHCP starts up the DHCP service
@@ -264,13 +245,17 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	for {
 		n, addr, e := c.ReadFrom(buffer)
 		if e != nil {
-			px.api.Logf(lib.LLERROR, "%v", e)
+			px.api.Logf(lib.LLCRITICAL, "%v", e)
+			break
 		}
+		px.api.Logf(lib.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
 		if n < 240 {
+			px.api.Logf(lib.LLDDEBUG, "packet is too short: %d < 240", n)
 			continue
 		}
 		req := dhcp4.Packet(buffer[:n])
 		if req.HLen() > 16 {
+			px.api.Logf(lib.LLDDEBUG, "packet HLen too long: %d > 16", req.HLen())
 			continue
 		}
 		options := req.ParseOptions()
@@ -284,7 +269,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 			}
 		}
 		// for portability, we still defer package response decisions to the handler
-		if res := px.ServeDHCP(req, reqType, options); res != nil {
+		if res, n := px.ServeDHCP(req, reqType, options); res != nil {
 			ipStr, portStr, e := net.SplitHostPort(addr.String())
 			if e != nil {
 				px.api.Logf(lib.LLERROR, "%v", e)
@@ -294,7 +279,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 				addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
 			}
 			if reqType == dhcp4.Discover {
-				go px.transmitDhcpOffer(c, ac, addr, res)
+				go px.transmitDhcpOffer(n, c, ac, addr, res)
 			} else {
 				_, e = c.WriteTo(res, addr)
 			}
@@ -379,6 +364,7 @@ func (px *PiPXE) NodeGet(qb nodeQueryBy, q string) (n lib.Node) { // returns nil
 	if n, ok = px.nodeBy[qb][q]; !ok {
 		px.api.Logf(lib.LLERROR, "tried to acquire node that doesn't exist: %s %s", qb, q)
 		px.mutex.RUnlock()
+		return
 	}
 	px.mutex.RUnlock()
 	return
@@ -536,7 +522,7 @@ func (px *PiPXE) Stop() {
 // Unexported methods /
 //////////////////////
 
-func (px *PiPXE) transmitDhcpOffer(c dhcp4.ServeConn, ac *arp.Client, addr net.Addr, res dhcp4.Packet) {
+func (px *PiPXE) transmitDhcpOffer(n lib.Node, c dhcp4.ServeConn, ac *arp.Client, addr net.Addr, res dhcp4.Packet) {
 	deadline, _ := time.ParseDuration(px.cfg.ArpDeadline)
 	ac.SetDeadline(time.Now().Add(deadline))
 	px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr())
@@ -563,6 +549,29 @@ func (px *PiPXE) transmitDhcpOffer(c dhcp4.ServeConn, ac *arp.Client, addr net.A
 				continue
 			} else {
 				px.api.Logf(lib.LLDEBUG, "Got an arp match for %s on %s", res.YIAddr().String(), res.CHAddr().String())
+				// we discover PXE INIT and RunState INIT
+				url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
+				ev1 := core.NewEvent(
+					lib.Event_DISCOVERY,
+					url1,
+					&core.DiscoveryEvent{
+						Module:  px.Name(),
+						URL:     url1,
+						ValueID: "INIT",
+					},
+				)
+				url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+				ev2 := core.NewEvent(
+					lib.Event_DISCOVERY,
+					url1,
+					&core.DiscoveryEvent{
+						Module:  px.Name(),
+						URL:     url2,
+						ValueID: "NODE_INIT",
+					},
+				)
+				px.dchan <- ev1
+				px.dchan <- ev2
 				break
 			}
 		} else {
