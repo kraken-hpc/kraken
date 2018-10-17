@@ -535,12 +535,46 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			// this is pretty bad; lost sync with a parent
 			sse.Logf(CRITICAL, "lost sync with parent: %s", n.id.String())
 			// drop back to INIT status
-			sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			//sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			url := lib.NodeURLJoin(sse.self.String(), "/RunState")
+			ev := NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "ERROR",
+				},
+			)
+			sse.EmitOne(ev)
 			sse.delNeighbor(n.id)
 		} else {
 			// declare this node to be dead
 			// we make the declaration, and delete it from our records
-			sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			url := lib.NodeURLJoin(n.id.String(), "/RunState")
+			ev := NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "ERROR",
+				},
+			)
+			sse.EmitOne(ev)
+			url = lib.NodeURLJoin(n.id.String(), "/PhysState")
+			ev = NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "HANG",
+				},
+			)
+			sse.EmitOne(ev)
+
+			//sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
 			sse.delNeighbor(n.id)
 			sse.Logf(INFO, "a neighbor died: %s", n.id.String())
 		}

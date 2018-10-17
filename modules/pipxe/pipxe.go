@@ -340,7 +340,9 @@ func (px *PiPXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		i, _ := n.GetValue(px.cfg.IpUrl)
 		data.IP = IPv4.BytesToIP(i.Bytes()).String()
 		i, _ = n.GetValue(px.cfg.NmUrl)
-		data.CIDR = IPv4.BytesToIP(i.Bytes()).String()
+		subip := IPv4.BytesToIP(i.Bytes())
+		cidr, _ := net.IPMask(subip.To4()).Size()
+		data.CIDR = strconv.Itoa(cidr)
 		data.ID = n.ID().String()
 		data.ParentIP = px.selfIP.String()
 		tpl, e := template.ParseFiles(lfile + ".tpl")
@@ -348,8 +350,8 @@ func (px *PiPXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 			px.api.Logf(lib.LLDEBUG, "template parse error: %v", e)
 			return fmt.Errorf("template parse error: %v", e)
 		}
-		f := &bytes.Buffer{}
-		tpl.Execute(f, &data)
+		f = &bytes.Buffer{}
+		tpl.Execute(f.(io.Writer), &data)
 	} else {
 		// file exists
 		f, e = os.Open(lfile)
@@ -434,6 +436,7 @@ func (*PiPXE) NewConfig() proto.Message {
 		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface",
 		SrvIpUrl:    "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		NmUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
 		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
 		TftpDir:     "tftp",
