@@ -114,7 +114,10 @@ type PiPXE struct {
 	mchan <-chan lib.Event
 	dchan chan<- lib.Event
 
-	selfIP net.IP
+	selfIP  net.IP
+	selfNet net.IP
+
+	options dhcp4.Options
 
 	// for maintaining our list of currently booting nodes
 
@@ -156,7 +159,7 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 			ip,
 			time.Minute*5, // make configurable?
 			//h.options.SelectOrderOrAll(o[dhcp4.OptionParameterRequestList]),
-			o.SelectOrderOrAll(nil),
+			px.options.SelectOrderOrAll(nil),
 		)
 
 		//d.AddOption(dhcp4.OptionHostName, []byte(l.hostname))
@@ -214,7 +217,11 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 // StartDHCP starts up the DHCP service
 func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	options := make(dhcp4.Options)
-	options[dhcp4.OptionSubnetMask] = net.ParseIP("255.255.255.0").To4()
+	if px.selfNet.IsUnspecified() {
+		options[dhcp4.OptionSubnetMask] = net.ParseIP("255.255.255.0").To4()
+	} else {
+		options[dhcp4.OptionSubnetMask] = px.selfNet.To4()
+	}
 	options[dhcp4.OptionRouter] = ip.To4()
 	/* Uncomment for standard PXE
 	options[dhcp4.OptionNameServer] = ip.To4()
@@ -228,6 +235,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		0x6, 0x1, 0x3, 0xa, 0x4, 0x0, 0x50, 0x58, 0x45, 0x9, 0x14, 0x0, 0x0, 0x11, 0x52, 0x61,
 		0x73, 0x70, 0x62, 0x65, 0x72, 0x72, 0x79, 0x20, 0x50, 0x69, 0x20, 0x42, 0x6f, 0x6f, 0x74, 0xff}
 
+	px.options = options
 	c, e := conn.NewUDP4FilterListener(iface, ":67")
 	if e != nil {
 		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
@@ -475,6 +483,8 @@ func (px *PiPXE) Entry() {
 	nself, _ := px.api.QueryRead(px.api.Self().String())
 	v, _ := nself.GetValue(px.cfg.SrvIpUrl)
 	px.selfIP = IPv4.BytesToIP(v.Bytes())
+	v, _ = nself.GetValue(px.cfg.SubnetUrl)
+	px.selfNet = IPv4.BytesToIP(v.Bytes())
 	v, _ = nself.GetValue(px.cfg.SrvIfaceUrl)
 	go px.StartDHCP(v.String(), px.selfIP)
 	go px.StartTFTP(px.selfIP)

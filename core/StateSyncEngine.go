@@ -149,13 +149,13 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	// our one glimmer of security: are we in the correct state?
-	v, e := sse.query.GetValue(lib.NodeURLJoin(id.String(), "/RunState"))
+	v, e := sse.query.GetValueDsc(lib.NodeURLJoin(id.String(), "/RunState"))
 	if e != nil {
 		return
 	}
 	if v.Interface() != pb.Node_INIT {
-		e = fmt.Errorf("attempted phone home out-of-turn: %s", id.String())
-		sse.Logf(NOTICE, "attempted phone home out-of-turn: %s", id.String())
+		e = fmt.Errorf("attempted phone home out-of-turn: %s is %v", id.String(), v.Interface())
+		sse.Logf(NOTICE, "attempted phone home out-of-turn: %s is %v", id.String(), v.Interface())
 		return
 	}
 	// ok, proceed
@@ -174,12 +174,17 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 	)
 	sse.EmitOne(ev)
 	sse.addNeighbor(id.String(), false)
-	msg, e := sse.nodeToMessage(n.ID().String(), n)
+	cfg, e := sse.nodeToMessage(n.ID().String(), n)
+	if e != nil {
+		return
+	}
+	nd, _ := sse.query.ReadDsc(id)
+	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
 	if e != nil {
 		return
 	}
 	sse.Logf(DEBUG, "successful phone home for: %s", id.String())
-	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: sse.pool[id.String()].key, Msg: msg}, nil
+	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: sse.pool[id.String()].key, Cfg: cfg, Dsc: dsc}, nil
 }
 
 // Run is a goroutine that makes StateSyncEngine active
@@ -297,7 +302,12 @@ func (sse *StateSyncEngine) callParent(p string) {
 	sse.addNeighbor(nid.String(), true)
 	n := sse.pool[nid.String()]
 	n.key = r.Key
-	rp, e := sse.ssmToNode(r.Msg)
+	rp, e := sse.ssmToNode(r.Cfg)
+	if e != nil {
+		sse.Logf(ERROR, "malformed response from phone home: %v", e)
+		return
+	}
+	rpd, e := sse.ssmToNode(r.Dsc)
 	if e != nil {
 		sse.Logf(ERROR, "malformed response from phone home: %v", e)
 		return
@@ -306,6 +316,10 @@ func (sse *StateSyncEngine) callParent(p string) {
 		sse.Logf(CRITICAL, "we phoned home and got info about someone else: %s", rp.Node.ID().String())
 		sse.delNeighbor(nid)
 		return
+	}
+	_, e = sse.query.UpdateDsc(rpd.Node)
+	if e != nil {
+		sse.Log(ERROR, e.Error())
 	}
 	_, e = sse.query.Update(rp.Node)
 	if e != nil {
@@ -685,8 +699,8 @@ func init() {
 			},
 			map[string]reflect.Value{},
 			lib.StateMutationContext_CHILD,
-			time.Second*20, // FIXME: don't hardcode values
-			[3]string{"sse", "PhysState", "HANG"},
+			time.Second*300, // FIXME: don't hardcode values
+			[3]string{"sse", "/PhysState", "HANG"},
 		),
 	}
 	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
