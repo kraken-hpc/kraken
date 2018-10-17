@@ -24,7 +24,8 @@ message PhoneHomeRequest {
 message PhoneHomeReply {
     bytes pid = 1;
     bytes key = 2;
-    StateSyncMessage msg = 3;
+    StateSyncMessage cfg = 3;
+    StateSyncMessage dsc = 4;
 }
 
 service StateSync {

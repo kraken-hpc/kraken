@@ -31,42 +31,6 @@ type command struct {
 	Background bool
 }
 
-// This defines what will run
-var cmdList = []command{
-	// give the system 2 seconds to come to its senses
-	// shouldn't be necessary, but seems to help
-	command{
-		Cmd:        "/bbin/sleep",
-		Background: false,
-		Args:       []string{"/bbin/sleep", "2"},
-	},
-	/* we don't use dhcp with kraken
-	command{
-		Cmd:        "/bbin/dhclient",
-		Background: false,
-		Args:       []string{"/bbin/dhclient", "eth0"},
-	},
-	*/
-	command{
-		Cmd:        "/bbin/ip",
-		Background: false,
-		Args:       []string{"/bbin/ip", "addr", "add", myIP + "/" + myNet, "dev", "eth0"},
-	},
-	command{
-		Cmd:        "/bin/dssh",
-		Background: true,
-	},
-	command{
-		Cmd:        "/bin/kraken",
-		Background: true,
-		Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID},
-	},
-	command{
-		Cmd:        "/bbin/rush",
-		Background: false,
-	},
-}
-
 var myIP string
 var myNet string
 var myID string
@@ -80,28 +44,92 @@ func goExec(cmd *exec.Cmd) {
 	}
 }
 
-func kernArgs() {
-	d, e := ioutil.ReadFile(kernArgFile)
+func kernArgs(file string) {
+	d, e := ioutil.ReadFile(file)
 	if e != nil {
 		return
 	}
-	reIP := re.MustCompile("kraken_ip=(([0-9,\\.])*)")
-	reNet := re.MustCompile("kraken_net=(([0-9,\\.])*)")
-	reID := re.MustCompile("kraken_id=([0-9a-f\\-]*)")
-	reParent := re.MustCompile("kraken_parent=(([0-9,\\.])*)")
+	reIP := re.MustCompile("kraken.ip=(([0-9,\\.])*)")
+	reNet := re.MustCompile("kraken.net=(([0-9,\\.])*)")
+	reID := re.MustCompile("kraken.id=([0-9a-f\\-]*)")
+	reParent := re.MustCompile("kraken.parent=(([0-9,\\.])*)")
 
 	// This will fail badly if we don't have commandline arguments set properly
-	myIP = reIP.FindAllStringSubmatch(string(d), -1)[0][1]
-	myID = reID.FindAllStringSubmatch(string(d), -1)[0][1]
-	myNet = reNet.FindAllStringSubmatch(string(d), -1)[0][1]
-	myParent = reParent.FindAllStringSubmatch(string(d), -1)[0][1]
 
+	m := reIP.FindAllStringSubmatch(string(d), -1)
+	if len(m) >= 1 && len(m[0]) >= 2 {
+		myIP = m[0][1]
+	} else {
+		log.Fatalf("Could not get kraken.ip=?, %v\n", m)
+	}
+	m = reID.FindAllStringSubmatch(string(d), -1)
+	if len(m) >= 1 && len(m[0]) >= 2 {
+		myID = m[0][1]
+	} else {
+		log.Fatalf("Could not get kraken.id=?, %v\n", m)
+	}
+	m = reNet.FindAllStringSubmatch(string(d), -1)
+	if len(m) >= 1 && len(m[0]) >= 2 {
+		myNet = m[0][1]
+	} else {
+		log.Fatalf("Could not get kraken.net=?, %v\n", m)
+	}
+	m = reParent.FindAllStringSubmatch(string(d), -1)
+	if len(m) >= 1 && len(m[0]) >= 2 {
+		myParent = m[0][1]
+	} else {
+		log.Fatalf("Could not get kraken.parent=?, %v\n", m)
+	}
+
+	log.Printf("ID: %s IP: %s Net: %s Parent %s\n", myID, myIP, myNet, myParent)
 	return
 }
 
 func main() {
 	log.Println("starting uinit")
-	kernArgs()
+	kernArgs(kernArgFile)
+
+	// This defines what will run
+	var cmdList = []command{
+		// give the system 2 seconds to come to its senses
+		// shouldn't be necessary, but seems to help
+		command{
+			Cmd:        "/bbin/sleep",
+			Background: false,
+			Args:       []string{"/bbin/sleep", "2"},
+		},
+		/* we don't use dhcp with kraken
+		command{
+			Cmd:        "/bbin/dhclient",
+			Background: false,
+			Args:       []string{"/bbin/dhclient", "eth0"},
+		},
+		*/
+		command{
+			Cmd:        "/bbin/ip",
+			Background: false,
+			Args:       []string{"/bbin/ip", "addr", "add", myIP + "/" + myNet, "dev", "eth0"},
+		},
+		command{
+			Cmd:        "/bbin/ip",
+			Background: false,
+			Args:       []string{"/bbin/ip", "link", "set", "eth0", "up"},
+		},
+		command{
+			Cmd:        "/bin/dssh",
+			Background: true,
+		},
+		command{
+			Cmd:        "/bin/kraken",
+			Background: true,
+			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID},
+		},
+		command{
+			Cmd:        "/bbin/elvish",
+			Background: false,
+		},
+	}
+
 	envs := os.Environ()
 	os.MkdirAll(ioDir, os.ModeDir&ioMode)
 	var cmds []*exec.Cmd

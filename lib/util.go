@@ -47,6 +47,14 @@ func MessageDiff(a, b proto.Message, pre string) (r []string, e error) {
 }
 
 func diffStruct(a, b reflect.Value, pre string) (r []string, e error) {
+	if !a.IsValid() || !b.IsValid() {
+		e = fmt.Errorf("diffStruct called on invalid value(s)")
+		return
+	}
+	if a.Type() != b.Type() {
+		e = fmt.Errorf("diffStruct called on mismatched values types: %s vs %s", a.Type(), b.Type())
+		return
+	}
 	for i := 0; i < a.NumField(); i++ {
 		f := a.Type().Field(i)
 		if f.Name == "Extensions" || f.Name == "Services" || f.Name == "Children" || f.Name == "Parents" || strings.HasPrefix(f.Name, "XXX_") {
