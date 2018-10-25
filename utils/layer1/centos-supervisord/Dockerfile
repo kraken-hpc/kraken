@@ -12,9 +12,9 @@ LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
       maintainer="Paul Peltz Jr."
 
 # Variables to use for SLURM install
-ARG SLURM_VERSION=slurm-17.11.10
-ARG SLURM_DOWNLOAD_MD5=f9004260013d2edc60eea49038ca0eb8
-ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.10.tar.bz2
+ARG SLURM_VERSION=slurm-17.11.12
+ARG SLURM_DOWNLOAD_MD5=94fb13b509d23fcf9733018d6c961ca9
+ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.12.tar.bz2
 ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl git"
 ARG SLURMD_PACKAGES="slurm-17.11* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
 
