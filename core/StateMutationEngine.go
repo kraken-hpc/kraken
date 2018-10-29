@@ -639,6 +639,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
 		m.cur++
+		m.timer.Stop()
 		// are we done?
 		if len(m.chain) <= m.cur {
 			// all done!
