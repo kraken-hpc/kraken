@@ -206,10 +206,10 @@ func main() {
 		case v := <-echan:
 			_, url := lib.NodeURLSplit(v.URL())
 			if v.Type() == lib.Event_STATE_CHANGE && sclist_re.Match([]byte(url)) {
-				fmt.Printf("got event, need to update services: %v\n", v)
+				k.Logf(lib.LLDEBUG, "got event, need to update services: %v\n", v)
 				me, e := qe.Read(k.Ctx.Self)
 				if e != nil {
-					fmt.Printf("I seem to have forgotten myself!")
+					k.Logf(lib.LLERROR, "I seem to have forgotten myself!")
 					panic("amnesia")
 				}
 				emitDiscoveries(k.Ctx.Services.SyncNode(me))

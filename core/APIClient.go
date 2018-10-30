@@ -74,7 +74,7 @@ func (a *APIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 
@@ -112,7 +112,7 @@ func (a *APIClient) QueryDelete(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 

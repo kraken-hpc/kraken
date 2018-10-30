@@ -134,6 +134,7 @@ func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
 	b, _ := core.MarshalJSON(&rsp)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
 
@@ -149,6 +150,7 @@ func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
 	b, _ := core.MarshalJSON(&rsp)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
 
@@ -160,6 +162,7 @@ func (r *RestAPI) readNode(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(n.JSON())
 }
 
@@ -171,6 +174,7 @@ func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(n.JSON())
 }
 
@@ -189,6 +193,7 @@ func (r *RestAPI) updateNode(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(nn.JSON())
 }
 
@@ -212,6 +217,7 @@ func (r *RestAPI) updateMulti(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	b, _ := core.MarshalJSON(&rsp)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
 
@@ -230,6 +236,7 @@ func (r *RestAPI) updateNodeDsc(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(nn.JSON())
 }
 
@@ -253,6 +260,7 @@ func (r *RestAPI) updateMultiDsc(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	b, _ := core.MarshalJSON(&rsp)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
 
@@ -265,6 +273,7 @@ func (r *RestAPI) deleteNode(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(n.JSON())
 }
 
@@ -283,6 +292,7 @@ func (r *RestAPI) createNode(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(nn.JSON())
 }
 
@@ -306,6 +316,7 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	b, _ := core.MarshalJSON(&rsp)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
 

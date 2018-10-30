@@ -179,6 +179,8 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	nd, _ := sse.query.ReadDsc(id)
+	// in case the event hasn't been processed yet
+	nd.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
 	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
 	if e != nil {
 		return
@@ -733,7 +735,7 @@ func init() {
 			},
 			map[string]reflect.Value{},
 			lib.StateMutationContext_CHILD,
-			time.Second*300, // FIXME: don't hardcode values
+			time.Second*180, // FIXME: don't hardcode values
 			[3]string{"sse", "/PhysState", "HANG"},
 		),
 	}

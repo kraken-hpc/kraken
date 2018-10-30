@@ -60,7 +60,7 @@ var muts = map[string]pxmut{
 		f:       rpipb.RPi3_NONE,
 		t:       rpipb.RPi3_WAIT,
 		reqs:    reqs,
-		timeout: "3s",
+		timeout: "10s",
 	},
 	/* special case has to be made manually b/c it's a double mutation
 	"WAITtoINIT": pxmut{ // this one is doesn't do any work, but provides a timeout
@@ -78,7 +78,7 @@ var muts = map[string]pxmut{
 			"/PhysState": reflect.ValueOf(cpb.Node_POWER_ON),
 			"/RunState":  reflect.ValueOf(cpb.Node_SYNC),
 		},
-		timeout: "30s",
+		timeout: "180s",
 	},
 }
 
@@ -303,7 +303,10 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 func (px *PiPXE) StartTFTP(ip net.IP) {
 	px.api.Log(lib.LLNOTICE, "starting TFTP service")
 	srv := tftp.NewServer(px.writeToTFTP, nil)
-	srv.ListenAndServe(ip.String() + ":69")
+	e := srv.ListenAndServe(ip.String() + ":69")
+	if e != nil {
+		px.api.Logf(lib.LLCRITICAL, "TFTP failed to start: %v", e)
+	}
 	px.api.Log(lib.LLNOTICE, "TFTP service stopped")
 }
 
@@ -440,8 +443,8 @@ func (*PiPXE) NewConfig() proto.Message {
 		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
 		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
 		TftpDir:     "tftp",
-		ArpDeadline: "1s",
-		DhcpRetry:   9,
+		ArpDeadline: "500ms",
+		DhcpRetry:   30,
 	}
 	return r
 }
@@ -631,7 +634,10 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 			px.dchan <- ev
 		}
 	case core.MutationEvent_INTERRUPT: // on any interrupt, we remove the node
-		v, _ := m.NodeCfg.GetValue(px.cfg.IpUrl)
+		v, e := m.NodeCfg.GetValue(px.cfg.IpUrl)
+		if e != nil || !v.IsValid() {
+			break
+		}
 		ip := IPv4.BytesToIP(v.Bytes())
 		px.NodeDelete(queryByIP, ip.String())
 	}
@@ -675,7 +681,7 @@ func init() {
 		reqs,
 		excs,
 		lib.StateMutationContext_CHILD,
-		time.Second*20,
+		time.Second*90,
 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
 	)
 	dpxe["INIT"] = reflect.ValueOf(rpipb.RPi3_INIT)
