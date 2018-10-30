@@ -85,7 +85,7 @@ func (ss *ServiceInstance) GetState() lib.ServiceState {
 		return lib.Service_STOP
 	}
 	if ss.cmd.Process != nil {
-		fmt.Printf("cmd.Process.Pid: %d\n", ss.cmd.Process.Pid)
+		//fmt.Printf("cmd.Process.Pid: %d\n", ss.cmd.Process.Pid)
 		// is it running?
 		p, _ := os.FindProcess(ss.cmd.Process.Pid)
 		if p.Pid < 1 { // we get a negative pid for non-existent
