@@ -123,10 +123,17 @@ func (ar *ARPResolver) Start() {
 				}
 				ar.queue = ar.queue[1:]
 			}
+			if len(ar.queue) > 0 {
+				timer.Reset(ar.queue[0].TimeoutOn.Sub(time.Now()))
+			} else {
+				timer.Reset(ar.timeout)
+			}
 		case req := <-ar.c: // got a new request
 			req.TimeoutOn = time.Now().Add(ar.timeout)
 			ar.queue = append(ar.queue, req)
-			ar.sendARP(req.IP)
+			if e = ar.sendARP(req.IP); e != nil {
+				fmt.Println(e)
+			}
 			break
 		case p := <-readChan: // we got a response
 			for i := range ar.queue {
