@@ -81,7 +81,8 @@ func (ar *ARPResolver) Start() {
 		var e error
 		var eth layers.Ethernet
 		var arp layers.ARP
-		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &arp)
+		var payload gopacket.Payload
+		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &arp, &payload)
 		decoded := []gopacket.LayerType{}
 		for {
 			buf, _, e = ar.h.ReadPacketData()
