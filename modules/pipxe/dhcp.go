@@ -68,6 +68,12 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		return
 	}
 	defer px.rawHandle.Close()
+	// restrict our socket a bit
+	px.rawHandle.SetDirection(pcap.DirectionOut)
+	// this may not really be necessary.  we currently never read from this
+	if e = px.rawHandle.SetBPFFilter("ip proto udp"); e != nil {
+		px.api.Logf(lib.LLERROR, "failed to set BPF on raw socket: %v", e)
+	}
 
 	// We use this packetconn to read from
 	nc, e := net.ListenPacket("udp4", ":67")
