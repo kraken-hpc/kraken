@@ -195,7 +195,7 @@ func (*PiPXE) NewConfig() proto.Message {
 		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
 		TftpDir:     "tftp",
 		ArpDeadline: "500ms",
-		DhcpRetry:   30,
+		DhcpRetry:   3,
 	}
 	return r
 }
