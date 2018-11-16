@@ -16,6 +16,8 @@ package pipxe
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"html/template"
 	"io"
@@ -27,6 +29,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/krolaw/dhcp4"
@@ -119,6 +125,9 @@ type PiPXE struct {
 
 	options dhcp4.Options
 
+	iface     *net.Interface
+	rawHandle *pcap.Handle
+
 	// for maintaining our list of currently booting nodes
 
 	mutex  sync.RWMutex
@@ -130,7 +139,7 @@ type PiPXE struct {
  */
 
 // ServeDHCP is the main handler for new DHCP packets
-func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options) (d dhcp4.Packet, n lib.Node) {
+func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options) (d dhcp4.Packet, n lib.Node, raw []byte) {
 	// ignore if this doesn't appear to be a Pi
 	if string([]rune(strings.ToLower(p.CHAddr().String())[0:8])) != "b8:27:eb" {
 		px.api.Logf(lib.LLDDEBUG, "ignoring packet from non-Pi mac: %s", p.CHAddr().String())
@@ -152,6 +161,11 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 		}
 		ip := IPv4.BytesToIP(v.Bytes())
 		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), hardwareAddr.String())
+
+		if rai, ok := o[dhcp4.OptionRelayAgentInformation]; ok {
+			px.options[dhcp4.OptionRelayAgentInformation] = rai
+		}
+
 		d = dhcp4.ReplyPacket(
 			p,
 			dhcp4.Offer,
@@ -160,6 +174,15 @@ func (px *PiPXE) ServeDHCP(p dhcp4.Packet, t dhcp4.MessageType, o dhcp4.Options)
 			time.Minute*5, // make configurable?
 			//h.options.SelectOrderOrAll(o[dhcp4.OptionParameterRequestList]),
 			px.options.SelectOrderOrAll(nil),
+		)
+
+		raw = px.replyPacket(
+			p,
+			layers.DHCPMsgTypeOffer,
+			px.selfIP.To4(),
+			ip,
+			time.Minute*5,
+			layers.DHCPOptions{},
 		)
 
 		//d.AddOption(dhcp4.OptionHostName, []byte(l.hostname))
@@ -236,6 +259,17 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		0x73, 0x70, 0x62, 0x65, 0x72, 0x72, 0x79, 0x20, 0x50, 0x69, 0x20, 0x42, 0x6f, 0x6f, 0x74, 0xff}
 
 	px.options = options
+	var e error
+	px.iface, e = net.InterfaceByName(iface)
+	if e != nil {
+		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
+		return
+	}
+	px.rawHandle, e = pcap.OpenLive(px.iface.Name, 1024, false, (30 * time.Second))
+	if e != nil {
+		panic(e)
+	}
+
 	c, e := conn.NewUDP4FilterListener(iface, ":67")
 	if e != nil {
 		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
@@ -277,17 +311,19 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 			}
 		}
 		// for portability, we still defer package response decisions to the handler
-		if res, n := px.ServeDHCP(req, reqType, options); res != nil {
+		if res, n, raw := px.ServeDHCP(req, reqType, options); res != nil {
 			ipStr, portStr, e := net.SplitHostPort(addr.String())
 			if e != nil {
 				px.api.Logf(lib.LLERROR, "%v", e)
 			}
 			if net.ParseIP(ipStr).Equal(net.IPv4zero) || req.Broadcast() {
-				port, _ := strconv.Atoi(portStr)
-				addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
+				// 	port, _ := strconv.Atoi(portStr)
+				// 	addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
 			}
+			port, _ := strconv.Atoi(portStr)
+			addr = &net.UDPAddr{IP: res.CIAddr(), Port: port}
 			if reqType == dhcp4.Discover {
-				go px.transmitDhcpOffer(n, c, ac, addr, res)
+				go px.transmitDhcpOffer(n, c, ac, addr, res, raw)
 			} else {
 				_, e = c.WriteTo(res, addr)
 			}
@@ -538,27 +574,132 @@ func (px *PiPXE) Stop() {
 // Unexported methods /
 //////////////////////
 
-func (px *PiPXE) transmitDhcpOffer(n lib.Node, c dhcp4.ServeConn, ac *arp.Client, addr net.Addr, res dhcp4.Packet) {
+func (px *PiPXE) replyPacket(p dhcp4.Packet, msgType layers.DHCPMsgType, selfIP net.IP, destIP net.IP, leaseTimeDuration time.Duration, dhcpOptions layers.DHCPOptions) []byte {
+	piMac := p.CHAddr()
+	randToken := make([]byte, 2)
+	rand.Read(randToken)
+	leaseTime := make([]byte, 4)
+	binary.BigEndian.PutUint32(leaseTime, uint32(leaseTimeDuration.Seconds()))
+
+	o := layers.DHCPOptions{
+		layers.DHCPOption{Type: layers.DHCPOptMessageType, Length: 1, Data: []byte{0x02}},
+		layers.DHCPOption{Type: layers.DHCPOptServerID, Length: 4, Data: selfIP.To4()},
+		layers.DHCPOption{Type: layers.DHCPOptLeaseTime, Length: 4, Data: leaseTime},
+		layers.DHCPOption{Type: layers.DHCPOptSubnetMask, Length: 4, Data: net.ParseIP("255.255.255.0").To4()},
+		layers.DHCPOption{Type: layers.DHCPOptRouter, Length: 4, Data: selfIP.To4()},
+		layers.DHCPOption{Type: layers.DHCPOptClassID, Length: 9, Data: []byte{0x50, 0x58, 0x45, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74}},
+		layers.DHCPOption{Type: layers.DHCPOptVendorOption, Length: 32, Data: []byte{
+			0x6, 0x1, 0x3, 0xa, 0x4, 0x0, 0x50, 0x58, 0x45, 0x9, 0x14, 0x0, 0x0, 0x11, 0x52, 0x61,
+			0x73, 0x70, 0x62, 0x65, 0x72, 0x72, 0x79, 0x20, 0x50, 0x69, 0x20, 0x42, 0x6f, 0x6f, 0x74, 0xff}},
+	}
+
+	dhcp := &layers.DHCPv4{
+		Operation:    layers.DHCPOpReply,
+		HardwareType: layers.LinkTypeEthernet,
+		HardwareLen:  6,
+		Xid:          binary.BigEndian.Uint32(p.XId()),
+		Secs:         0,
+		Flags:        0x0000,
+		ClientIP:     net.IPv4zero,
+		YourClientIP: destIP.To4(),
+		NextServerIP: net.IPv4zero,
+		RelayAgentIP: net.IPv4zero,
+		ClientHWAddr: piMac,
+		ServerName:   []byte{},
+		File:         []byte{},
+		Options:      o,
+	}
+
+	udp := &layers.UDP{
+		SrcPort: 67,
+		DstPort: 68,
+	}
+
+	ipv4 := &layers.IPv4{
+		Version:    4,
+		IHL:        20,
+		TOS:        0x00,
+		Id:         binary.BigEndian.Uint16(randToken),
+		Flags:      0x00,
+		FragOffset: 0x00,
+		TTL:        64,
+		Protocol:   layers.IPProtocolUDP,
+		SrcIP:      selfIP,
+		DstIP:      destIP,
+		// DstIP: net.ParseIP("255.255.255.255"),
+	}
+
+	err := udp.SetNetworkLayerForChecksum(ipv4)
+
+	eth := &layers.Ethernet{
+		SrcMAC:       px.iface.HardwareAddr,
+		DstMAC:       piMac,
+		EthernetType: layers.EthernetTypeIPv4,
+	}
+
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{
+		FixLengths:       true,
+		ComputeChecksums: true,
+	}
+	err = gopacket.SerializeLayers(buf, opts, eth, ipv4, udp, dhcp)
+	// err := dhcp.SerializeTo(buf, opts)
+	if err != nil {
+		panic(err)
+	}
+
+	// fmt.Println(hex.Dump(buf.Bytes()))
+	// fmt.Println(hex.EncodeToString(buf.Bytes()))
+
+	// udp := &layers.UDP{
+	// 	SrcPort: layers.udp
+	// }
+
+	// h := hex.EncodeToString(buf.Bytes())
+
+	// fmt.Println(h)
+	// handle, err := pcap.OpenLive("en5", 1024, false, (30 * time.Second))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// err = handle.WritePacketData(buf.Bytes())
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	return buf.Bytes()
+
+}
+
+func (px *PiPXE) transmitDhcpOffer(n lib.Node, c dhcp4.ServeConn, ac *arp.Client, addr net.Addr, res dhcp4.Packet, raw []byte) {
 	deadline, _ := time.ParseDuration(px.cfg.ArpDeadline)
 	ac.SetDeadline(time.Now().Add(deadline))
 	px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr())
-	hw, e := ac.Resolve(res.YIAddr())
-	if e == nil && hw.String() != res.CHAddr().String() {
-		px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
-		return
-	}
-	if e != nil {
-		px.api.Log(lib.LLDDEBUG, "no answer.")
-	}
+	// hw, e := ac.Resolve(res.YIAddr())
+	// if e == nil && hw.String() != res.CHAddr().String() {
+	// 	px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
+	// 	return
+	// }
+	// if e != nil {
+	// 	px.api.Log(lib.LLDDEBUG, "no answer.")
+	// }
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
 		px.api.Log(lib.LLDEBUG, "(re)transmitting DHCP offer")
-		_, e = c.WriteTo(res, addr)
-		if e != nil {
-			px.api.Logf(lib.LLERROR, "%v", e)
+		// _, e = c.WriteTo(res, addr)
+		// if e != nil {
+		// 	px.api.Logf(lib.LLERROR, "%v", e)
+		// }
+
+		err := px.rawHandle.WritePacketData(raw)
+		if err != nil {
+			panic(err)
 		}
+
 		px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr().String())
 		ac.SetDeadline(time.Now().Add(deadline))
-		hw, e := ac.Resolve(res.YIAddr())
+		// hw, e := ac.Resolve(res.YIAddr())
+		hw := res.CHAddr()
+		var e error
 		if e == nil {
 			if hw.String() != res.CHAddr().String() {
 				px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
