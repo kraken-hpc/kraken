@@ -165,6 +165,15 @@ const (
 	Event_DISCOVERY
 )
 
+var EventTypeString = map[EventType]string{
+	Event_CONTROL:        "CONTROL",
+	Event_STATE_CHANGE:   "STATE_CHANGE",
+	Event_STATE_MUTATION: "STATE_MUTATION",
+	Event_STATE_SYNC:     "STATE_SYNC",
+	Event_API:            "API",
+	Event_DISCOVERY:      "DISCOVERY",
+}
+
 // Event 's capture a happening's type, location, and optional data
 type Event interface {
 	Type() EventType   // We may need to handle event types differently
@@ -304,7 +313,8 @@ type StateSpec interface {
 	Requires() map[string]reflect.Value
 	Excludes() map[string]reflect.Value
 	Equal(StateSpec) bool
-	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)
+	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
+	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
 }
 
 // StateMutationContext specifies the context in which a mutation is activated
@@ -349,16 +359,16 @@ type StateMutationEngine interface {
 type LoggerLevel uint8
 
 const (
-	LLPANIC LoggerLevel = iota
-	LLFATAL
-	LLCRITICAL
-	LLERROR
-	LLWARNING
-	LLNOTICE
-	LLINFO
-	LLDEBUG
-	LLDDEBUG
-	LLDDDEBUG
+	LLPANIC    LoggerLevel = iota
+	LLFATAL    LoggerLevel = iota
+	LLCRITICAL LoggerLevel = iota
+	LLERROR    LoggerLevel = iota
+	LLWARNING  LoggerLevel = iota
+	LLNOTICE   LoggerLevel = iota
+	LLINFO     LoggerLevel = iota
+	LLDEBUG    LoggerLevel = iota
+	LLDDEBUG   LoggerLevel = iota
+	LLDDDEBUG  LoggerLevel = iota
 )
 
 var LoggerLevels = [...]string{
@@ -490,6 +500,7 @@ type ModuleWithDiscovery interface {
 }
 
 type APIClient interface {
+	Logger
 	Self() NodeID
 	QueryCreate(Node) (Node, error)
 	QueryRead(string) (Node, error)

@@ -14,9 +14,10 @@ message PiPXEConfig {
     string srv_iface_url = 1; // interface DHCP/TFTP listen on
     string srv_ip_url = 2; // interface DHCP/TFTP listen on
     string ip_url = 3;
-    string mac_url = 4;
-    string subnet_url = 5;
-    string tftp_dir = 6;
-    string arp_deadline = 7;
-    uint32 dhcp_retry = 8;
+    string nm_url = 4;
+    string mac_url = 5;
+    string subnet_url = 6;
+    string tftp_dir = 7;
+    string arp_deadline = 8;
+    uint32 dhcp_retry = 9;
 }

@@ -129,6 +129,9 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 	return sse
 }
 
+// implement lib.Module
+func (*StateSyncEngine) Name() string { return "sse" }
+
 var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
 
 // RPCPhoneHome is a gRPC call.  It establishes state sync properties with a child.
@@ -146,25 +149,44 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	// our one glimmer of security: are we in the correct state?
-	v, e := sse.query.GetValue(lib.NodeURLJoin(id.String(), "/RunState"))
+	v, e := sse.query.GetValueDsc(lib.NodeURLJoin(id.String(), "/RunState"))
 	if e != nil {
 		return
 	}
 	if v.Interface() != pb.Node_INIT {
-		e = fmt.Errorf("attempted phone home out-of-turn: %s", id.String())
-		sse.Logf(NOTICE, "attempted phone home out-of-turn: %s", id.String())
+		e = fmt.Errorf("attempted phone home out-of-turn: %s is %v", id.String(), v.Interface())
+		sse.Logf(NOTICE, "attempted phone home out-of-turn: %s is %v", id.String(), v.Interface())
 		return
 	}
 	// ok, proceed
 	//_, e = sse.query.SetValue(lib.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
 	// Node_SYNC should probably be propagated up?  But something needs to keep other nodes from interjecting themselves perhaps.
+	// We do this as a discovery instead...
+	url := lib.NodeURLJoin(id.String(), "/RunState")
+	ev := NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&DiscoveryEvent{
+			Module:  "sse",
+			URL:     url,
+			ValueID: "SYNC",
+		},
+	)
+	sse.EmitOne(ev)
 	sse.addNeighbor(id.String(), false)
-	msg, e := sse.nodeToMessage(n.ID().String(), n)
+	cfg, e := sse.nodeToMessage(n.ID().String(), n)
+	if e != nil {
+		return
+	}
+	nd, _ := sse.query.ReadDsc(id)
+	// in case the event hasn't been processed yet
+	nd.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
+	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
 	if e != nil {
 		return
 	}
 	sse.Logf(DEBUG, "successful phone home for: %s", id.String())
-	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: sse.pool[id.String()].key, Msg: msg}, nil
+	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: sse.pool[id.String()].key, Cfg: cfg, Dsc: dsc}, nil
 }
 
 // Run is a goroutine that makes StateSyncEngine active
@@ -282,7 +304,12 @@ func (sse *StateSyncEngine) callParent(p string) {
 	sse.addNeighbor(nid.String(), true)
 	n := sse.pool[nid.String()]
 	n.key = r.Key
-	rp, e := sse.ssmToNode(r.Msg)
+	rp, e := sse.ssmToNode(r.Cfg)
+	if e != nil {
+		sse.Logf(ERROR, "malformed response from phone home: %v", e)
+		return
+	}
+	rpd, e := sse.ssmToNode(r.Dsc)
 	if e != nil {
 		sse.Logf(ERROR, "malformed response from phone home: %v", e)
 		return
@@ -291,6 +318,10 @@ func (sse *StateSyncEngine) callParent(p string) {
 		sse.Logf(CRITICAL, "we phoned home and got info about someone else: %s", rp.Node.ID().String())
 		sse.delNeighbor(nid)
 		return
+	}
+	_, e = sse.query.UpdateDsc(rpd.Node)
+	if e != nil {
+		sse.Log(ERROR, e.Error())
 	}
 	_, e = sse.query.Update(rp.Node)
 	if e != nil {
@@ -506,12 +537,46 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			// this is pretty bad; lost sync with a parent
 			sse.Logf(CRITICAL, "lost sync with parent: %s", n.id.String())
 			// drop back to INIT status
-			sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			//sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			url := lib.NodeURLJoin(sse.self.String(), "/RunState")
+			ev := NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "ERROR",
+				},
+			)
+			sse.EmitOne(ev)
 			sse.delNeighbor(n.id)
 		} else {
 			// declare this node to be dead
 			// we make the declaration, and delete it from our records
-			sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			url := lib.NodeURLJoin(n.id.String(), "/RunState")
+			ev := NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "ERROR",
+				},
+			)
+			sse.EmitOne(ev)
+			url = lib.NodeURLJoin(n.id.String(), "/PhysState")
+			ev = NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&DiscoveryEvent{
+					Module:  "sse",
+					URL:     url,
+					ValueID: "HANG",
+				},
+			)
+			sse.EmitOne(ev)
+
+			//sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
 			sse.delNeighbor(n.id)
 			sse.Logf(INFO, "a neighbor died: %s", n.id.String())
 		}
@@ -640,3 +705,40 @@ func (sse *StateSyncEngine) Unsubscribe(id string) error { return sse.em.Unsubsc
 func (sse *StateSyncEngine) Emit(v []lib.Event)          { sse.em.Emit(v) }
 func (sse *StateSyncEngine) EmitOne(v lib.Event)         { sse.em.EmitOne(v) }
 func (sse *StateSyncEngine) EventType() lib.EventType    { return sse.em.EventType() }
+
+//////////
+// Init /
+////////
+
+// we need to declare a couple of mutations & discoveries
+func init() {
+	discoverables := map[string]map[string]reflect.Value{
+		"/RunState": {
+			"INIT":  reflect.ValueOf(pb.Node_INIT),
+			"SYNC":  reflect.ValueOf(pb.Node_SYNC),
+			"ERROR": reflect.ValueOf(pb.Node_ERROR),
+		},
+		"/PhysState": {
+			"HANG": reflect.ValueOf(pb.Node_PHYS_HANG),
+		},
+	}
+	mutations := map[string]lib.StateMutation{
+		"INITtoSYNC": NewStateMutation(
+			map[string][2]reflect.Value{
+				"/RunState": [2]reflect.Value{
+					reflect.ValueOf(pb.Node_INIT),
+					reflect.ValueOf(pb.Node_SYNC),
+				},
+			},
+			map[string]reflect.Value{
+				"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+			},
+			map[string]reflect.Value{},
+			lib.StateMutationContext_CHILD,
+			time.Second*180, // FIXME: don't hardcode values
+			[3]string{"sse", "/PhysState", "HANG"},
+		),
+	}
+	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
+	Registry.RegisterMutations(&StateSyncEngine{}, mutations)
+}

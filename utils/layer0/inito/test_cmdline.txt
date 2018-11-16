@@ -1,0 +1,1 @@
+console=ttys0,115200 console=tty1 root=/dev/ram0 kraken.net=24 kraken.id=123e4567-e89b-12d3-a456-426655440001 kraken.ip=10.11.12.10 kraken.parent=10.11.12.1 quiet elevator=deadline

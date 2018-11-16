@@ -47,6 +47,14 @@ func MessageDiff(a, b proto.Message, pre string) (r []string, e error) {
 }
 
 func diffStruct(a, b reflect.Value, pre string) (r []string, e error) {
+	if !a.IsValid() || !b.IsValid() {
+		e = fmt.Errorf("diffStruct called on invalid value(s)")
+		return
+	}
+	if a.Type() != b.Type() {
+		e = fmt.Errorf("diffStruct called on mismatched values types: %s vs %s", a.Type(), b.Type())
+		return
+	}
 	for i := 0; i < a.NumField(); i++ {
 		f := a.Type().Field(i)
 		if f.Name == "Extensions" || f.Name == "Services" || f.Name == "Children" || f.Name == "Parents" || strings.HasPrefix(f.Name, "XXX_") {
@@ -121,10 +129,8 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 	switch context.Kind() {
 	case reflect.Map:
 		log.Println("map resolution is not yet implemented")
-		break
 	case reflect.Ptr: // resolve pointers to their target
 		v, e = ResolveURL(url, context.Elem())
-		break
 	case reflect.Slice: // root should be a slice index
 		i, err := strconv.Atoi(root)
 		if err != nil {
@@ -134,17 +140,59 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 		if context.Len()-1 < i {
 			e = fmt.Errorf("no such slice index: %d", i)
 			return
-		} else {
-			v, e = ResolveURL(sub, context.Index(i))
 		}
-		break
+		v, e = ResolveURL(sub, context.Index(i))
 	case reflect.Struct: // root should be a field name
 		if f := context.FieldByName(root); !f.IsValid() {
 			e = fmt.Errorf("field not found in struct, %s", root)
 		} else {
 			v, e = ResolveURL(sub, f)
 		}
-		break
+	default:
+		e = fmt.Errorf("cannot resolve property, %s, in simple type, %s", root, context.Kind().String())
+	}
+	return
+}
+
+// ResolveOrMakeURL is like ResolveURL, except it will create any referenced but non-defined objects
+func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e error) {
+	if url == "" {
+		v = context
+		return
+	}
+
+	root, sub := URLShift(url)
+
+	switch context.Kind() {
+	case reflect.Map:
+		log.Println("map resolution is not yet implemented")
+	case reflect.Ptr: // resolve pointers to their target
+		if !context.Elem().IsValid() {
+			// we need to allocate an object here
+			new := reflect.New(context.Type().Elem())
+			context.Set(new)
+		}
+		v, e = ResolveOrMakeURL(url, context.Elem())
+	case reflect.Slice: // root should be a slice index
+		i, err := strconv.Atoi(root)
+		if err != nil {
+			e = fmt.Errorf("non-integer child of slice: %s", root)
+			return
+		}
+		if context.Len()-1 < i {
+			// grow the slice as needed
+			len := i + 1 - context.Len()
+			t := context.Type()
+			a := reflect.MakeSlice(t, len, len)
+			context.Set(reflect.AppendSlice(context, a))
+		}
+		v, e = ResolveOrMakeURL(sub, context.Index(i))
+	case reflect.Struct: // root should be a field name
+		if f := context.FieldByName(root); !f.IsValid() {
+			e = fmt.Errorf("field not found in struct, %s", root)
+		} else {
+			v, e = ResolveOrMakeURL(sub, f)
+		}
 	default:
 		e = fmt.Errorf("cannot resolve property, %s, in simple type, %s", root, context.Kind().String())
 	}
@@ -226,3 +274,20 @@ func (g *GenericProtoMessage) UnmarshalJSON(b []byte) error {
 	return UnmarshalJSON(b, g.m)
 }
 */
+
+// ValueToString does its best to convert values into sensible strings for printing
+func ValueToString(v reflect.Value) (s string) {
+	switch v.Kind() {
+	case reflect.String:
+		s = v.String()
+	case reflect.Uint:
+		s = fmt.Sprintf("%d", v.Uint())
+	case reflect.Int:
+		s = fmt.Sprintf("%d", v.Int())
+	case reflect.Bool:
+		s = fmt.Sprintf("%t", v.Bool())
+	default:
+		s = fmt.Sprintf("%v", v)
+	}
+	return
+}

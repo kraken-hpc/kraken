@@ -28,6 +28,11 @@ const (
 	MutationEvent_INTERRUPT pb.MutationControl_Type = pb.MutationControl_INTERRUPT
 )
 
+var MutationEventString = map[pb.MutationControl_Type]string{
+	MutationEvent_MUTATE:    "MUTATE",
+	MutationEvent_INTERRUPT: "INTERRUPT",
+}
+
 type MutationEvent struct {
 	Type pb.MutationControl_Type
 	// strictly speaking, we may only need the Cfg
@@ -35,6 +40,10 @@ type MutationEvent struct {
 	NodeCfg  lib.Node
 	NodeDsc  lib.Node
 	Mutation [2]string // [0] = module, [1] = mutid
+}
+
+func (me *MutationEvent) String() string {
+	return fmt.Sprintf("(%s) %s : %s -> %s", MutationEventString[me.Type], me.NodeCfg.ID().String(), me.Mutation[0], me.Mutation[1])
 }
 
 type mutationEdge struct {
@@ -139,6 +148,20 @@ func (sme *StateMutationEngine) NodeMatch(node lib.Node) (i int) {
 	return len(sme.nodeSearch(node))
 }
 
+func (sme *StateMutationEngine) dumpMapOfValues(m map[string]reflect.Value) (s string) {
+	for k := range m {
+		s += fmt.Sprintf("%s: %s, ", k, lib.ValueToString(m[k]))
+	}
+	return
+}
+
+func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s string) {
+	for k := range m {
+		s += fmt.Sprintf("%s: %s -> %s, ", k, lib.ValueToString(m[k][0]), lib.ValueToString(m[k][1]))
+	}
+	return
+}
+
 // DumpGraph FIXME: REMOVE -- for debugging
 func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n")
@@ -157,11 +180,11 @@ func (sme *StateMutationEngine) DumpGraph() {
 		fmt.Printf(`
 		Node: %p
 		 Spec: %p
-		  req: %v
-		  exc: %v
+		  req: %s
+		  exc: %s
 		 In: %v
 		 Out: %v
-		 `, m, m.spec, m.spec.Requires(), m.spec.Excludes(), m.in, m.out)
+		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
 	}
 	fmt.Printf("\n=== END: Node list ===\n")
 	fmt.Printf("\n=== START: Edge list ===\n")
@@ -169,12 +192,12 @@ func (sme *StateMutationEngine) DumpGraph() {
 		fmt.Printf(`
 		Edge: %p
 		 Mutation: %p
-		  mut: %v
-		  req: %v
-		  exc: %v
+		  mut: %s
+		  req: %s
+		  exc: %s
 		 From: %p
 		 To: %p
-		`, m, m.mut, m.mut.Mutates(), m.mut.Requires(), m.mut.Excludes(), m.from, m.to)
+		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
 	}
 	fmt.Printf("\n=== END: Edge list ===\n")
 }
@@ -199,7 +222,9 @@ func (sme *StateMutationEngine) Run() {
 		}
 	}
 	sme.onUpdate()
-	//sme.DumpGraph() // Use this to debug your graph
+	if sme.GetLoggerLevel() >= DDEBUG {
+		sme.DumpGraph() // Use this to debug your graph
+	}
 
 	// create a listener for state change events we care about
 	sme.selist = NewEventListener(
@@ -379,7 +404,7 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 		if n != sme.graph && n.spec.NodeMatchWithMutators(startMerge, sme.mutators) {
 			gstart = append(gstart, n)
 		}
-		if n != sme.graph && n.spec.NodeMatchWithMutators(end, sme.mutators) {
+		if n != sme.graph && n.spec.NodeCompatWithMutators(end, sme.mutators) { // ends can be more lenient
 			gend = append(gend, n)
 		}
 	}
@@ -392,7 +417,16 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 
 // drijkstra implements the Drijkstra shortest path graph algorithm.
 // NOTE: An alternative would be to pre-compute trees for every node
-func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNode) *mutationPath {
+func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutationNode) *mutationPath {
+	isEnd := func(i *mutationNode) (r bool) {
+		for _, j := range gend {
+			if i == j {
+				return true
+			}
+		}
+		return
+	}
+
 	dist := make(map[*mutationNode]uint32)
 	prev := make(map[*mutationNode]*mutationEdge)
 	queue := make(map[*mutationNode]*mutationNode)
@@ -403,7 +437,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 		queue[n] = n
 	}
 
-	dist[gend] = 0
+	dist[gstart] = 0
 
 	for len(queue) > 0 {
 		min := ^uint32(0)
@@ -416,17 +450,17 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 		}
 		u := queue[idx]
 
-		if u == gstart {
+		if isEnd(u) {
 			// found it!
 			var chain []*mutationEdge
-			i := gstart
+			i := u
 			for prev[i] != nil {
-				chain = append(chain, prev[i])
-				i = prev[i].to
+				chain = append([]*mutationEdge{prev[i]}, chain...)
+				i = prev[i].from
 			}
 			path := &mutationPath{
 				gstart: gstart,
-				gend:   gend,
+				gend:   u,
 				chain:  chain,
 			}
 			return path
@@ -434,14 +468,14 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend *mutationNo
 
 		delete(queue, idx)
 
-		for _, v := range u.in {
-			if _, ok := queue[v.from]; !ok { // v should be in queue
+		for _, v := range u.out {
+			if _, ok := queue[v.to]; !ok { // v should be in queue
 				continue
 			}
 			alt := dist[u] + v.cost
-			if alt < dist[v.from] {
-				dist[v.from] = alt
-				prev[v.from] = v
+			if alt < dist[v.to] {
+				dist[v.to] = alt
+				prev[v.to] = v
 			}
 		}
 	}
@@ -458,18 +492,24 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	if len(ge) < 1 {
 		e = fmt.Errorf("could not find path: end not in graph")
-		fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-		sme.DumpGraph()
-	} else if len(ge) > 1 {
+		sme.Log(DEBUG, "could not find path: end not in graph")
+		if sme.GetLoggerLevel() >= DDEBUG {
+			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			sme.DumpGraph()
+		}
+	} /*else if len(ge) > 1 {
 		e = fmt.Errorf("could not find path: ambiguous end")
-		sme.DumpGraph()
-		fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-		fmt.Printf("ends: %v\n", ge)
-	}
+		sme.Log(DEBUG, "could not find path: ambiguous end")
+		if sme.GetLoggerLevel() >= DDEBUG {
+			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			fmt.Printf("ends: %v\n", ge)
+			sme.DumpGraph()
+		}
+	}*/
 	if e != nil {
 		return
 	}
-	path = sme.drijkstra(gs[0], ge[0])
+	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
 	path.end = end
 	path.cur = 0
@@ -520,6 +560,20 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	nid := p.start.ID()
 	d := p.chain[p.cur].mut.FailTo()
 	sme.Logf(INFO, "mutation timeout for %s, emitting: %s:%s:%s", nid.String(), d[0], d[1], d[2])
+
+	// reset all mutators to zero, except the failure mutator
+	// FIXME: setting things without discovery isn't very polite
+	node, _ := sme.query.ReadDsc(nid)
+	for m := range sme.mutators {
+		if m == d[1] {
+			continue
+		}
+		v, _ := node.GetValue(m)
+		node.SetValue(m, reflect.Zero(v.Type()))
+	}
+	sme.query.UpdateDsc(node)
+
+	// now send a discover to whatever failed state
 	url := lib.NodeURLJoin(nid.String(), d[1])
 	dv := NewEvent(
 		lib.Event_DISCOVERY,
@@ -530,6 +584,8 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 			ValueID: d[2],
 		},
 	)
+
+	// send a mutation interrupt
 	iv := NewEvent(
 		lib.Event_STATE_MUTATION,
 		url,
@@ -583,6 +639,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
 		m.cur++
+		m.timer.Stop()
 		// are we done?
 		if len(m.chain) <= m.cur {
 			// all done!

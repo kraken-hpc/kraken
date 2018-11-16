@@ -13,9 +13,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
 	"time"
 
+	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
 
@@ -152,6 +154,7 @@ func (k *Kraken) Bootstrap() {
 	// setup the RPC listener, to be shared
 	if e := setupRPCListener(&k.Ctx.RPC); e != nil {
 		k.Logf(FATAL, "%v", e)
+		os.Exit(1)
 		return
 	}
 	k.Logf(INFO, "RPC is listening on %s:%s:%d", k.Ctx.RPC.Network, k.Ctx.RPC.Addr, k.Ctx.RPC.Port)
@@ -183,6 +186,17 @@ func (k *Kraken) Run() {
 	go k.Sme.Run()
 	go k.Api.Run()
 
+	if len(k.Ctx.Parents) < 1 {
+		// set our own runstate and phystate, should we discover these instead?
+		n, _ := k.Ctx.Query.ReadDsc(k.Ctx.Self)
+		dn, _ := k.Ctx.Query.ReadDsc(k.Ctx.Self)
+		n.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))
+		dn.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))
+		n.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
+		dn.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
+		k.Ctx.Query.UpdateDsc(dn)
+		k.Ctx.Query.Update(n)
+	}
 }
 
 ////////////////////////

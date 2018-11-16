@@ -19,16 +19,18 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	"google.golang.org/grpc"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
+	"google.golang.org/grpc"
 )
 
 var _ lib.APIClient = (*APIClient)(nil)
 
 type APIClient struct {
-	sock string
-	self lib.NodeID
+	sock    string
+	self    lib.NodeID
+	logChan chan LoggerEvent
+	log     lib.Logger
 }
 
 func NewAPIClient(sock string) *APIClient {
@@ -72,7 +74,7 @@ func (a *APIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 
@@ -110,7 +112,7 @@ func (a *APIClient) QueryDelete(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 
@@ -228,19 +230,55 @@ func (a *APIClient) DiscoveryInit() (c chan<- lib.Event, e error) {
 	go func() {
 		for {
 			v := <-cc
-			de := v.Data().(*DiscoveryEvent)
+			de, ok := v.Data().(*DiscoveryEvent)
+			if !ok {
+				a.Logf(ERROR, "got event that is not *DiscoveryEvent: %v", v.Data())
+				continue
+			}
 			d := &pb.DiscoveryEvent{
 				Module:  de.Module,
 				Url:     de.URL,
 				ValueId: de.ValueID,
 			}
 			if e = stream.Send(d); e != nil {
-				fmt.Printf("got stream send error on discovery stream: %v\n", e)
+				a.Logf(CRITICAL, "got stream send error on discovery stream: %v\n", e)
 				return
 			}
 		}
 	}()
 	c = cc
+	return
+}
+
+func (a *APIClient) LoggerInit(si string) (e error) {
+	var stream pb.API_LoggerInitClient
+	var conn *grpc.ClientConn
+	if conn, e = grpc.Dial(a.sock, grpc.WithInsecure()); e != nil {
+		return
+	}
+	client := pb.NewAPIClient(conn)
+	if stream, e = client.LoggerInit(context.Background()); e != nil {
+		return
+	}
+	a.logChan = make(chan LoggerEvent)
+	a.log = &ServiceLogger{}
+	a.log.SetLoggerLevel(lib.LLDDDEBUG)
+	a.log.SetModule(si)
+	a.log.(*ServiceLogger).RegisterChannel(a.logChan)
+	go func() {
+		for {
+			l := <-a.logChan
+			msg := &pb.LogMessage{
+				Origin: l.Module,
+				Level:  uint32(l.Level),
+				Msg:    l.Message,
+			}
+			if e = stream.Send(msg); e != nil {
+				fmt.Printf("got stream send error on logger stream: %v\n", e)
+				return
+			}
+		}
+	}()
 	return
 }
 
@@ -299,4 +337,25 @@ func (a *APIClient) serverStream(call string, in reflect.Value) (out grpc.Client
 	}
 	out = r[0].Interface().(grpc.ClientStream)
 	return
+}
+
+////////////////////////////
+// Passthrough Interfaces /
+//////////////////////////
+
+/*
+ * Consume Logger
+ */
+var _ lib.Logger = (*APIClient)(nil)
+
+func (a *APIClient) Log(level lib.LoggerLevel, m string) { a.log.Log(level, m) }
+func (a *APIClient) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+	a.log.Logf(level, fmt, v...)
+}
+func (a *APIClient) SetModule(name string)                { a.log.SetModule(name) }
+func (a *APIClient) GetModule() string                    { return a.log.GetModule() }
+func (a *APIClient) SetLoggerLevel(level lib.LoggerLevel) { a.log.SetLoggerLevel(level) }
+func (a *APIClient) GetLoggerLevel() lib.LoggerLevel      { return a.log.GetLoggerLevel() }
+func (a *APIClient) IsEnabledFor(level lib.LoggerLevel) bool {
+	return a.log.IsEnabledFor(level)
 }
