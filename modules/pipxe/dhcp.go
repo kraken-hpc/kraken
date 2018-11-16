@@ -101,15 +101,17 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	decoded := []gopacket.LayerType{}
 	// main read loop
 	for {
-		n, cm, addr, e := c.ReadFrom(buffer)
+		n, _, addr, e := c.ReadFrom(buffer)
 		if e != nil {
 			px.api.Logf(lib.LLCRITICAL, "%v", e)
 			break
 		}
-		if cm.IfIndex != px.iface.Index {
+		/* FIXME: This appears to be broken, we disable for now
+		if cm == nil || cm.IfIndex != px.iface.Index {
 			// ignore packets not intended for our interface
 			break
 		}
+		*/
 		px.api.Logf(lib.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
 		if n < 240 {
 			px.api.Logf(lib.LLDDEBUG, "packet is too short: %d < 240", n)
