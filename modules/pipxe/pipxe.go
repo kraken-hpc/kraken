@@ -104,6 +104,7 @@ type PiPXE struct {
 	selfIP  net.IP
 	selfNet net.IP
 
+	arp       *ARPResolver
 	options   layers.DHCPOptions
 	leaseTime time.Duration
 

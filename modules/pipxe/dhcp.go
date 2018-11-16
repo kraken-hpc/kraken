@@ -12,6 +12,7 @@ package pipxe
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -61,6 +62,15 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		return
 	}
 
+	// We use an ARPResolver
+	d, e := time.ParseDuration(px.cfg.ArpDeadline)
+	if e != nil {
+		px.api.Logf(lib.LLERROR, "invalid arp duration: %v", e)
+		d = time.Millisecond * 500
+	}
+	px.arp = NewARPResolver(px.iface, px.selfIP, d)
+	go px.arp.Start()
+
 	// We need the raw handle to send unicast packet replies
 	px.rawHandle, e = pcap.OpenLive(px.iface.Name, 1024, false, (30 * time.Second))
 	if e != nil {
@@ -71,7 +81,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	// restrict our socket a bit
 	px.rawHandle.SetDirection(pcap.DirectionOut)
 	// this may not really be necessary.  we currently never read from this
-	if e = px.rawHandle.SetBPFFilter("ip proto udp"); e != nil {
+	if e = px.rawHandle.SetBPFFilter("udp and port 67"); e != nil {
 		px.api.Logf(lib.LLERROR, "failed to set BPF on raw socket: %v", e)
 	}
 
@@ -126,30 +136,6 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		}
 
 		go px.handleDHCPRequest(req)
-
-		/*
-			// for portability, we still defer package response decisions to the handler
-			if res, n, raw := px.ServeDHCP(req, reqType, options); res != nil {
-				ipStr, portStr, e := net.SplitHostPort(addr.String())
-				if e != nil {
-					px.api.Logf(lib.LLERROR, "%v", e)
-				}
-				if net.ParseIP(ipStr).Equal(net.IPv4zero) || req.Broadcast() {
-					// 	port, _ := strconv.Atoi(portStr)
-					// 	addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
-				}
-				port, _ := strconv.Atoi(portStr)
-				addr = &net.UDPAddr{IP: res.CIAddr(), Port: port}
-				if reqType == dhcp4.Discover {
-					go px.transmitDHCPOffer(n, c, ac, addr, res, raw)
-				} else {
-					_, e = c.WriteTo(res, addr)
-				}
-				if e != nil {
-					px.api.Logf(lib.LLERROR, "%v", e)
-				}
-			}
-		*/
 	}
 	px.api.Log(lib.LLNOTICE, "DHCP stopped.")
 }
@@ -200,7 +186,7 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 			layers.DHCPOptions{},
 		)
 
-		px.transmitDHCPOffer(n, r)
+		px.transmitDHCPOffer(n, ip, p.ClientHWAddr, r)
 		return
 	default: // Pi's only send Discovers
 		px.api.Log(lib.LLDEBUG, "Unhandled DHCP packet.")
@@ -283,63 +269,47 @@ func (px *PiPXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 	return buf.Bytes()
 }
 
-func (px *PiPXE) transmitDHCPOffer(n lib.Node, raw []byte) {
-	//deadline, _ := time.ParseDuration(px.cfg.ArpDeadline)
-	//ac.SetDeadline(time.Now().Add(deadline))
-	//px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr())
-	// hw, e := ac.Resolve(res.YIAddr())
-	// if e == nil && hw.String() != res.CHAddr().String() {
-	// 	px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
-	// 	return
-	// }
-	// if e != nil {
-	// 	px.api.Log(lib.LLDDEBUG, "no answer.")
-	// }
+func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, raw []byte) error {
+	var rmac net.HardwareAddr
+	var e error
+	rmac, e = px.arp.Resolve(ip)
+	if e == nil && rmac.String() != mac.String() {
+		return fmt.Errorf("IP address conflict: %s is in use by %s", ip.String(), rmac.String())
+	}
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
-		px.api.Log(lib.LLDEBUG, "(re)transmitting DHCP offer")
-		// _, e = c.WriteTo(res, addr)
-		// if e != nil {
-		// 	px.api.Logf(lib.LLERROR, "%v", e)
-		// }
+		px.api.Logf(lib.LLDEBUG, "transmitting DHCP offer (attempt: %d)", i+1)
 
-		err := px.rawHandle.WritePacketData(raw)
-		if err != nil {
-			panic(err)
+		e = px.rawHandle.WritePacketData(raw)
+		if e != nil {
+			return e
 		}
 
-		//px.api.Logf(lib.LLDEBUG, "arping %s...", res.YIAddr().String())
-		//ac.SetDeadline(time.Now().Add(deadline))
-		// hw, e := ac.Resolve(res.YIAddr())
-		/*
-			if hw.String() != res.CHAddr().String() {
-				px.api.Logf(lib.LLERROR, "address conflict, %s already in use by %s", res.YIAddr().String(), hw.String())
-				continue
-			} else { */
-		// px.api.Logf(lib.LLDEBUG, "Got an arp match for %s on %s", res.YIAddr().String(), res.CHAddr().String())
-		// we discover PXE INIT and RunState INIT
-		url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
-		ev1 := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url1,
-			&core.DiscoveryEvent{
-				Module:  px.Name(),
-				URL:     url1,
-				ValueID: "INIT",
-			},
-		)
-		url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
-		ev2 := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url1,
-			&core.DiscoveryEvent{
-				Module:  px.Name(),
-				URL:     url2,
-				ValueID: "NODE_INIT",
-			},
-		)
-		px.dchan <- ev1
-		px.dchan <- ev2
-		break
-		//	}
+		_, e = px.arp.Resolve(ip)
+		if e == nil {
+			url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
+			ev1 := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url1,
+				&core.DiscoveryEvent{
+					Module:  px.Name(),
+					URL:     url1,
+					ValueID: "INIT",
+				},
+			)
+			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+			ev2 := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url1,
+				&core.DiscoveryEvent{
+					Module:  px.Name(),
+					URL:     url2,
+					ValueID: "NODE_INIT",
+				},
+			)
+			px.dchan <- ev1
+			px.dchan <- ev2
+			return nil
+		}
 	}
+	return fmt.Errorf("client did not take DHCP offer")
 }
