@@ -66,7 +66,7 @@ func (ar *ARPResolver) Chan() chan<- ARPRequest {
 
 func (ar *ARPResolver) Start() {
 	var e error
-	if ar.h, e = pcap.OpenLive(ar.iface.Name, 1500, false, time.Second); e != nil {
+	if ar.h, e = pcap.OpenLive(ar.iface.Name, 1500, false, pcap.BlockForever); e != nil {
 		fmt.Println(e)
 		return
 	}
