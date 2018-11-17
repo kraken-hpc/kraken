@@ -74,7 +74,7 @@ func (a *APIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 
@@ -112,7 +112,7 @@ func (a *APIClient) QueryDelete(id string) (r lib.Node, e error) {
 	if e != nil {
 		return
 	}
-	r = NewNodeFromMessage(rv.Interface().(*pb.Node))
+	r = NewNodeFromMessage(rv.Interface().(*pb.Query).GetNode())
 	return
 }
 
@@ -230,14 +230,18 @@ func (a *APIClient) DiscoveryInit() (c chan<- lib.Event, e error) {
 	go func() {
 		for {
 			v := <-cc
-			de := v.Data().(*DiscoveryEvent)
+			de, ok := v.Data().(*DiscoveryEvent)
+			if !ok {
+				a.Logf(ERROR, "got event that is not *DiscoveryEvent: %v", v.Data())
+				continue
+			}
 			d := &pb.DiscoveryEvent{
 				Module:  de.Module,
 				Url:     de.URL,
 				ValueId: de.ValueID,
 			}
 			if e = stream.Send(d); e != nil {
-				fmt.Printf("got stream send error on discovery stream: %v\n", e)
+				a.Logf(CRITICAL, "got stream send error on discovery stream: %v\n", e)
 				return
 			}
 		}
