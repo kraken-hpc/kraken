@@ -12,11 +12,11 @@ LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
       maintainer="Paul Peltz Jr."
 
 # Variables to use for SLURM install
-ARG SLURM_VERSION=slurm-17.11.12
-ARG SLURM_DOWNLOAD_MD5=94fb13b509d23fcf9733018d6c961ca9
-ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.12.tar.bz2
+ARG SLURM_VERSION=slurm-18.08.3
+ARG SLURM_DOWNLOAD_MD5=a52d8f857ec5a58b2605b643a99dcc71
+ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-18.08.3.tar.bz2
 ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl git"
-ARG SLURMD_PACKAGES="slurm-17.11* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
+ARG SLURMD_PACKAGES="slurm-${SLURM_VERSION}* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
 
 # Variables for services to run persistently within the layer1
 ARG RUNNING_SERVICE_PACKAGES="munge openssh-server ntp rsyslog"
