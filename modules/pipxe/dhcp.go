@@ -62,14 +62,16 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		return
 	}
 
-	// We use an ARPResolver
-	d, e := time.ParseDuration(px.cfg.ArpDeadline)
-	if e != nil {
-		px.api.Logf(lib.LLERROR, "invalid arp duration: %v", e)
-		d = time.Millisecond * 500
-	}
-	px.arp = NewARPResolver(px.iface, px.selfIP, d)
-	go px.arp.Start()
+	/*
+		// We use an ARPResolver
+		d, e := time.ParseDuration(px.cfg.ArpDeadline)
+		if e != nil {
+			px.api.Logf(lib.LLERROR, "invalid arp duration: %v", e)
+			d = time.Millisecond * 500
+		}
+		px.arp = NewARPResolver(px.iface, px.selfIP, d)
+		go px.arp.Start()
+	*/
 
 	// We need the raw handle to send unicast packet replies
 	px.rawHandle, e = pcap.OpenLive(px.iface.Name, 1024, false, (30 * time.Second))
@@ -272,12 +274,14 @@ func (px *PiPXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 }
 
 func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, raw []byte) error {
-	var rmac net.HardwareAddr
+	//var rmac net.HardwareAddr
 	var e error
-	rmac, e = px.arp.Resolve(ip)
-	if e == nil && rmac.String() != mac.String() {
-		return fmt.Errorf("IP address conflict: %s is in use by %s", ip.String(), rmac.String())
-	}
+	/*
+		rmac, e = px.arp.Resolve(ip)
+		if e == nil && rmac.String() != mac.String() {
+			return fmt.Errorf("IP address conflict: %s is in use by %s", ip.String(), rmac.String())
+		}
+	*/
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
 		px.api.Logf(lib.LLDEBUG, "transmitting DHCP offer (attempt: %d)", i+1)
 
@@ -286,7 +290,7 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 			return e
 		}
 
-		_, e = px.arp.Resolve(ip)
+		//_, e = px.arp.Resolve(ip)
 		if e == nil {
 			url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
 			ev1 := core.NewEvent(
