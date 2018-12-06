@@ -22,7 +22,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	corepb "github.com/hpc/kraken/core/proto"
+	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 	"github.com/hpc/kraken/lib/ipmi"
 	pb "github.com/hpc/kraken/modules/ipmipower/proto"
@@ -34,19 +34,42 @@ var _ lib.ModuleWithConfig = (*Ipmipower)(nil)
 var _ lib.ModuleWithDiscovery = (*Ipmipower)(nil)
 var _ lib.ModuleWithMutations = (*Ipmipower)(nil)
 
-var muts = map[string][2]string{
-	"fail":      [2]string{"", "fail"},    //connecting fail to the graph
-	"failToOff": [2]string{"fail", "off"}, //on fail reset to off
-	"powOn":     [2]string{"off", "on"},   //power off to power on
-	"powOff":    [2]string{"on", "off"},   //power on to power off
+// ppmut helps us succinctly define our mutations
+type ppmut struct {
+	f       cpb.Node_PhysState // from
+	t       cpb.Node_PhysState // to
+	timeout string             // timeout
+	// everything fails to PHYS_HANG
 }
 
-//len(timeouts) must equal len(muts)
-var timeouts = map[string]int{
-	"fail":       2,
-	"failToOff:": 72,
-	"powOn":      0,
-	"powOff":     5,
+// our mutation definitions
+// also we discover anything we can migrate to
+var muts = map[string]ppmut{
+	"UKtoOFF": ppmut{
+		f:       cpb.Node_PHYS_UNKNOWN,
+		t:       cpb.Node_POWER_OFF,
+		timeout: "5s",
+	},
+	"OFFtoON": ppmut{
+		f:       cpb.Node_POWER_OFF,
+		t:       cpb.Node_POWER_ON,
+		timeout: "5s",
+	},
+	"ONtoOFF": ppmut{
+		f:       cpb.Node_POWER_ON,
+		t:       cpb.Node_POWER_OFF,
+		timeout: "5s",
+	},
+	"HANGtoOFF": ppmut{
+		f:       cpb.Node_PHYS_HANG,
+		t:       cpb.Node_POWER_OFF,
+		timeout: "10s",
+	},
+	"UKtoHANG": ppmut{ // this one should never happen; just making sure HANG gets connected in our graph
+		f:       cpb.Node_PHYS_UNKNOWN,
+		t:       cpb.Node_PHYS_HANG,
+		timeout: "0s",
+	},
 }
 
 // An Ipmipower can power on and off nodes
@@ -89,15 +112,15 @@ func (p *Ipmipower) Entry() {
 
 	for {
 		select {
-		case d := p.dchan:
-
-			break
-		case m := p.mchan:
+		case m := <-p.mchan:
 			if m.Type() != lib.Event_STATE_MUTATION {
 				p.api.Log(lib.LLERROR, "got unexpected non-mutation event")
 				break
 			}
+			me := m.Data().(*core.MutationEvent)
+			p.handleMutation(me)
 			break
+		}
 	}
 }
 
@@ -155,7 +178,7 @@ func (p *Ipmipower) Init(api lib.APIClient) {
 // NewConfig spits out a default config
 func (*Ipmipower) NewConfig() proto.Message {
 	return &pb.IpmipowerConfig{
-		BmcIp:   "127.0.0.1",
+		BmcIp:   "127.0.0.1", //"type.googleapis.com/proto.IPv4OverEthernet/Ifaces/1/Ip/Ip",
 		BmcPort: 623,
 		User:    "",
 		Pass:    "",
@@ -178,10 +201,84 @@ var discovers = make(map[string]map[string]reflect.Value)
 
 // Handles mutations
 func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
-	switch M.Type {
+	subCmds := map[string]uint8{
+		"off": ipmi.IPMIChassisCtlDown,
+		"on":  ipmi.IPMIChassisCtlUp,
+	}
+
+	switch m.Type {
 	case core.MutationEvent_MUTATE:
 		switch m.Mutation[1] {
-		case "powOn":
+		case "UKtoOFF":
+			var cc uint8
+			var d []byte
+			ipAddr, _, e := net.ParseCIDR(p.cfg.BmcIp)
+			if e != nil {
+				p.api.Logf(lib.LLERROR, "error parsing IP address: %s", e)
+				return
+			}
+			ipmiAddr := net.UDPAddr{IP: ipAddr, Port: int(p.cfg.BmcPort)}
+			ipmiSes := ipmi.NewIPMISession(&ipmiAddr)
+			e = ipmiSes.Start(p.cfg.User, p.cfg.Pass)
+			if e != nil {
+				p.api.Logf(lib.LLERROR, "error starting IPMI session: %s", e)
+				return
+			}
+			cc, d, e = ipmiSes.Send(ipmi.IPMIFnChassisReq, ipmi.IPMICmdChassisCtl, []byte{subCmds[p.cfg.Oper]})
+			url := lib.NodeURLJoin(m.NodeCfg.ID.String(), "/PhysState")
+			vid := ""
+			if e != nil {
+				p.api.Logf(lib.LLERROR, "error sending IPMI command: %s", e)
+				return
+			}
+			if cc != 0x00 {
+				p.api.Logf(lib.LLERROR, "bad completion code: %x", cc)
+				return
+			}
+			if len(d) != 4 {
+				p.api.Logf(lib.LLERROR, "got unexecuted status data length")
+				return
+			}
+			if d[0]&0x01 != 0 {
+				vid = "POWER_ON"
+			} else {
+				vid = "POWER_OFF"
+			}
+			if d[0]&0x02 != 0 {
+				p.api.Logf(lib.LLERROR, "power overload")
+				return
+			}
+			if d[0]&0x04 != 0 {
+				p.api.Logf(lib.LLERROR, "interlock")
+				return
+			}
+			if d[0]&0x08 != 0 {
+				p.api.Logf(lib.LLERROR, "power fault")
+				return
+			}
+			if d[0]&0x10 != 0 {
+				p.api.Logf(lib.LLERROR, "power control fault")
+				return
+			}
+			v := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&core.DiscoveryEvent{
+					Module:  p.Name(),
+					URL:     url,
+					ValueID: vid,
+				},
+			)
+			p.dchan <- v
+			return
+			break
+		case "HANGtoOFF":
+			fallthrough
+		case "OFFtoON":
+			fallthrough
+		case "ONtoOFF":
+			var cc uint8
+			var d []byte
 			ipAddr, _, e := net.ParseCIDR(p.cfg.BmcIp)
 			if e != nil {
 				log.Println(e)
@@ -192,24 +289,31 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 			if e != nil {
 				log.Println(e)
 			}
-			
-			break
-		case "powOff":
-			ipAddr, _, e := net.ParseCIDR(p.cfg.BmcIp)
+			cc, _, e = ipmiSes.Send(ipmi.IPMIFnChassisReq, ipmi.IPMICmdChassisCtl, []byte{subCmds[p.cfg.Oper]})
 			if e != nil {
-				log.Println(e)
+				p.api.Logf(lib.LLERROR, "error sending IPMI command: %s", e)
+				return
 			}
-			ipmiAddr := net.UDPAddr{IP: ipAddr, Port: int(p.cfg.BmcPort)}
-			ipmiSes := ipmi.NewIPMISession(&ipmiAddr)
-			e = ipmiSes.Start(p.cfg.User, p.cfg.Pass)
-			if e != nil {
-				log.Println(e)
+			if cc != 0x00 {
+				p.api.Logf(lib.LLERROR, "bad completion code: %x", cc)
+				return
 			}
-
-			break
 		}
 	}
+	return
 }
+
+// func (p *Ipmipower) bmcUrlToIp(n *node) []byte {
+// 	u := p.cfg.BmcIpUrl
+// 	ipv := n.cfg.GetValue(u)
+
+// 	var ok bool
+// 	var b []byte
+// 	if b, ok = []byte(.Interface()); !ok {
+// 		ftm.Errorf("The BMC IP does not resolve to a byte slice")
+// 	}
+
+// }
 
 // Module needs to get registered her
 func init() {
@@ -227,7 +331,7 @@ func init() {
 			},
 			map[string]reflect.Value{
 				"/Arch":                reflect.ValueOf("ipmi"),
-				"/Services/ipmi/State": reflect.ValueOf(corepb.ServiceInstance_RUN),
+				"/Services/ipmi/State": reflect.ValueOf(cpb.ServiceInstance_RUN),
 			},
 			map[string]reflect.Value{},
 			lib.StateMutationContext_SELF,
@@ -237,7 +341,7 @@ func init() {
 	}
 	discovers["/Platform"] = pdsc
 	discovers["/Services/ipmi/State"] = map[string]reflect.Value{
-		"Run": reflect.ValueOf(corepb.ServiceInstance_RUN)}
+		"Run": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 	si := core.NewServiceInstance("ipmi", module.Name(), module.Entry, nil)
 	si.SetState(lib.Service_STOP)
 	core.Registry.RegisterDiscoverable(module, discovers)

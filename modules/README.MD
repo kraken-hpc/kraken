@@ -1,70 +1,87 @@
-# Writing Kraken Modules
+# What is a Kraken Module?
+- A Kraken module is an add-on to the core Kraken program. 
+- Modules speak to Kraken through discoveries and mutations. 
+  - A discovery occurs when a module determines that a change has occurred. The module passes that change along to Kraken so that it can keep track of what's going on.
+  - A mutation is a desired change which correspends with an edge in the state mutation engine. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
 
-For ease of documentation, it will be assumed that the desired modulename is Dummy.
+# Writing a Kraken Module
+For ease of documentation, it will be assumed that the module being worked on is `Ipmipower`. Since, we are making an `Ipmipower` module, we should start by creating an `Ipmipower` struct. That object will implement some number of the interfaces listed below:
 
-## Required Variables
-### Word for Word
-`var _ lib.Module = (*Dummy)(nil)`
-
-`var _ lib.ModuleSelfService = (*_modulename_)(nil)`
-
-`var _ lib.ModuleWithConfig = (*_modulename_)(nil)`
-
-`var _ lib.ModuleWithDiscovery = (*_modulename_)(nil)`
-
-`var _ lib.ModuleWithMutations = (*_modulename_)(nil)`
-
-`var mutations = make(map[string]lib.StateMutation)`
-
-`var discovers = make(map[string]map[string]reflect.Value)`
-
-### "Variable" Variables
-**muts**
-  - type: `map[string][2]string`
-  - describes the possible mutations
-  
-**timeouts**
-  - type: `map[string]int`
-  - describe a timeout for each mutation in the mutation list
-  - `len(timeouts) == len(muts)`
-  
-**Dummy**
-  - type: `struct`
-  - contains the objects and variables needed for that module
-## Methods
-
+# Interfaces
+## Module
+- Must be implemented
 ### Required Methods
-`func (d *Dummy) Entry()`
-- The module entry point
-- The module should already have an initialized API and an established config before `Entry()` is called
+- `func (p *Ipmipower) Name() string`
+  - returns the name of the module
 
-`func (d *Dummy) Stop()`
-- Stop is responsible for making sure the module exits cleanly
+## ModuleSelfService
+- Must be implemented
+### Required Methods
+- `func (p *Ipmipower) Entry()`
+  - `Entry()` is the start point of the module
+  - `Entry()` is where the main portion of the module code will reside
+- `func (p *Ipmipower) Init(api lib.APIClient)`
+  - `Init()` is the first function to run when the module starts
+  - Initializes the member variables of the module struct
+- `func (p *Ipmipower) Stop()`
+  - `Stop()` ensures clean exit of the module
 
-`func (d *Dummy) Name()`
-- Name needs to return a uniquely identifying string
-- The URL to the module is a good name choice
+## ModuleWithConfig
+- Should be implemented if the module is to allow any customizability
+### Required Methods
+- `func (*Ipmipower) NewConfig() proto.Message`
+  - Returns the default configuration
+- `func (p *Ipmipower) UpdateConfig(cfg proto.Message) (e error)`
+  - Writes a new module configuration
+- `func (p *Ipmipower) ConfigURL() string`
+  - Returns the configuration URL
+### Required Variables
+- `var cfg *proto.IpmipowerConfig`
+  - `cfg` stores the module configuration
+  - `*proto.IpmipowerConfig` is defined in the ipmipower.proto file, which generates the ipmipower.pb.go file
 
-### Optional Methods
-`func (d *Dummy) UpdateConfig(cfg proto.Message)`
-- UpdateConfig takes a new module configuration, and potentially adjusts to changes it contains.
-- Any module that needs configuration (most) should have this defined.
-- If it is defined, updates will occur when they are changed in the state.
+## ModuleWithDiscovery
+- Should be implemented if the module is to communicate discoveries to Kraken
+### Required Methods
+- `func (p *Ipmipower) SetDiscoveryChan(c chan<- lib.Event)`
+  - Sets the channel on which discoveries will be sent
+### Required Variables
+- `var dchan chan<- lib.Event`
+  - The channel through which discoveries are sent
 
-`func (d *Dummy) SetDiscoveryChan(c chan<- lib.Event)`
-- Simply sets the discover channel
+## ModuleWithMutations
+- Should be implemented if the module is to receive notifaction of mutations
+### Required Methods
+- `func (p *Ipmipower) SetMutationChan(c <-chan lib.Event)`
+  - Sets the channel on which mutations will be received
+### Required Variables
+- `var mchan <-chan lib.Event`
+  - The channel through which mutations are received
 
-`func (d *Dummy) SetMutationChan(c <-chan lib.Event)`
-- Simply sets the mutation channel
+# Module Registration
+- There are certain things that must be registered with Kraken in order for proper communication to occur
+  - `core.Registry.RegisterModule(&Ipmipower)`
+    - Required for every module
+  - `core.Registry.RegisterServiceInstance(&Ipmipower, )`
+    - Required for every module
+  - `core.Registry.RegisterDiscoverable(&Ipmipower, discoverables)`
+    - Required if the module implements the `ModuleWithDiscovery` interface
+    - `discoverables` is of type `map[string]map[string]reflect.Value`
+  - `core.Registry.RegisterMutations(&Ipmipower, mutations)`
+    - Required if the module implements the `ModuleWithMutations` interface
+    - `mutations` is of type `map[string]lib.StateMutation`
 
-`func (d *Dummy) Init(api lib.APIClient)`
-- Init initializes the module. It will be called before the API is initialized or the config is in place.
-- If this exists, it will be called when the module is instantiated.
-- It will be called before the API is initialized or the config is in place.
+# The `MutationEvent` Object
+- There are two `Node` member variables to the struct: `NodeCfg` and `NodeDsc`
+  - `NodeCfg` contains complete information about the desired configuration of the node
+  - `NodeDsc` contains incomplete information about the current configuration of the node
 
-`func (d *Dummy) NewConfig() proto.Message`
-- May be used in Entry() to initialize the config?
+# Logging
+- May be performed using `&Ipmitool.api.Logf(loggingLevel, errorMessage)`
+  - `loggingLevel` is of type `level LoggerLevel`
+  - `errorMessage` is of type `fmt string`
 
-`func init()`
-- Module needs to get registered here
-- Use the mutations and discovers 
+# How do I add my module to the run list?
+- `modules.go` is responsible for loading all of the modules to be used with Kraken at the time of start 
+- Add your module to the list in `module.go` and restart Kraken
+- dynamic module loading will likely be added as a feature in the future
