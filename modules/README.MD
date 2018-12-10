@@ -2,7 +2,7 @@
 - A Kraken module is an add-on to the core Kraken program. 
 - Modules speak to Kraken through discoveries and mutations. 
   - A discovery occurs when a module determines that a change has occurred. The module passes that change along to Kraken so that it can keep track of what's going on.
-  - A mutation is a desired change which correspends with an edge in the state mutation engine. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
+  - A mutation is a desired change which corresponds with an edge in the state mutation engine. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
 
 # Writing a Kraken Module
 For ease of documentation, it will be assumed that the module being worked on is `Ipmipower`. Since, we are making an `Ipmipower` module, we should start by creating an `Ipmipower` struct. That object will implement some number of the interfaces listed below:
@@ -72,7 +72,7 @@ For ease of documentation, it will be assumed that the module being worked on is
     - `mutations` is of type `map[string]lib.StateMutation`
 
 # The `MutationEvent` Object
-- There are two `Node` member variables to the struct: `NodeCfg` and `NodeDsc`
+- There are two `Node` member variables in the `MutationEvent` struct: `NodeCfg` and `NodeDsc`
   - `NodeCfg` contains complete information about the desired configuration of the node
   - `NodeDsc` contains incomplete information about the current configuration of the node
 
@@ -85,3 +85,7 @@ For ease of documentation, it will be assumed that the module being worked on is
 - `modules.go` is responsible for loading all of the modules to be used with Kraken at the time of start 
 - Add your module to the list in `module.go` and restart Kraken
 - dynamic module loading will likely be added as a feature in the future
+
+# Questions
+- What goes in the config versus in the member variables and should configuration variables and member variables overlap?
+- 
