@@ -111,9 +111,6 @@ type PiPXE struct {
 	iface     *net.Interface
 	rawHandle *pcap.Handle
 
-	iface     *net.Interface
-	rawHandle *pcap.Handle
-
 	// for maintaining our list of currently booting nodes
 
 	mutex  sync.RWMutex
