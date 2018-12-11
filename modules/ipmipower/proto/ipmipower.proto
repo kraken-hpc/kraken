@@ -12,7 +12,7 @@ package proto;
 
 message IpmipowerConfig {
     //string bmcIp = 1;
-    string bmcIpUrl = 1;
+    string bmcIPURL = 1;
     int32 bmcPort = 2;
     string user = 3;
     string pass = 4;

@@ -4,8 +4,22 @@
   - A discovery occurs when a module determines that a change has occurred. The module passes that change along to Kraken so that it can keep track of what's going on.
   - A mutation is a desired change which corresponds with an edge in the state mutation engine. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
 
+# Module File Tree
+An example file tree is shown below:
+- kraken
+  - modules
+    - module_name
+      - module_name.go
+      - homegrown_dependency_1.go
+      - homegrown_dependency_2.go
+      - proto
+        - module_name.proto
+        - module_name.pb.go (generated)
+
+The homegrown_dependency*.go, module_name.go, and module_name.proto are all written by the programmer of the module. The module_name.pb.go file is generated based on the module_name.proto file.
+
 # Writing a Kraken Module
-For ease of documentation, it will be assumed that the module being worked on is `Ipmipower`. Since, we are making an `Ipmipower` module, we should start by creating an `Ipmipower` struct. That object will implement some number of the interfaces listed below:
+For ease of documentation, it will be assumed that the module being worked on is `Ipmipower`. When starting work on a module, we should start by creating an object for that module, in this case called `Ipmipower`. That object will implement some number of the interfaces listed below:
 
 # Interfaces
 ## Module
@@ -38,7 +52,7 @@ For ease of documentation, it will be assumed that the module being worked on is
 ### Required Variables
 - `var cfg *proto.IpmipowerConfig`
   - `cfg` stores the module configuration
-  - `*proto.IpmipowerConfig` is defined in the ipmipower.proto file, which generates the ipmipower.pb.go file
+  - `*proto.IpmipowerConfig` is defined in the ipmipower.proto file
 
 ## ModuleWithDiscovery
 - Should be implemented if the module is to communicate discoveries to Kraken
@@ -47,7 +61,7 @@ For ease of documentation, it will be assumed that the module being worked on is
   - Sets the channel on which discoveries will be sent
 ### Required Variables
 - `var dchan chan<- lib.Event`
-  - The channel through which discoveries are sent
+  - The channel through which discoveries are sent by the module
 
 ## ModuleWithMutations
 - Should be implemented if the module is to receive notifaction of mutations
@@ -56,13 +70,13 @@ For ease of documentation, it will be assumed that the module being worked on is
   - Sets the channel on which mutations will be received
 ### Required Variables
 - `var mchan <-chan lib.Event`
-  - The channel through which mutations are received
+  - The channel through which mutations are received by the module
 
 # Module Registration
 - There are certain things that must be registered with Kraken in order for proper communication to occur
   - `core.Registry.RegisterModule(&Ipmipower)`
     - Required for every module
-  - `core.Registry.RegisterServiceInstance(&Ipmipower, )`
+  - `core.Registry.RegisterServiceInstance(&Ipmipower, d map[string]lib.ServiceInstance)`
     - Required for every module
   - `core.Registry.RegisterDiscoverable(&Ipmipower, discoverables)`
     - Required if the module implements the `ModuleWithDiscovery` interface
@@ -88,4 +102,4 @@ For ease of documentation, it will be assumed that the module being worked on is
 
 # Questions
 - What goes in the config versus in the member variables and should configuration variables and member variables overlap?
-- 
+- Multiple attempts at completing the IPMI command?
