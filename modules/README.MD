@@ -65,7 +65,7 @@ For ease of documentation, it will be assumed that the module being worked on is
   - The channel through which discoveries are sent by the module
 
 ## ModuleWithMutations
-- Should be implemented if the module is to receive notifaction of mutations
+- Should be implemented if the module is to receive notification of mutations
 ### Required Methods
 - `func (p *Ipmipower) SetMutationChan(c <-chan lib.Event)`
   - Sets the channel on which mutations will be received
