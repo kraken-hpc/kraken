@@ -2,7 +2,7 @@
 - A Kraken module is an add-on to the core Kraken program. 
 - Modules speak to Kraken through discoveries and mutations. 
   - A discovery occurs when a module determines that a change has occurred. The module passes that change along to Kraken so that it can keep track of what's going on.
-  - A mutation is a desired change which corresponds with an edge in the state mutation engine. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
+  - A mutation is a desired change which corresponds with an edge in the state mutation graph. Mutations are sent by Kraken to modules. The module is responsible for performing a task based on the received mutation.
 
 # Module File Tree
 An example file tree is shown below:
@@ -35,10 +35,10 @@ For ease of documentation, it will be assumed that the module being worked on is
   - `Entry()` is the start point of the module
   - `Entry()` is where the main portion of the module code will reside
 - `func (p *Ipmipower) Init(api lib.APIClient)`
-  - `Init()` is the first function to run when the module starts
+  - `Init()` runs before `Entry()` is called
   - Initializes the member variables of the module struct
 - `func (p *Ipmipower) Stop()`
-  - `Stop()` ensures clean exit of the module
+  - `Stop()` should ensure clean exit of the module
 
 ## ModuleWithConfig
 - Should be implemented if the module is to allow any customizability
@@ -47,8 +47,9 @@ For ease of documentation, it will be assumed that the module being worked on is
   - Returns the default configuration
 - `func (p *Ipmipower) UpdateConfig(cfg proto.Message) (e error)`
   - Writes a new module configuration
+  - Ensures config updates take effect in the running module
 - `func (p *Ipmipower) ConfigURL() string`
-  - Returns the configuration URL
+  - Returns the configuration URL (a unique protobuf url string)
 ### Required Variables
 - `var cfg *proto.IpmipowerConfig`
   - `cfg` stores the module configuration
@@ -91,6 +92,7 @@ For ease of documentation, it will be assumed that the module being worked on is
   - `NodeDsc` contains incomplete information about the current configuration of the node
 
 # Logging
+- Logging is the preferred method to indicate failure
 - May be performed using `&Ipmitool.api.Logf(loggingLevel, errorMessage)`
   - `loggingLevel` is of type `level LoggerLevel`
   - `errorMessage` is of type `fmt string`
@@ -99,7 +101,3 @@ For ease of documentation, it will be assumed that the module being worked on is
 - `modules.go` is responsible for loading all of the modules to be used with Kraken at the time of start 
 - Add your module to the list in `module.go` and restart Kraken
 - dynamic module loading will likely be added as a feature in the future
-
-# Questions
-- What goes in the config versus in the member variables and should configuration variables and member variables overlap?
-- Multiple attempts at completing the IPMI command?

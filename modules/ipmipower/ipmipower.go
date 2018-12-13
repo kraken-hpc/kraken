@@ -1,6 +1,6 @@
 /* ipmipower.go: this module will allow the capability of turning on and off nodes
  *
- * Author: R. "Eli" Snyder <resnyder@lanl.gov>
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Los Alamos National Security, LLC
@@ -75,8 +75,7 @@ var muts = map[string]ppmut{
 
 // modify these if you want different requires for mutations
 var reqs = map[string]reflect.Value{
-	"/Arch":     reflect.ValueOf("aarch64"),
-	"/Platform": reflect.ValueOf("rpi3"),
+	"/Platform": reflect.ValueOf("ipmi"),
 }
 
 // modify this if you want excludes
@@ -84,16 +83,10 @@ var excs = map[string]reflect.Value{}
 
 // An Ipmipower can power on and off nodes
 type Ipmipower struct {
-	//api *core.APIClient
-	cfg      *pb.IpmipowerConfig //
-	api      lib.APIClient
-	dchan    chan<- lib.Event
-	mchan    <-chan lib.Event
-	bmcIPUrl string
-	bmcPort  uint
-	username string
-	pass     string
-	oper     string
+	cfg   *pb.IpmipowerConfig
+	api   lib.APIClient
+	dchan chan<- lib.Event
+	mchan <-chan lib.Event
 }
 
 /*
@@ -241,7 +234,6 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 				p.api.Logf(lib.LLERROR, "Error parsing IP: %s", e)
 				return
 			}
-
 			ipmiAddr := net.UDPAddr{IP: ip, Port: int(p.cfg.BmcPort)}
 			ipmiSes := ipmi.NewIPMISession(&ipmiAddr)
 			e = ipmiSes.Start(p.cfg.User, p.cfg.Pass)
@@ -303,6 +295,7 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 		case "ONtoOFF":
 			var cc uint8
 			ip, e := p.bmcURLToIP(&m.NodeCfg)
+			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), "/PhysState")
 			if e != nil {
 				p.api.Logf(lib.LLERROR, "Error parsing IP: %s", e)
 				return
@@ -323,6 +316,16 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 				p.api.Logf(lib.LLERROR, "bad completion code: %x", cc)
 				return
 			}
+			v := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url,
+				&core.DiscoveryEvent{
+					Module:  p.Name(),
+					URL:     url,
+					ValueID: "POWER_OFF",
+				},
+			)
+			p.dchan <- v
 		}
 	}
 	return
@@ -346,7 +349,7 @@ func init() {
 			},
 			reqs,
 			excs,
-			lib.StateMutationContext_CHILD,
+			lib.StateMutationContext_CHILD, //child because performing action on somebody else, self if perm action on self
 			dur,
 			[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
 		)

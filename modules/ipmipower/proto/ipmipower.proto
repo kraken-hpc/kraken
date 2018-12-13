@@ -1,6 +1,6 @@
 /* ipmipower.proto: describes the IpmipowerConfig object
  *
- * Author: R. "Eli" Snyder <resnyder@lanl.gov>
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Los Alamos National Security, LLC
@@ -11,8 +11,7 @@ syntax = "proto3";
 package proto;
 
 message IpmipowerConfig {
-    //string bmcIp = 1;
-    string bmcIPURL = 1;
+    string bmcIpUrl = 1;
     int32 bmcPort = 2;
     string user = 3;
     string pass = 4;
