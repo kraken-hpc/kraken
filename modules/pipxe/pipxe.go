@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
+	"github.com/mdlayher/raw"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -104,12 +104,11 @@ type PiPXE struct {
 	selfIP  net.IP
 	selfNet net.IP
 
-	arp       *ARPResolver
 	options   layers.DHCPOptions
 	leaseTime time.Duration
 
 	iface     *net.Interface
-	rawHandle *pcap.Handle
+	rawHandle *raw.Conn
 
 	// for maintaining our list of currently booting nodes
 
