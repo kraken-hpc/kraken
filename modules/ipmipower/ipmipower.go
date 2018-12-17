@@ -109,7 +109,7 @@ func (p *Ipmipower) Entry() {
 		&core.DiscoveryEvent{
 			Module:  p.Name(),
 			URL:     url,
-			ValueID: "Run",
+			ValueID: "RUN",
 		},
 	)
 
