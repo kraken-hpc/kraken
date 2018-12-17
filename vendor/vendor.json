@@ -3,6 +3,10 @@
 	"ignore": "",
 	"package": [
 		{
+			"path": "external",
+			"revision": ""
+		},
+		{
 			"checksumSHA1": "NltREPbGd2TeShwWUn6OZg6VaO0=",
 			"path": "github.com/anmitsu/go-shlex",
 			"revision": "648efa622239a2f6ff949fed78ee37b48d499ba4",
@@ -175,6 +179,12 @@
 			"path": "github.com/google/gopacket/pcapgo",
 			"revision": "ec90f6c2c025516eabdf6bf374b615ff0bf32c21",
 			"revisionTime": "2018-11-08T09:07:53Z"
+		},
+		{
+			"checksumSHA1": "HpOJFwwwqJyebHKNP7XjaUyp5RU=",
+			"path": "github.com/gorilla/handlers",
+			"revision": "7e6a874cdc0efb71a260254cc0e30d5415b6a5bb",
+			"revisionTime": "2018-12-12T23:28:18Z"
 		},
 		{
 			"checksumSHA1": "1lWSALooNQN3f4yBefa6XoDoo5w=",
