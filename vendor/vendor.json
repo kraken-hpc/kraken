@@ -169,12 +169,6 @@
 			"revisionTime": "2018-11-08T09:07:53Z"
 		},
 		{
-			"checksumSHA1": "XYiElfvZ6C1RjFhi7n68E4dG0gA=",
-			"path": "github.com/google/gopacket/pcap",
-			"revision": "ec90f6c2c025516eabdf6bf374b615ff0bf32c21",
-			"revisionTime": "2018-11-08T09:07:53Z"
-		},
-		{
 			"checksumSHA1": "lpPe+puyF6dBg7lugRMzo7VkXHU=",
 			"path": "github.com/google/gopacket/pcapgo",
 			"revision": "ec90f6c2c025516eabdf6bf374b615ff0bf32c21",
@@ -221,18 +215,6 @@
 			"path": "github.com/krolaw/dhcp4/conn",
 			"revision": "7cead472c414711982509839c1a6a324d4c70ce6",
 			"revisionTime": "2018-09-25T20:22:02Z"
-		},
-		{
-			"checksumSHA1": "Om7uRwLNDoJzttPeixNDNLKWcuU=",
-			"path": "github.com/mdlayher/arp",
-			"revision": "7140e8e22da120cb3efc8e1096f299933624024e",
-			"revisionTime": "2017-12-14T19:58:10Z"
-		},
-		{
-			"checksumSHA1": "awS3XwmA1nTLml+3K4pUuDJrYyQ=",
-			"path": "github.com/mdlayher/ethernet",
-			"revision": "0a1564b57aeaf8387d273d4bdffbb34b1bb8f626",
-			"revisionTime": "2018-05-13T16:56:02Z"
 		},
 		{
 			"checksumSHA1": "LAg22SYhNR2LqUIf+jOvVoEMS1o=",
