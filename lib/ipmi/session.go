@@ -61,7 +61,7 @@ func (s *IPMISession) Start(user, pass string) (e error) {
 		return e
 	}
 	if cc != 0 {
-		return fmt.Errorf("bad completion code: %x", cc)
+		return fmt.Errorf("bad completion code on GetChanAuthCap: %x", cc)
 	}
 	s.ch = data[0]
 	if data[1]&IPMIAuthTypeBFMD5 == 0 {
@@ -75,7 +75,7 @@ func (s *IPMISession) Start(user, pass string) (e error) {
 	if cc != 0 {
 		// 0x81: bad username
 		// 0x82: null username not enabled
-		return fmt.Errorf("bad completion code: %x", cc)
+		return fmt.Errorf("bad completion code on GetSessionChal: %x", cc)
 	}
 	if len(data) != 20 {
 		return fmt.Errorf("bad session challenge, wrong length")
@@ -100,7 +100,7 @@ func (s *IPMISession) Start(user, pass string) (e error) {
 		// 0x84: session sequence number out of range
 		// 0x85: invalid session ID in rquest
 		// 0x86: requested maximum privilege level exceeds user and/or channel privilege limit
-		return fmt.Errorf("bad completion code: %x", cc)
+		return fmt.Errorf("bad completion code on ActivateSess: %x", cc)
 	}
 	if len(data) != 10 {
 		return fmt.Errorf("bad activate session response data, wrong length")
@@ -119,7 +119,7 @@ func (s *IPMISession) Start(user, pass string) (e error) {
 		// 0x80: requested level not available to this user
 		// 0x81: requested level exceeds channel/user privilege limit
 		// 0x82: cannot disable user level authentication
-		return fmt.Errorf("bad completion code: %x", cc)
+		return fmt.Errorf("bad completion code on SetSessionPriv: %x", cc)
 	}
 	if data[0] != IPMIPrivAdmin {
 		return fmt.Errorf("failed to set privilege level")
