@@ -49,17 +49,17 @@ var muts = map[string]ppmut{
 	"UKtoOFF": ppmut{
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_POWER_OFF,
-		timeout: "5s", //uniform timeout?
+		timeout: "10s",
 	},
 	"OFFtoON": ppmut{
 		f:       cpb.Node_POWER_OFF,
 		t:       cpb.Node_POWER_ON,
-		timeout: "5s",
+		timeout: "10s",
 	},
 	"ONtoOFF": ppmut{
 		f:       cpb.Node_POWER_ON,
 		t:       cpb.Node_POWER_OFF,
-		timeout: "5s",
+		timeout: "10s",
 	},
 	"HANGtoOFF": ppmut{
 		f:       cpb.Node_PHYS_HANG,
@@ -238,22 +238,22 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 			ipmiSes := ipmi.NewIPMISession(&ipmiAddr)
 			e = ipmiSes.Start(p.cfg.User, p.cfg.Pass)
 			if e != nil {
-				p.api.Logf(lib.LLERROR, "error starting IPMI session: %s", e)
+				p.api.Logf(lib.LLERROR, "error starting IPMI session with %s: %s", e)
 				return
 			}
 			cc, d, e = ipmiSes.Send(ipmi.IPMIFnChassisReq, ipmi.IPMICmdChassisCtl, []byte{subCmds[p.cfg.Oper]})
 			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), "/PhysState")
 			vid := ""
 			if e != nil {
-				p.api.Logf(lib.LLERROR, "error sending IPMI command: %s", e)
+				p.api.Logf(lib.LLERROR, "error sending IPMI command to %s: %s", IPv4.BytesToIP(ip).String(), e)
 				return
 			}
 			if cc != 0x00 {
-				p.api.Logf(lib.LLERROR, "bad completion code: %x", cc)
+				p.api.Logf(lib.LLERROR, "bad completion code to %s: %x", IPv4.BytesToIP(ip).String(), cc)
 				return
 			}
 			if len(d) != 4 {
-				p.api.Logf(lib.LLERROR, "got unexecuted status data length")
+				p.api.Logf(lib.LLERROR, "got unexecuted status data length to %s", IPv4.BytesToIP(ip).String())
 				return
 			}
 			if d[0]&0x01 != 0 {
@@ -304,12 +304,12 @@ func (p *Ipmipower) handleMutation(m *core.MutationEvent) {
 			ipmiSes := ipmi.NewIPMISession(&ipmiAddr)
 			e = ipmiSes.Start(p.cfg.User, p.cfg.Pass)
 			if e != nil {
-				p.api.Logf(lib.LLERROR, "error starting IPMI session, %s", e)
+				p.api.Logf(lib.LLERROR, "error starting IPMI session with %s: %s", IPv4.BytesToIP(ip).String(), e)
 				return
 			}
 			cc, _, e = ipmiSes.Send(ipmi.IPMIFnChassisReq, ipmi.IPMICmdChassisCtl, []byte{subCmds[p.cfg.Oper]})
 			if e != nil {
-				p.api.Logf(lib.LLERROR, "error sending IPMI command: %s", e)
+				p.api.Logf(lib.LLERROR, "error sending IPMI command with %s: %s", IPv4.BytesToIP(ip).String(), e)
 				return
 			}
 			if cc != 0x00 {
