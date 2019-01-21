@@ -164,6 +164,11 @@ func (n *StateDifferenceEngine) GetValueDsc(url string) (r reflect.Value, e erro
 
 // SetValue sets a specific sub-value in Cfg
 func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect.Value, e error) {
+	var cur reflect.Value
+	cur, e = n.cfg.GetValue(url)
+	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		return
+	}
 	r, e = n.cfg.SetValue(url, v)
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (cfg): %v", e)
@@ -174,6 +179,11 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 
 // SetValueDsc sets a specific sub-value in Cfg
 func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r reflect.Value, e error) {
+	var cur reflect.Value
+	cur, e = n.dsc.GetValue(url)
+	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		return
+	}
 	r, e = n.dsc.SetValue(url, v)
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (dsc): %v", e)
