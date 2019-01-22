@@ -167,6 +167,7 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 	var cur reflect.Value
 	cur, e = n.cfg.GetValue(url)
 	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		r = v
 		return
 	}
 	r, e = n.cfg.SetValue(url, v)
@@ -182,6 +183,7 @@ func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r refl
 	var cur reflect.Value
 	cur, e = n.dsc.GetValue(url)
 	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		r = v
 		return
 	}
 	r, e = n.dsc.SetValue(url, v)
