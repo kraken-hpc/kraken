@@ -87,11 +87,17 @@ func (n *Node) ID() lib.NodeID {
 	return NewNodeIDFromBinary(n.pb.Id)
 }
 
+// ParentID returns the NodeID of the parent of this node
 func (n *Node) ParentID() (pid lib.NodeID) {
 	n.mutex.RLock()
 	pid = NewNodeIDFromBinary(n.pb.ParentId)
 	n.mutex.RUnlock()
 	return
+}
+
+// String is important, as we can make sure prints on a Node object obey locking
+func (n *Node) String() string {
+	return fmt.Sprintf("Node<%s>", n.ID().String())
 }
 
 // JSON returns a JSON representation of the node
