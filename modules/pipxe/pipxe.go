@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
+	"github.com/mdlayher/raw"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -104,12 +104,11 @@ type PiPXE struct {
 	selfIP  net.IP
 	selfNet net.IP
 
-	arp       *ARPResolver
 	options   layers.DHCPOptions
 	leaseTime time.Duration
 
 	iface     *net.Interface
-	rawHandle *pcap.Handle
+	rawHandle *raw.Conn
 
 	// for maintaining our list of currently booting nodes
 
@@ -374,7 +373,7 @@ func init() {
 		reqs,
 		excs,
 		lib.StateMutationContext_CHILD,
-		time.Second*90,
+		time.Second*30,
 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
 	)
 	dpxe["INIT"] = reflect.ValueOf(rpipb.RPi3_INIT)

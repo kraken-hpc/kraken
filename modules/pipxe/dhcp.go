@@ -17,9 +17,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mdlayher/raw"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/extensions/IPv4"
 	"github.com/hpc/kraken/lib"
@@ -74,18 +75,14 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	*/
 
 	// We need the raw handle to send unicast packet replies
-	px.rawHandle, e = pcap.OpenLive(px.iface.Name, 1024, false, (30 * time.Second))
+	// This is only used for sending initial DHCP offers
+	// Note: 0x0800 is EtherType for IPv4. See: https://en.wikipedia.org/wiki/EtherType
+	px.rawHandle, e = raw.ListenPacket(px.iface, 0x0800, nil)
 	if e != nil {
 		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
 	defer px.rawHandle.Close()
-	// restrict our socket a bit
-	px.rawHandle.SetDirection(pcap.DirectionOut)
-	// this may not really be necessary.  we currently never read from this
-	if e = px.rawHandle.SetBPFFilter("udp and port 67"); e != nil {
-		px.api.Logf(lib.LLERROR, "failed to set BPF on raw socket: %v", e)
-	}
 
 	// We use this packetconn to read from
 	nc, e := net.ListenPacket("udp4", ":67")
@@ -97,12 +94,13 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	defer c.Close()
 	px.api.Logf(lib.LLINFO, "started DHCP listener on: %s", iface)
 
-	buffer := make([]byte, 1500)
-	var req layers.DHCPv4
-	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeDHCPv4, &req)
-	decoded := []gopacket.LayerType{}
 	// main read loop
 	for {
+		buffer := make([]byte, 1500)
+		var req layers.DHCPv4
+		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeDHCPv4, &req)
+		decoded := []gopacket.LayerType{}
+
 		n, _, addr, e := c.ReadFrom(buffer)
 		if e != nil {
 			px.api.Logf(lib.LLCRITICAL, "%v", e)
@@ -140,6 +138,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		}
 
 		go px.handleDHCPRequest(req)
+		// count++
 	}
 	px.api.Log(lib.LLNOTICE, "DHCP stopped.")
 }
@@ -169,18 +168,22 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 	case layers.DHCPMsgTypeDiscover:
 		px.api.Logf(lib.LLDEBUG, "got DHCP discover from %s", p.ClientHWAddr.String())
 		n := px.NodeGet(queryByMAC, p.ClientHWAddr.String())
+		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
 		if n == nil {
 			px.api.Logf(lib.LLDEBUG, "ignoring DHCP discover from unknown %s", p.ClientHWAddr.String())
 			return
 		}
+		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
 		v, e := n.GetValue(px.cfg.IpUrl)
 		if e != nil {
 			px.api.Logf(lib.LLDEBUG, "node does not have an IP in state %s", p.ClientHWAddr.String())
 			return
 		}
+		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), IPv4.BytesToIP(v.Bytes()))
 		ip := IPv4.BytesToIP(v.Bytes())
 		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
+		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
 		r := px.offerPacket(
 			p,
 			layers.DHCPMsgTypeOffer,
@@ -189,7 +192,7 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 			px.leaseTime,
 			layers.DHCPOptions{},
 		)
-
+		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
 		px.transmitDHCPOffer(n, ip, p.ClientHWAddr, r)
 		return
 	default: // Pi's only send Discovers
@@ -273,7 +276,7 @@ func (px *PiPXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 	return buf.Bytes()
 }
 
-func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, raw []byte) error {
+func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
 	//var rmac net.HardwareAddr
 	var e error
 	/*
@@ -285,7 +288,7 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
 		px.api.Logf(lib.LLDEBUG, "transmitting DHCP offer (attempt: %d)", i+1)
 
-		e = px.rawHandle.WritePacketData(raw)
+		_, e = px.rawHandle.WriteTo(rawp, &raw.Addr{HardwareAddr: mac})
 		if e != nil {
 			return e
 		}

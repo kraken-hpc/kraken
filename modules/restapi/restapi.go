@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib"
@@ -101,7 +102,11 @@ func (r *RestAPI) setupRouter() {
 
 func (r *RestAPI) startServer() {
 	r.srv = &http.Server{
-		Handler:      r.router,
+		Handler: handlers.CORS(
+			handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}),
+			handlers.AllowedOrigins([]string{"*"}),
+			handlers.AllowedMethods([]string{"PUT", "GET", "POST", "DELETE"}),
+		)(r.router),
 		Addr:         fmt.Sprintf("%s:%d", r.cfg.Addr, r.cfg.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
@@ -228,6 +233,7 @@ func (r *RestAPI) updateNodeDsc(w http.ResponseWriter, req *http.Request) {
 	n := core.NewNodeFromJSON(buf.Bytes())
 	if n == nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("n is nil"))
 		return
 	}
 	nn, e := r.api.QueryUpdateDsc(n)
@@ -236,7 +242,7 @@ func (r *RestAPI) updateNodeDsc(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(nn.JSON())
 }
 
