@@ -373,7 +373,7 @@ func init() {
 		reqs,
 		excs,
 		lib.StateMutationContext_CHILD,
-		time.Second*90,
+		time.Second*30,
 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
 	)
 	dpxe["INIT"] = reflect.ValueOf(rpipb.RPi3_INIT)
