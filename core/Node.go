@@ -35,7 +35,7 @@ type Node struct {
 	pb    *pb.Node                 // data lives here
 	exts  map[string]proto.Message // for internal bookkeeping
 	srvs  map[string]lib.ServiceInstance
-	mutex *sync.Mutex
+	mutex *sync.RWMutex
 }
 
 // NewNodeWithID creates a new node with an ID pre-set
@@ -82,19 +82,25 @@ func NewNodeFromMessage(m *pb.Node) *Node {
 }
 
 // ID returns the NodeID object for the node
+// Note: we don't lock on this under the assumption that ID's don't typically change
 func (n *Node) ID() lib.NodeID {
 	return NewNodeIDFromBinary(n.pb.Id)
 }
 
-func (n *Node) ParentID() lib.NodeID {
-	return NewNodeIDFromBinary(n.pb.ParentId)
+func (n *Node) ParentID() (pid lib.NodeID) {
+	n.mutex.RLock()
+	pid = NewNodeIDFromBinary(n.pb.ParentId)
+	n.mutex.RUnlock()
+	return
 }
 
 // JSON returns a JSON representation of the node
 func (n *Node) JSON() []byte {
 	n.exportExtensions()
 	n.exportServices()
+	n.mutex.RLock()
 	b, _ := MarshalJSON(n.pb)
+	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return b
@@ -105,7 +111,9 @@ func (n *Node) Binary() []byte {
 	n.exportExtensions()
 	n.exportServices()
 	// If we're doing our job, this should never error.
+	n.mutex.RLock()
 	b, _ := proto.Marshal(n.pb)
+	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return b
@@ -114,13 +122,16 @@ func (n *Node) Binary() []byte {
 func (n *Node) Message() proto.Message {
 	n.exportExtensions()
 	n.exportServices()
+	n.mutex.RLock()
 	m := proto.Clone(n.pb)
+	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return m
 }
 
 // GetValue returns a specific value (reflect.Value) by URL
+// note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 	root, sub := lib.URLShift(url)
 	switch root {
@@ -131,6 +142,8 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 			e = fmt.Errorf("node does not have extension: %s", lib.URLPush(root, p))
 			return
 		}
+		n.mutex.RLock()
+		defer n.mutex.RUnlock()
 		return lib.ResolveURL(sub, reflect.ValueOf(ext))
 	case "Services": // resolve service
 		p, sub := lib.URLShift(sub)
@@ -139,14 +152,19 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 			e = fmt.Errorf("nodes does not have service instance: %s", p)
 			return
 		}
+		n.mutex.RLock()
+		defer n.mutex.RUnlock()
 		return lib.ResolveURL(sub, reflect.ValueOf(srv.Message()))
 	default: // everything else
+		n.mutex.RLock()
+		defer n.mutex.RUnlock()
 		return lib.ResolveURL(url, reflect.ValueOf(n.pb))
 	}
 }
 
 // SetValue sets a specific value (reflect.Value) by URL
 // Returns the value, post-set (same if input if all went well)
+// note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e error) {
 	var r reflect.Value
 	root, sub := lib.URLShift(url)
@@ -167,6 +185,8 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 			}
 			// ok, new extension added...
 		}
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
 		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(ext))
 	case "Services":
 		p, sub := lib.URLShift(sub)
@@ -176,8 +196,12 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 			e = fmt.Errorf("node does not have service instance: %s", p)
 			return
 		}
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
 		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(srv.Message()))
 	default:
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
 		r, e = lib.ResolveOrMakeURL(url, reflect.ValueOf(n.pb))
 	}
 	if e != nil {
@@ -187,6 +211,7 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 		e = fmt.Errorf("type mismatch: %s != %s", value.Type(), r.Type())
 		return
 	}
+	// should already be locked from above
 	r.Set(value)
 	v = r
 	return
@@ -220,6 +245,8 @@ func (n *Node) SetValues(valmap map[string]reflect.Value) (v map[string]reflect.
 // GetExtensionURLs returns a slice of currently added extensions
 func (n *Node) GetExtensionURLs() (r []string) {
 	exts := []string{}
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
 	for u := range n.exts {
 		exts = append(exts, u)
 	}
@@ -234,12 +261,12 @@ func (n *Node) AddExtension(m proto.Message) (e error) {
 	}
 	url := any.GetTypeUrl()
 	n.mutex.Lock()
+	defer n.mutex.Unlock()
 	if _, ok := n.exts[url]; ok {
 		e = fmt.Errorf("duplicate extension: %s", url)
 		return
 	}
 	n.exts[url] = m
-	n.mutex.Unlock()
 	return
 }
 
@@ -252,44 +279,52 @@ func (n *Node) DelExtension(url string) {
 
 // HasExtension determines if the node has an extension by URL
 func (n *Node) HasExtension(url string) bool {
+	n.mutex.RLock()
 	_, ok := n.exts[url]
+	n.mutex.RUnlock()
 	return ok
 }
 
 func (n *Node) GetServiceIDs() (r []string) {
+	n.mutex.RLock()
 	for k := range n.srvs {
 		r = append(r, k)
 	}
+	n.mutex.RUnlock()
 	return r
 }
 
 func (n *Node) GetServices() (r []lib.ServiceInstance) {
+	n.mutex.RLock()
 	for _, srv := range n.srvs {
 		r = append(r, srv)
 	}
+	n.mutex.RUnlock()
 	return
 }
 
 func (n *Node) AddService(si lib.ServiceInstance) (e error) {
 	n.mutex.Lock()
+	defer n.mutex.Unlock()
 	if _, ok := n.srvs[si.ID()]; ok {
 		return fmt.Errorf("duplicate service: %s", si.ID())
 	}
 	n.srvs[si.ID()] = si
-	n.mutex.Unlock()
 	return
 }
 
 func (n *Node) DelService(id string) {
 	n.mutex.Lock()
+	defer n.mutex.Unlock()
 	if _, ok := n.srvs[id]; ok {
 		delete(n.srvs, id)
 	}
-	n.mutex.Unlock()
 }
 
 func (n *Node) GetService(id string) (r lib.ServiceInstance) {
 	var ok bool
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
 	if r, ok = n.srvs[id]; ok {
 		return r
 	}
@@ -297,6 +332,8 @@ func (n *Node) GetService(id string) (r lib.ServiceInstance) {
 }
 
 func (n *Node) HasService(id string) bool {
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
 	if _, ok := n.srvs[id]; ok {
 		return true
 	}
@@ -305,17 +342,30 @@ func (n *Node) HasService(id string) bool {
 
 // Diff finds URLs that are different between this Node and another
 // prefix allows a string prefix to be prepended to diffs
+// note: we have to be especially careful about locking in this function
 func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 	if reflect.TypeOf(n) != reflect.TypeOf(node) {
 		e = fmt.Errorf("cannot diff nodes of different types")
 		return
 	}
 	m := node.(*Node)
+
+	// These have to live up here to avoid possible deadlocks
+	eleft := m.GetExtensionURLs()
+	eright := n.GetExtensionURLs()
+	sleft := m.GetServiceIDs()
+	sright := n.GetServiceIDs()
+
+	n.mutex.RLock()
+	m.mutex.RLock()
+	defer n.mutex.RUnlock()
+	defer m.mutex.RUnlock()
+	// !!!IMPORTANT!!! we can't call any functions that lock after this, or we risk a deadlock
+
 	r, e = lib.MessageDiff(n.pb, m.pb, prefix)
 
 	// handle extensions
-	eleft := m.GetExtensionURLs()
-	for _, u := range n.GetExtensionURLs() {
+	for _, u := range eright {
 		nodeExt, ok := m.exts[u]
 		if !ok {
 			r = append(r, lib.URLPush(prefix, u))
@@ -336,8 +386,7 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 
 	// handle services
 	prefix = lib.URLPush(prefix, "Services")
-	sleft := m.GetServiceIDs()
-	for _, u := range n.GetServiceIDs() {
+	for _, u := range sright {
 		nodeSrv, ok := m.srvs[u]
 		if !ok { // new one doesn't have this
 			r = append(r, lib.URLPush(prefix, u))
@@ -376,10 +425,14 @@ func (n *Node) MergeDiff(node lib.Node, diff []string) (changes []string, e erro
 		if e != nil {
 			return
 		}
+		m.mutex.RLock()
+		n.mutex.Lock()
 		if vm.Interface() == vn.Interface() {
 			continue
 		}
 		vn.Set(vm)
+		m.mutex.RUnlock()
+		n.mutex.Lock()
 		changes = append(changes, d)
 	}
 	return
@@ -408,7 +461,7 @@ func newNode() *Node {
 	n.pb = &pb.Node{}
 	n.exts = make(map[string]proto.Message)
 	n.srvs = make(map[string]lib.ServiceInstance)
-	n.mutex = &sync.Mutex{}
+	n.mutex = &sync.RWMutex{}
 	for _, e := range Registry.Extensions {
 		n.AddExtension(e.New())
 	}
