@@ -434,11 +434,13 @@ func (n *Node) MergeDiff(node lib.Node, diff []string) (changes []string, e erro
 		m.mutex.RLock()
 		n.mutex.Lock()
 		if vm.Interface() == vn.Interface() {
+			m.mutex.RUnlock()
+			n.mutex.Unlock()
 			continue
 		}
 		vn.Set(vm)
 		m.mutex.RUnlock()
-		n.mutex.Lock()
+		n.mutex.Unlock()
 		changes = append(changes, d)
 	}
 	return
