@@ -725,20 +725,20 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 			return
 		}
 		if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
-			sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
+			sme.Logf(DDEBUG, "firing mutation in context for %s, timeout %s.", node, m.chain[m.cur].mut.Timeout().String())
 			sme.emitMutation(m.end, n, m.chain[m.cur].mut)
 			if m.chain[m.cur].mut.Timeout() != 0 {
 				m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(n, m) })
 			}
 		}
 	} else if val.Interface() == vs[0].Interface() { // might want to do more with this case later; for now we have to just recalculate
-		sme.Logf(DEBUG, "mutation failed to progress, got %v, expected %v\n", val.Interface(), vs[1].Interface())
+		sme.Logf(DEBUG, "mutation for %s failed to progress, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		sme.activeMutex.Lock()
 		delete(sme.active, node)
 		sme.activeMutex.Unlock()
 		sme.startNewMutation(node)
 	} else {
-		sme.Logf(DEBUG, "unexpected mutation step, got %v, expected %v\n", val.Interface(), vs[1].Interface())
+		sme.Logf(DEBUG, "unexpected mutation step for %s, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		// we got something completely unexpected... start over
 		sme.activeMutex.Lock()
 		delete(sme.active, node)
