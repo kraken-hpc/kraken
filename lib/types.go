@@ -91,6 +91,8 @@ type Node interface {
 	Diff(node Node, prefix string) (diff []string, e error)
 	MergeDiff(m Node, diff []string) (changes []string, e error)
 	Merge(m Node, prefix string) (changes []string, e error)
+
+	String() string
 }
 
 // Indexable can be indexed by multiple values
