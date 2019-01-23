@@ -46,8 +46,6 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 	binary.BigEndian.PutUint32(leaseTime, uint32(px.leaseTime.Seconds()))
 
 	px.options = layers.DHCPOptions{
-		layers.DHCPOption{Type: layers.DHCPOptMessageType, Length: 1, Data: []byte{0x02}},
-		layers.DHCPOption{Type: layers.DHCPOptServerID, Length: 4, Data: px.selfIP.To4()},
 		layers.DHCPOption{Type: layers.DHCPOptLeaseTime, Length: 4, Data: leaseTime},
 		layers.DHCPOption{Type: layers.DHCPOptSubnetMask, Length: 4, Data: netmask.To4()},
 		layers.DHCPOption{Type: layers.DHCPOptRouter, Length: 4, Data: px.selfIP.To4()},
@@ -127,39 +125,37 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 // handleDHCPRequest is the main handler for new DHCP packets
 func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 
-	// The only option we're using for now is MessageType, let's get it
-	t := layers.DHCPMsgTypeUnspecified
+	// Construct a hash of options so we can use it more easily
+	opts := make(map[layers.DHCPOpt]layers.DHCPOption)
 	for _, o := range p.Options {
-		if o.Type == layers.DHCPOptMessageType {
-			if o.Length != 1 {
-				continue
-			}
-			t = layers.DHCPMsgType(o.Data[0])
-			break
-		}
+		opts[o.Type] = o
 	}
 
-	switch t {
+	t, ok := opts[layers.DHCPOptMessageType]
+	if !ok {
+		px.api.Log(lib.LLDEBUG, "got DHCP packet with no message type")
+		return
+	}
+
+	n := px.NodeGet(queryByMAC, p.ClientHWAddr.String())
+	// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
+	if n == nil {
+		px.api.Logf(lib.LLDEBUG, "ignoring DHCP packet from unknown %s", p.ClientHWAddr.String())
+		return
+	}
+
+	v, e := n.GetValue(px.cfg.IpUrl)
+	if e != nil {
+		px.api.Logf(lib.LLDEBUG, "ignoring DHCP packet from node with no IP in state: %s", p.ClientHWAddr.String())
+		return
+	}
+	ip := IPv4.BytesToIP(v.Bytes())
+
+	switch layers.DHCPMsgType(t.Data[0]) {
 	case layers.DHCPMsgTypeDiscover:
-		px.api.Logf(lib.LLDEBUG, "got DHCP discover from %s", p.ClientHWAddr.String())
-		n := px.NodeGet(queryByMAC, p.ClientHWAddr.String())
-		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
-		if n == nil {
-			px.api.Logf(lib.LLDEBUG, "ignoring DHCP discover from unknown %s", p.ClientHWAddr.String())
-			return
-		}
-		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
-		v, e := n.GetValue(px.cfg.IpUrl)
-		if e != nil {
-			px.api.Logf(lib.LLDEBUG, "node does not have an IP in state %s", p.ClientHWAddr.String())
-			return
-		}
-		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), IPv4.BytesToIP(v.Bytes()))
-		ip := IPv4.BytesToIP(v.Bytes())
 		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
-		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
-		r := px.offerPacket(
+		r := px.newDHCPPacket(
 			p,
 			layers.DHCPMsgTypeOffer,
 			px.selfIP.To4(),
@@ -167,21 +163,70 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 			px.leaseTime,
 			layers.DHCPOptions{},
 		)
-		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
-		px.transmitDHCPOffer(n, ip, p.ClientHWAddr, r)
+
+		px.transmitDHCPPacket(n, ip, p.ClientHWAddr, r)
 		return
 	case layers.DHCPMsgTypeRequest:
-		// TODO: process request packet
+		req, ok := opts[layers.DHCPOptRequestIP]
+		if !ok {
+			px.api.Log(lib.LLDEBUG, "got a DHCP request, but no request IP")
+			return
+		}
+		if req.Length != 4 {
+			px.api.Logf(lib.LLDEBUG, "got a DHCP request with invalid length request IP, len = %d", req.Length)
+			return
+		}
+		reqIP := net.IP(req.Data)
+		if reqIP.Equal(ip) {
+			r := px.newDHCPPacket(
+				p,
+				layers.DHCPMsgTypeAck,
+				px.selfIP.To4(),
+				ip,
+				px.leaseTime,
+				layers.DHCPOptions{},
+			)
+			px.transmitDHCPPacket(n, ip, p.ClientHWAddr, r)
+			px.api.Logf(lib.LLDEBUG, "acknowledging DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
+			// discover that we've progressed
+			url1 := lib.NodeURLJoin(n.ID().String(), PXEStateURL)
+			ev1 := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url1,
+				&core.DiscoveryEvent{
+					Module:  px.Name(),
+					URL:     url1,
+					ValueID: "INIT",
+				},
+			)
+			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+			ev2 := core.NewEvent(
+				lib.Event_DISCOVERY,
+				url1,
+				&core.DiscoveryEvent{
+					Module:  px.Name(),
+					URL:     url2,
+					ValueID: "NODE_INIT",
+				},
+			)
+			px.dchan <- ev1
+			px.dchan <- ev2
+		} else {
+			px.api.Logf(lib.LLDEBUG, "NAKing DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
+			r := px.newDHCPPacket(
+				p,
+				layers.DHCPMsgTypeNak,
+				px.selfIP.To4(),
+				ip,
+				px.leaseTime,
+				layers.DHCPOptions{},
+			)
+			px.transmitDHCPPacket(n, ip, p.ClientHWAddr, r)
+		}
 	// We don't expect any of the following, so we don't handle them
-	case layers.DHCPMsgTypeAck:
-		fallthrough
 	case layers.DHCPMsgTypeDecline:
 		fallthrough
 	case layers.DHCPMsgTypeInform:
-		fallthrough
-	case layers.DHCPMsgTypeNak:
-		fallthrough
-	case layers.DHCPMsgTypeOffer:
 		fallthrough
 	case layers.DHCPMsgTypeRelease:
 		fallthrough
@@ -193,14 +238,28 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 	return
 }
 
-func (px *PXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP net.IP, destIP net.IP, leaseTimeDuration time.Duration, dhcpOptions layers.DHCPOptions) []byte {
+func (px *PXE) newDHCPPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP net.IP, destIP net.IP, leaseTimeDuration time.Duration, dhcpOptions layers.DHCPOptions) []byte {
+	// For logic of what goes in what MsgType, see RFC 2131 pg 28-29
 	piMac := p.ClientHWAddr
 	randToken := make([]byte, 2)
 	rand.Read(randToken)
 	leaseTime := make([]byte, 4)
 	binary.BigEndian.PutUint32(leaseTime, uint32(leaseTimeDuration.Seconds()))
 
-	o := append(px.options, []layers.DHCPOption(dhcpOptions)...)
+	// these two options should be set for any packet
+	o := []layers.DHCPOption{
+		layers.DHCPOption{
+			Type:   layers.DHCPOptMessageType,
+			Length: 1,
+			Data:   []byte{byte(msgType)},
+		},
+		layers.DHCPOption{
+			Type:   layers.DHCPOptServerID,
+			Length: 4,
+			Data:   px.selfIP.To4(),
+		},
+	}
+	o = append(o, []layers.DHCPOption(dhcpOptions)...)
 
 	var broadcast bool
 	if (p.Flags >> 15) == 1 {
@@ -213,7 +272,7 @@ func (px *PXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP n
 		HardwareLen:  6,
 		Xid:          p.Xid,
 		Secs:         0,
-		Flags:        0x0000,
+		Flags:        p.Flags,
 		ClientIP:     net.IPv4zero,
 		YourClientIP: destIP.To4(),
 		NextServerIP: selfIP.To4(),
@@ -222,6 +281,20 @@ func (px *PXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP n
 		ServerName:   []byte{},
 		File:         []byte(DHCPPXEFile),
 		Options:      o,
+	}
+
+	// modifications by msg type
+	switch msgType {
+	case layers.DHCPMsgTypeAck:
+		dhcp.ClientIP = p.ClientIP
+		fallthrough
+	case layers.DHCPMsgTypeOffer:
+		// for ACK/Offer, we append the full set of options
+		dhcp.Options = append([]layers.DHCPOption(dhcp.Options), []layers.DHCPOption(px.options)...)
+	case layers.DHCPMsgTypeNak:
+		dhcp.YourClientIP = net.IPv4zero
+		dhcp.NextServerIP = net.IPv4zero
+		dhcp.File = []byte{}
 	}
 
 	udp := &layers.UDP{
@@ -268,37 +341,14 @@ func (px *PXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP n
 	return buf.Bytes()
 }
 
-func (px *PXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
+func (px *PXE) transmitDHCPPacket(n lib.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
 	var e error
-	px.api.Logf(lib.LLDEBUG, "transmitting DHCP offer")
+	px.api.Logf(lib.LLDDEBUG, "transmitting DHCP packet")
 
 	_, e = px.rawHandle.WriteTo(rawp, &raw.Addr{HardwareAddr: mac})
 	if e != nil {
 		return e
 	}
 
-	// ... this should move to after we send an ACK
-	url1 := lib.NodeURLJoin(n.ID().String(), PXEStateURL)
-	ev1 := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url1,
-		&core.DiscoveryEvent{
-			Module:  px.Name(),
-			URL:     url1,
-			ValueID: "INIT",
-		},
-	)
-	url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
-	ev2 := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url1,
-		&core.DiscoveryEvent{
-			Module:  px.Name(),
-			URL:     url2,
-			ValueID: "NODE_INIT",
-		},
-	)
-	px.dchan <- ev1
-	px.dchan <- ev2
 	return nil
 }
