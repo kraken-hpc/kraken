@@ -11,7 +11,7 @@ LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
       org.label-schema.description="Layer1 running CentOS 7 with supervisord" \
       maintainer="Paul Peltz Jr."
 
-# Variables to use for SLURM install
+# Variables to use for Slurm install
 ARG SLURM_VERSION=slurm-17.11.9-2
 ARG SLURM_DOWNLOAD_MD5=f0d0fbc730a0f7d1fa02081e2c514ee8
 ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.9-2.tar.bz2
@@ -39,7 +39,7 @@ RUN set -e \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-# Install both slurm and charliecloud
+# Install both Slurm and Charliecloud
 RUN set -e \
     && yum install -y $SLURM_BUILD_PACKAGES \
     && mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
