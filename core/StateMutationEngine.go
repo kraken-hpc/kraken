@@ -667,8 +667,6 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 func (sme *StateMutationEngine) updateMutation(node string, url string, val reflect.Value) {
 	sme.activeMutex.Lock()
 	m, ok := sme.active[node]
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	sme.activeMutex.Unlock()
 	if !ok {
 		// this shouldn't happen
