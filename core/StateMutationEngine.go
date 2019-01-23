@@ -60,14 +60,17 @@ type mutationNode struct {
 }
 
 type mutationPath struct {
-	mutex  *sync.Mutex
-	cur    int // where are we currently?
-	start  lib.Node
-	end    lib.Node
-	gstart *mutationNode
-	gend   *mutationNode
-	chain  []*mutationEdge
-	timer  *time.Timer
+	mutex *sync.Mutex
+	cur   int // where are we currently?
+	// curSeen is a slice of URLs that we've seen (correct) changes in the current mut
+	// 	This is important to keep track of muts that change more than one URL
+	curSeen []string
+	start   lib.Node
+	end     lib.Node
+	gstart  *mutationNode
+	gend    *mutationNode
+	chain   []*mutationEdge
+	timer   *time.Timer
 }
 
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
@@ -499,10 +502,11 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 				i = prev[i].from
 			}
 			path := &mutationPath{
-				mutex:  &sync.Mutex{},
-				gstart: gstart,
-				gend:   u,
-				chain:  chain,
+				mutex:   &sync.Mutex{},
+				gstart:  gstart,
+				gend:    u,
+				chain:   chain,
+				curSeen: []string{},
 			}
 			return path
 		}
@@ -548,11 +552,12 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	for _, gend := range ge {
 		if gend == gs[0] {
 			path = &mutationPath{
-				mutex: &sync.Mutex{},
-				start: start,
-				end:   end,
-				cur:   0,
-				chain: []*mutationEdge{},
+				mutex:   &sync.Mutex{},
+				start:   start,
+				end:     end,
+				cur:     0,
+				curSeen: []string{},
+				chain:   []*mutationEdge{},
 			}
 			return
 		}
@@ -705,7 +710,25 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	// ok, we got an expected URL.  Is this the value we were looking for?
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
+		m.curSeen = append(m.curSeen, url)
+		// Ok, everything checks out, but maybe we have more things to discover before progressing?
+		// TODO: more efficient way to do this for large numbers of URL changes/mut?
+		for url := range cmuts {
+			got := false
+			for _, seen := range m.curSeen {
+				if url == seen { // ok, we got this one
+					got = true
+					break
+				}
+			}
+			if !got {
+				// ok, we haven't seen all of the URL's discovered
+				sme.Logf(DEBUG, "mutation chain for %s progressing as normal, but this mutation isn't complete yet. Still need: %s", node, url)
+				return
+			}
+		}
 		m.cur++
+		m.curSeen = []string{}
 		m.timer.Stop()
 		// are we done?
 		if len(m.chain) <= m.cur {
