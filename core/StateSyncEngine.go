@@ -184,6 +184,12 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 
 	nd, _ := sse.query.ReadDsc(id)
 
+	// the following check *should* be unnecessary, and maybe can be removed some day
+	rs, _ := nd.GetValue("/RunState")
+	if rs.Interface() != pb.Node_SYNC {
+		sse.Logf(DEBUG, "sending a phone home reply, but /RunState != SYNC, this shouldn't happen: %s", id.String())
+	}
+
 	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
 	if e != nil {
 		return
