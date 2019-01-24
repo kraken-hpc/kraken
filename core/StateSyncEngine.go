@@ -178,6 +178,10 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 	if e != nil {
 		return
 	}
+	// This is redundant with the discovery above, but we need to make sure it's set before we send it
+	// But we also want to be a good citizen and send a discovery
+	_, e = sse.query.SetValueDsc(lib.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
+
 	nd, _ := sse.query.ReadDsc(id)
 
 	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
