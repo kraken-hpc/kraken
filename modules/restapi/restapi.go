@@ -171,6 +171,19 @@ func (r *RestAPI) readNode(w http.ResponseWriter, req *http.Request) {
 	w.Write(n.JSON())
 }
 
+func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	params := mux.Vars(req)
+	n, e := r.api.QueryRead(params["id"])
+	if e != nil || n == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	r.
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(n.JSON())
+}
+
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)

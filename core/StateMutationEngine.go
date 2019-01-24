@@ -202,6 +202,49 @@ func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n=== END: Edge list ===\n")
 }
 
+// DumpGraph FIXME: REMOVE -- for debugging
+// LOCKS: graphMutex (R)
+func (sme *StateMutationEngine) DumpGraphNode(node lib.Node) {
+	sme.graphMutex.RLock()
+	fmt.Printf("\n")
+	fmt.Printf("=== START: Mutators URLs ===\n")
+	for k, v := range sme.mutators {
+		fmt.Printf("%s: %d\n", k, v)
+	}
+	fmt.Printf("=== END: Mutators URLs ===\n")
+	fmt.Printf("=== START: Requires URLs ===\n")
+	for k, v := range sme.requires {
+		fmt.Printf("%s: %d\n", k, v)
+	}
+	fmt.Printf("=== END: Requires URLs ===\n")
+	fmt.Printf("\n=== START: Node list ===\n")
+	for _, m := range sme.nodes {
+		fmt.Printf(`
+		Node: %p
+		 Spec: %p
+		  req: %s
+		  exc: %s
+		 In: %v
+		 Out: %v
+		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
+	}
+	fmt.Printf("\n=== END: Node list ===\n")
+	fmt.Printf("\n=== START: Edge list ===\n")
+	for _, m := range sme.edges {
+		fmt.Printf(`
+		Edge: %p
+		 Mutation: %p
+		  mut: %s
+		  req: %s
+		  exc: %s
+		 From: %p
+		 To: %p
+		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
+	}
+	fmt.Printf("\n=== END: Edge list ===\n")
+	sme.graphMutex.RUnlock()
+}
+
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.
 // If the path doesn't exist, it also returns the error.
 func (sme *StateMutationEngine) PathExists(start lib.Node, end lib.Node) (r bool, e error) {
