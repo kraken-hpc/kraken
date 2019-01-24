@@ -179,8 +179,9 @@ func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	g, e := r.api.QueryReadDot(n)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(n.JSON())
+	w.Write(g)
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {

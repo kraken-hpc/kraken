@@ -27,6 +27,7 @@ message Query {
     oneof payload {
         Node node = 2;
         ReflectValue value = 3;
+        string text = 4;
     }
 }
 

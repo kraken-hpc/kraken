@@ -277,6 +277,7 @@ const (
 	Query_GETVALUE
 	Query_SETVALUE
 	Query_RESPONSE
+	Query_READDOT
 )
 
 type QueryState uint8

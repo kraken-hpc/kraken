@@ -114,10 +114,10 @@ func (s *APIServer) QueryReadDot(ctx context.Context, in *pb.Query) (out *pb.Que
 	}
 	nin := NewNodeFromMessage(pbin)
 	var sout string
-	sout, e = s.query.Create(nin)
+	sout, e = s.query.ReadDot(nin)
 	out.URL = in.URL
 	if sout != "" {
-		out.Payload = &pb.Query_Node{Node: sout.Message().(*pb.Node)}
+		out.Payload = &pb.Query_Text{Text: sout}
 	}
 	return
 }

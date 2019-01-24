@@ -141,7 +141,7 @@ func (q *QueryEngine) ReadDsc(n lib.NodeID) (nc lib.Node, e error) {
 
 // ReadDot will get a dot graph from the sme for a node
 func (q *QueryEngine) ReadDot(n lib.Node) (sc string, e error) {
-	query, r := NewQuery(lib.Query_READ, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
+	query, r := NewQuery(lib.Query_READDOT, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
 	v, e := q.blockingQuery(query, r)
 	if len(v) < 1 || !v[0].IsValid() {
 		return
