@@ -91,6 +91,7 @@ type StateMutationEngine struct {
 	nodes       []*mutationNode   // so we can search for matches
 	edges       []*mutationEdge
 	em          *EventEmitter
+	qc          chan lib.Query
 	schan       chan<- lib.EventListener // subscription channel
 	echan       chan lib.Event
 	selist      *EventListener
@@ -202,47 +203,9 @@ func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n=== END: Edge list ===\n")
 }
 
-// DumpGraph FIXME: REMOVE -- for debugging
-// LOCKS: graphMutex (R)
-func (sme *StateMutationEngine) DumpGraphNode(node lib.Node) {
-	sme.graphMutex.RLock()
-	fmt.Printf("\n")
-	fmt.Printf("=== START: Mutators URLs ===\n")
-	for k, v := range sme.mutators {
-		fmt.Printf("%s: %d\n", k, v)
-	}
-	fmt.Printf("=== END: Mutators URLs ===\n")
-	fmt.Printf("=== START: Requires URLs ===\n")
-	for k, v := range sme.requires {
-		fmt.Printf("%s: %d\n", k, v)
-	}
-	fmt.Printf("=== END: Requires URLs ===\n")
-	fmt.Printf("\n=== START: Node list ===\n")
-	for _, m := range sme.nodes {
-		fmt.Printf(`
-		Node: %p
-		 Spec: %p
-		  req: %s
-		  exc: %s
-		 In: %v
-		 Out: %v
-		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
-	}
-	fmt.Printf("\n=== END: Node list ===\n")
-	fmt.Printf("\n=== START: Edge list ===\n")
-	for _, m := range sme.edges {
-		fmt.Printf(`
-		Edge: %p
-		 Mutation: %p
-		  mut: %s
-		  req: %s
-		  exc: %s
-		 From: %p
-		 To: %p
-		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
-	}
-	fmt.Printf("\n=== END: Edge list ===\n")
-	sme.graphMutex.RUnlock()
+// GetDotGraph returns the dot graph
+func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
+	return "blah", nil
 }
 
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.
@@ -253,6 +216,11 @@ func (sme *StateMutationEngine) PathExists(start lib.Node, end lib.Node) (r bool
 		r = true
 	}
 	return
+}
+
+// goroutine
+func (sme *StateMutationEngine) sendQueryResponse(qr lib.QueryResponse, r chan<- lib.QueryResponse) {
+	r <- qr
 }
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
@@ -302,6 +270,21 @@ func (sme *StateMutationEngine) Run() {
 
 	for {
 		select {
+		case q := <-sme.qc:
+			switch q.Type() {
+			case lib.Query_READ:
+				var v string
+				var e error
+
+				v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				break
+			default:
+				sme.Logf(NOTICE, "unsupported query type: %d", q.Type())
+			}
+			break
+
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
 			// we should make them concurrent with a queue
