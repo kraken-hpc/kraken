@@ -54,7 +54,7 @@ func (q *Query) URL() string { return q.u }
 // Value returns an array of associated refelct.Value's with this query
 func (q *Query) Value() []reflect.Value { return q.v }
 
-// ResponseChan returns the channel taht a QueryResponse should be sent on
+// ResponseChan returns the channel that a QueryResponse should be sent on
 func (q *Query) ResponseChan() chan<- lib.QueryResponse { return q.c }
 
 //////////////////////////
@@ -286,6 +286,8 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 //////////////////////
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
+	fmt.Printf("QE: %p\n", q)
+	fmt.Printf("Channel: %p\n", q.s)
 	q.s <- query
 	qr := <-r
 	return qr.Value(), qr.Error()
