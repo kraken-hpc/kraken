@@ -297,24 +297,15 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
-	fmt.Printf("channels: %v\n", q.s)
-	if len(q.s) > 0 {
-		fmt.Printf("number of channels: %v\n", len(q.s))
-		q.s[0] <- query
-		qr = <-r
-		fmt.Printf("Response from %v: %v\n", q.s[0], qr.Value()[0])
+	// fmt.Printf("channels: %v\n", q.s)
+	var s chan<- lib.Query
+	if query.Type() == 10 {
+		s = q.s[1]
+	} else {
+		s = q.s[0]
 	}
+	s <- query
+	qr = <-r
+	// fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
 	return qr.Value(), qr.Error()
-	// for _, s := range q.s {
-	// 	s <- query
-	// 	qr = <-r
-	// 	fmt.Printf("Response from %v: %v\n", r, qr.Value()[0])
-	// 	return qr.Value(), qr.Error()
-	// 	// if qr == nil {
-	// 	// 	fmt.Printf("blocking query retuned nil, trying next channel\n")
-	// 	// } else {
-	// 	// 	return qr.Value(), qr.Error()
-	// 	// }
-	// }
-	// return qr.Value(), qr.Error()
 }
