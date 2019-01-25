@@ -12,9 +12,11 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -205,8 +207,81 @@ func (sme *StateMutationEngine) DumpGraph() {
 }
 
 // GetDotGraph returns the dot graph
-func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
-	return "blah", nil
+func (sme *StateMutationEngine) GetDotGraph(i lib.Node) (r string, e error) {
+	n := NewNodeFromMessage(i.Message().(*pb.Node))
+	graphAst, _ := gographviz.ParseString(`digraph G {}`)
+	graph := gographviz.NewGraph()
+	if err := gographviz.Analyse(graphAst, graph); err != nil {
+		return "", err
+	}
+
+	platform := n.pb.Platform
+	arch := n.pb.Services
+
+	fmt.Printf("PLATFORM: %v\n", platform)
+	fmt.Printf("ARCH: %v\n", arch)
+	fmt.Printf("NODE: %v\n", n)
+
+	var nodes []string
+
+	// Add nodes to graph
+	for _, m := range sme.nodes {
+		fmt.Printf("node: %p\n", m)
+		label := ""
+		// label := sme.dumpMapOfValues(m.spec.Requires())
+		rm := m.spec.Requires()
+		for k := range rm {
+			fmt.Println(k)
+			if k == "/PhysState" || k == "/RunState" || k == "type.googleapis.com/proto.RPi3/Pxe" {
+				label += lib.ValueToString(rm[k])
+			}
+		}
+		// label := strings.Replace(sme.dumpMapOfValues(m.spec.Requires()), "/", "", -1)
+		label = strings.Replace(label, ",", "", -1)
+		label = strings.Replace(label, " ", "", -1)
+		fmt.Printf("%v\n", label)
+		graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": label})
+		nodes = append(nodes, fmt.Sprintf("%p", m))
+	}
+
+	// for _, m := range sme.nodes {
+	// 	fmt.Printf("node: %p\n", m)
+
+	// 	rm := m.spec.Requires()
+	// 	for k := range rm {
+	// 		// if k == "/Platform" && lib.ValueToString(rm[k]) == platform {
+	// 		if k == "/Platform" {
+	// 			for l := range rm {
+	// 				// if l == "/Arch" && lib.ValueToString(rm[l]) == arch {
+	// 				if l == "/Arch" {
+	// 					fmt.Printf("req: %s\n", sme.dumpMapOfValues(m.spec.Requires()))
+	// 					graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": sme.dumpMapOfValues(m.spec.Requires())})
+	// 					nodes = append(nodes, fmt.Sprintf("%p", m))
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// Add edges to graph
+	for _, m := range sme.edges {
+		fmt.Printf("edge: %p\n", m)
+		from := fmt.Sprintf("%p", m.from)
+		to := fmt.Sprintf("%p", m.to)
+
+		for _, n := range nodes {
+			if from == n {
+				graph.AddEdge(from, to, true, nil)
+			}
+		}
+	}
+
+	// graph.AddNode("G", "a", nil)
+	// graph.AddNode("G", "b", nil)
+	// graph.AddEdge("a", "b", true, nil)
+
+	output := graph.String()
+	return output, nil
 }
 
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.

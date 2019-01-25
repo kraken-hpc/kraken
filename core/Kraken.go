@@ -169,6 +169,7 @@ func (k *Kraken) Bootstrap() {
 	k.Sme = NewStateMutationEngine(k.Ctx)
 
 	k.Ctx.Query = *NewQueryEngine(k.Sde.QueryChan(), k.Sme.QueryChan())
+	fmt.Printf("Kraken 171 created new qe: %p\n", k.Ctx.Query)
 
 	k.Api = NewAPIServer(k.Ctx)
 

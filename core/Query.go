@@ -99,6 +99,7 @@ func NewQueryEngine(s ...chan<- lib.Query) *QueryEngine {
 	qe := &QueryEngine{
 		s: s,
 	}
+	fmt.Printf("created new qe: %p\n", qe)
 	return qe
 }
 
@@ -297,7 +298,8 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
-	// fmt.Printf("channels: %v\n", q.s)
+	fmt.Printf("query engine: %p\n", q)
+	fmt.Printf("channels: %v\n", q.s)
 	var s chan<- lib.Query
 	if query.Type() == 10 {
 		s = q.s[1]
@@ -306,6 +308,6 @@ func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse)
 	}
 	s <- query
 	qr = <-r
-	// fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
+	fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
 	return qr.Value(), qr.Error()
 }

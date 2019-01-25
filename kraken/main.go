@@ -155,8 +155,8 @@ func main() {
 	}
 
 	k.Release()
-	qe := core.NewQueryEngine(k.Sde.QueryChan())
-
+	qe := core.NewQueryEngine(k.Sde.QueryChan(), k.Sme.QueryChan())
+	fmt.Printf("Main 159 created new qe: %p\n", qe)
 	// we'll modify ourselves a bit to get running
 	self, _ := qe.Read(k.Ctx.Self)
 
