@@ -298,7 +298,7 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
-	fmt.Printf("query engine: %p\n", q)
+	fmt.Printf("qe: %p\n", q)
 	fmt.Printf("channels: %v\n", q.s)
 	var s chan<- lib.Query
 	if query.Type() == 10 {
