@@ -7,7 +7,12 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import any "github.com/golang/protobuf/ptypes/any"
-import _ "github.com/golang/protobuf/ptypes/empty"
+import empty "github.com/golang/protobuf/ptypes/empty"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -43,7 +48,7 @@ func (x ServiceControl_Command) String() string {
 	return proto.EnumName(ServiceControl_Command_name, int32(x))
 }
 func (ServiceControl_Command) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{3, 0}
+	return fileDescriptor_API_389d95aee1e1de49, []int{3, 0}
 }
 
 type MutationControl_Type int32
@@ -66,7 +71,7 @@ func (x MutationControl_Type) String() string {
 	return proto.EnumName(MutationControl_Type_name, int32(x))
 }
 func (MutationControl_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{4, 0}
+	return fileDescriptor_API_389d95aee1e1de49, []int{4, 0}
 }
 
 type Query struct {
@@ -85,7 +90,7 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{0}
+	return fileDescriptor_API_389d95aee1e1de49, []int{0}
 }
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
@@ -262,7 +267,7 @@ func (m *QueryMulti) Reset()         { *m = QueryMulti{} }
 func (m *QueryMulti) String() string { return proto.CompactTextString(m) }
 func (*QueryMulti) ProtoMessage()    {}
 func (*QueryMulti) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{1}
+	return fileDescriptor_API_389d95aee1e1de49, []int{1}
 }
 func (m *QueryMulti) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryMulti.Unmarshal(m, b)
@@ -301,7 +306,7 @@ func (m *ServiceInitRequest) Reset()         { *m = ServiceInitRequest{} }
 func (m *ServiceInitRequest) String() string { return proto.CompactTextString(m) }
 func (*ServiceInitRequest) ProtoMessage()    {}
 func (*ServiceInitRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{2}
+	return fileDescriptor_API_389d95aee1e1de49, []int{2}
 }
 func (m *ServiceInitRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceInitRequest.Unmarshal(m, b)
@@ -347,7 +352,7 @@ func (m *ServiceControl) Reset()         { *m = ServiceControl{} }
 func (m *ServiceControl) String() string { return proto.CompactTextString(m) }
 func (*ServiceControl) ProtoMessage()    {}
 func (*ServiceControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{3}
+	return fileDescriptor_API_389d95aee1e1de49, []int{3}
 }
 func (m *ServiceControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceControl.Unmarshal(m, b)
@@ -396,7 +401,7 @@ func (m *MutationControl) Reset()         { *m = MutationControl{} }
 func (m *MutationControl) String() string { return proto.CompactTextString(m) }
 func (*MutationControl) ProtoMessage()    {}
 func (*MutationControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{4}
+	return fileDescriptor_API_389d95aee1e1de49, []int{4}
 }
 func (m *MutationControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationControl.Unmarshal(m, b)
@@ -464,7 +469,7 @@ func (m *DiscoveryEvent) Reset()         { *m = DiscoveryEvent{} }
 func (m *DiscoveryEvent) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryEvent) ProtoMessage()    {}
 func (*DiscoveryEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{5}
+	return fileDescriptor_API_389d95aee1e1de49, []int{5}
 }
 func (m *DiscoveryEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryEvent.Unmarshal(m, b)
@@ -515,7 +520,7 @@ func (m *ReflectValue) Reset()         { *m = ReflectValue{} }
 func (m *ReflectValue) String() string { return proto.CompactTextString(m) }
 func (*ReflectValue) ProtoMessage()    {}
 func (*ReflectValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{6}
+	return fileDescriptor_API_389d95aee1e1de49, []int{6}
 }
 func (m *ReflectValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReflectValue.Unmarshal(m, b)
@@ -548,7 +553,7 @@ func (m *LogMessage) Reset()         { *m = LogMessage{} }
 func (m *LogMessage) String() string { return proto.CompactTextString(m) }
 func (*LogMessage) ProtoMessage()    {}
 func (*LogMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_bac828d1e5f84257, []int{7}
+	return fileDescriptor_API_389d95aee1e1de49, []int{7}
 }
 func (m *LogMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LogMessage.Unmarshal(m, b)
@@ -602,53 +607,689 @@ func init() {
 	proto.RegisterEnum("proto.MutationControl_Type", MutationControl_Type_name, MutationControl_Type_value)
 }
 
-func init() { proto.RegisterFile("API.proto", fileDescriptor_API_bac828d1e5f84257) }
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
-var fileDescriptor_API_bac828d1e5f84257 = []byte{
-	// 705 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x5d, 0x4e, 0xdb, 0x40,
-	0x10, 0xb6, 0xf3, 0x4b, 0x26, 0x21, 0xa4, 0x5b, 0x8a, 0x42, 0x10, 0x12, 0xec, 0x43, 0x15, 0x04,
-	0x32, 0x55, 0x5a, 0xa9, 0x0f, 0xb4, 0x95, 0x42, 0x12, 0x89, 0x48, 0x84, 0xa6, 0x4b, 0xd2, 0xd7,
-	0xca, 0xd8, 0x1b, 0xcb, 0x92, 0xe3, 0x0d, 0xf6, 0x3a, 0xaa, 0xaf, 0xd0, 0x63, 0xf4, 0x3a, 0xbd,
-	0x43, 0xcf, 0x52, 0xed, 0x7a, 0x0d, 0x0e, 0x85, 0xa6, 0x3c, 0xd9, 0xb3, 0xf3, 0xcd, 0xf7, 0xcd,
-	0x67, 0xcf, 0x2c, 0x54, 0xba, 0xe3, 0xa1, 0xb1, 0x08, 0x18, 0x67, 0xa8, 0x28, 0x1f, 0x2d, 0xb8,
-	0x62, 0x36, 0x4d, 0x8e, 0x5a, 0xbb, 0x0e, 0x63, 0x8e, 0x47, 0x4f, 0x65, 0x74, 0x13, 0xcd, 0x4e,
-	0x4d, 0x3f, 0x56, 0xa9, 0xbd, 0x87, 0xa9, 0xc1, 0x7c, 0xc1, 0x55, 0x12, 0xff, 0xd0, 0xa1, 0xf8,
-	0x25, 0xa2, 0x41, 0x8c, 0x1a, 0x90, 0x9f, 0x92, 0xcb, 0xa6, 0x7e, 0xa0, 0xb7, 0x2b, 0x44, 0xbc,
-	0xa2, 0x43, 0x28, 0xf8, 0xcc, 0xa6, 0xcd, 0xdc, 0x81, 0xde, 0xae, 0x76, 0xaa, 0x49, 0x85, 0x21,
-	0x44, 0x2f, 0x34, 0x22, 0x53, 0xe8, 0x18, 0x8a, 0x4b, 0xd3, 0x8b, 0x68, 0x33, 0x2f, 0x31, 0x2f,
-	0x15, 0x86, 0xd0, 0x99, 0x47, 0x2d, 0xfe, 0x55, 0xa4, 0x2e, 0x34, 0x92, 0x60, 0xd0, 0x36, 0x14,
-	0x38, 0xfd, 0xce, 0x9b, 0x05, 0x21, 0x21, 0x28, 0x44, 0x74, 0x5e, 0x81, 0xf2, 0xc2, 0x8c, 0x3d,
-	0x66, 0xda, 0xf8, 0x1d, 0x80, 0xec, 0x65, 0x14, 0x79, 0xdc, 0x45, 0xaf, 0xa1, 0x7c, 0x1b, 0xd1,
-	0xc0, 0xa5, 0x61, 0x53, 0x3f, 0xc8, 0xb7, 0xab, 0x9d, 0x9a, 0x62, 0x97, 0x18, 0x92, 0x26, 0xf1,
-	0x07, 0x40, 0xd7, 0x34, 0x58, 0xba, 0x16, 0x1d, 0xfa, 0x2e, 0x27, 0xf4, 0x36, 0xa2, 0x21, 0x47,
-	0x75, 0xc8, 0xb9, 0xb6, 0x72, 0x93, 0x73, 0x6d, 0xb4, 0x03, 0xa5, 0x39, 0xb3, 0x23, 0x2f, 0xb1,
-	0x53, 0x21, 0x2a, 0xc2, 0x3f, 0x75, 0xa8, 0xab, 0xf2, 0x1e, 0xf3, 0x79, 0xc0, 0x3c, 0xf4, 0x1e,
-	0xca, 0x16, 0x9b, 0xcf, 0x4d, 0x3f, 0xa9, 0xaf, 0x77, 0xf6, 0x95, 0xf0, 0x2a, 0xce, 0xe8, 0x25,
-	0x20, 0x92, 0xa2, 0xd1, 0x09, 0x94, 0x2c, 0xe6, 0xcf, 0x5c, 0x47, 0x7d, 0xb2, 0x6d, 0x23, 0xf9,
-	0xf4, 0x46, 0xfa, 0xe9, 0x8d, 0xae, 0x1f, 0x13, 0x85, 0xc1, 0x47, 0x50, 0x56, 0x0c, 0x68, 0x03,
-	0x0a, 0xd7, 0x93, 0xcf, 0xe3, 0x86, 0x86, 0x00, 0x4a, 0xd3, 0x71, 0xbf, 0x3b, 0x19, 0x34, 0x74,
-	0x71, 0x3a, 0xbc, 0x1a, 0x4e, 0x1a, 0x39, 0xfc, 0x4b, 0x87, 0xad, 0x51, 0xc4, 0x4d, 0xee, 0x32,
-	0x3f, 0xed, 0xf2, 0xde, 0x90, 0x9e, 0x35, 0xa4, 0x8c, 0xe7, 0xee, 0x8c, 0x9f, 0x42, 0x81, 0xc7,
-	0x8b, 0xe4, 0x0f, 0xd5, 0x3b, 0x7b, 0xca, 0xca, 0x03, 0x36, 0x63, 0x12, 0x2f, 0x28, 0x91, 0x40,
-	0xb4, 0x0f, 0x79, 0x6b, 0xe6, 0xc8, 0xbf, 0xb4, 0xfa, 0xd7, 0x89, 0x38, 0x17, 0x69, 0x3b, 0xb4,
-	0x9a, 0xc5, 0x47, 0xd2, 0x76, 0x68, 0xe1, 0x43, 0x28, 0x08, 0x2e, 0x61, 0x64, 0x34, 0x9d, 0x08,
-	0x23, 0x1a, 0xda, 0x84, 0xca, 0xf0, 0x6a, 0x32, 0x20, 0x64, 0x3a, 0x9e, 0x34, 0x74, 0x3c, 0x85,
-	0x7a, 0xdf, 0x0d, 0x2d, 0xb6, 0xa4, 0x41, 0x3c, 0x58, 0x52, 0x9f, 0x3f, 0xe9, 0xa5, 0x01, 0xf9,
-	0x28, 0xf0, 0x94, 0x19, 0xf1, 0x8a, 0x76, 0x61, 0x43, 0x0e, 0xd3, 0x37, 0xd7, 0x96, 0x8e, 0x2a,
-	0xa4, 0x2c, 0xe3, 0xa1, 0x8d, 0xeb, 0x50, 0xcb, 0xce, 0x1d, 0xbe, 0x04, 0xb8, 0x64, 0xce, 0x88,
-	0x86, 0xa1, 0xe9, 0x50, 0x21, 0xc1, 0x02, 0xd7, 0x71, 0xfd, 0x54, 0x22, 0x89, 0xd0, 0x36, 0x14,
-	0x3d, 0xba, 0xa4, 0x89, 0xc8, 0x26, 0x49, 0x02, 0x21, 0x3c, 0x0f, 0x1d, 0xa5, 0x20, 0x5e, 0x3b,
-	0xbf, 0x8b, 0x90, 0xef, 0x8e, 0x87, 0xe8, 0x18, 0xaa, 0x72, 0xfe, 0x7a, 0x01, 0x35, 0x39, 0x45,
-	0x2b, 0x33, 0xd9, 0x5a, 0x89, 0xb0, 0x86, 0x8e, 0xa0, 0x92, 0x0c, 0x2b, 0x35, 0xed, 0x35, 0xd0,
-	0x13, 0xa8, 0xdd, 0x41, 0xfb, 0xa1, 0xb5, 0x06, 0x9d, 0x76, 0x31, 0x5d, 0xd8, 0xeb, 0xbb, 0x30,
-	0xa0, 0x9e, 0x01, 0xff, 0x3f, 0x79, 0x9f, 0x7a, 0x74, 0x2d, 0xf9, 0x59, 0xa6, 0xef, 0xae, 0xe7,
-	0xa1, 0x9d, 0xbf, 0x66, 0x5e, 0x5e, 0x37, 0xad, 0x17, 0xd9, 0x3a, 0xb9, 0xe0, 0x58, 0x43, 0x9f,
-	0x60, 0x2b, 0x5b, 0x2c, 0x5a, 0x7b, 0x56, 0xfd, 0x47, 0xe5, 0x2c, 0xe9, 0xf4, 0xd9, 0xf2, 0x3d,
-	0xa8, 0x66, 0x6e, 0x0e, 0xb4, 0xbb, 0xba, 0xe6, 0x99, 0xdb, 0xa4, 0xf5, 0xea, 0xd1, 0x1b, 0x00,
-	0x6b, 0x6f, 0x74, 0x34, 0x80, 0x5a, 0xba, 0x4c, 0xeb, 0x58, 0x76, 0x1e, 0x5f, 0x3e, 0x49, 0x73,
-	0x0e, 0x9b, 0x77, 0x4b, 0x21, 0x79, 0x52, 0xc9, 0xd5, 0x55, 0x69, 0x3d, 0x61, 0x10, 0x6b, 0x6d,
-	0x1d, 0x9d, 0xc9, 0x89, 0x77, 0x68, 0x20, 0x09, 0x52, 0xcb, 0xf7, 0x4b, 0xf0, 0xaf, 0xe2, 0x9b,
-	0x92, 0x3c, 0x7b, 0xfb, 0x27, 0x00, 0x00, 0xff, 0xff, 0xe5, 0x77, 0x51, 0x20, 0x68, 0x06, 0x00,
-	0x00,
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// APIClient is the client API for API service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type APIClient interface {
+	// Query language
+	// TODO: create API for bulk CRUD operations
+	QueryCreate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryRead(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryReadDot(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryReadDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryUpdate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryUpdateDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryDelete(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryReadAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
+	QueryReadAllDsc(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
+	QueryDeleteAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
+	// Service management
+	ServiceInit(ctx context.Context, in *ServiceInitRequest, opts ...grpc.CallOption) (API_ServiceInitClient, error)
+	// Mutation/Discover management
+	MutationInit(ctx context.Context, in *ServiceInitRequest, opts ...grpc.CallOption) (API_MutationInitClient, error)
+	// Discovery management
+	DiscoveryInit(ctx context.Context, opts ...grpc.CallOption) (API_DiscoveryInitClient, error)
+	// Logging
+	LoggerInit(ctx context.Context, opts ...grpc.CallOption) (API_LoggerInitClient, error)
+}
+
+type aPIClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewAPIClient(cc *grpc.ClientConn) APIClient {
+	return &aPIClient{cc}
+}
+
+func (c *aPIClient) QueryCreate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryRead(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryRead", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryReadDot(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryReadDot", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryReadDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryReadDsc", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryUpdate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryUpdate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryUpdateDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryUpdateDsc", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryDelete(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryDelete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryReadAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error) {
+	out := new(QueryMulti)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryReadAll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryReadAllDsc(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error) {
+	out := new(QueryMulti)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryReadAllDsc", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryDeleteAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error) {
+	out := new(QueryMulti)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryDeleteAll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) ServiceInit(ctx context.Context, in *ServiceInitRequest, opts ...grpc.CallOption) (API_ServiceInitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_API_serviceDesc.Streams[0], "/proto.API/ServiceInit", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPIServiceInitClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type API_ServiceInitClient interface {
+	Recv() (*ServiceControl, error)
+	grpc.ClientStream
+}
+
+type aPIServiceInitClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPIServiceInitClient) Recv() (*ServiceControl, error) {
+	m := new(ServiceControl)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *aPIClient) MutationInit(ctx context.Context, in *ServiceInitRequest, opts ...grpc.CallOption) (API_MutationInitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_API_serviceDesc.Streams[1], "/proto.API/MutationInit", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPIMutationInitClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type API_MutationInitClient interface {
+	Recv() (*MutationControl, error)
+	grpc.ClientStream
+}
+
+type aPIMutationInitClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPIMutationInitClient) Recv() (*MutationControl, error) {
+	m := new(MutationControl)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *aPIClient) DiscoveryInit(ctx context.Context, opts ...grpc.CallOption) (API_DiscoveryInitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_API_serviceDesc.Streams[2], "/proto.API/DiscoveryInit", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPIDiscoveryInitClient{stream}
+	return x, nil
+}
+
+type API_DiscoveryInitClient interface {
+	Send(*DiscoveryEvent) error
+	CloseAndRecv() (*empty.Empty, error)
+	grpc.ClientStream
+}
+
+type aPIDiscoveryInitClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPIDiscoveryInitClient) Send(m *DiscoveryEvent) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *aPIDiscoveryInitClient) CloseAndRecv() (*empty.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(empty.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *aPIClient) LoggerInit(ctx context.Context, opts ...grpc.CallOption) (API_LoggerInitClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_API_serviceDesc.Streams[3], "/proto.API/LoggerInit", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &aPILoggerInitClient{stream}
+	return x, nil
+}
+
+type API_LoggerInitClient interface {
+	Send(*LogMessage) error
+	CloseAndRecv() (*empty.Empty, error)
+	grpc.ClientStream
+}
+
+type aPILoggerInitClient struct {
+	grpc.ClientStream
+}
+
+func (x *aPILoggerInitClient) Send(m *LogMessage) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *aPILoggerInitClient) CloseAndRecv() (*empty.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(empty.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// APIServer is the server API for API service.
+type APIServer interface {
+	// Query language
+	// TODO: create API for bulk CRUD operations
+	QueryCreate(context.Context, *Query) (*Query, error)
+	QueryRead(context.Context, *Query) (*Query, error)
+	QueryReadDot(context.Context, *Query) (*Query, error)
+	QueryReadDsc(context.Context, *Query) (*Query, error)
+	QueryUpdate(context.Context, *Query) (*Query, error)
+	QueryUpdateDsc(context.Context, *Query) (*Query, error)
+	QueryDelete(context.Context, *Query) (*Query, error)
+	QueryReadAll(context.Context, *empty.Empty) (*QueryMulti, error)
+	QueryReadAllDsc(context.Context, *empty.Empty) (*QueryMulti, error)
+	QueryDeleteAll(context.Context, *empty.Empty) (*QueryMulti, error)
+	// Service management
+	ServiceInit(*ServiceInitRequest, API_ServiceInitServer) error
+	// Mutation/Discover management
+	MutationInit(*ServiceInitRequest, API_MutationInitServer) error
+	// Discovery management
+	DiscoveryInit(API_DiscoveryInitServer) error
+	// Logging
+	LoggerInit(API_LoggerInitServer) error
+}
+
+func RegisterAPIServer(s *grpc.Server, srv APIServer) {
+	s.RegisterService(&_API_serviceDesc, srv)
+}
+
+func _API_QueryCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryCreate(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryRead(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryRead",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryRead(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryReadDot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryReadDot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryReadDot",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryReadDot(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryReadDsc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryReadDsc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryReadDsc",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryReadDsc(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryUpdate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryUpdate(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryUpdateDsc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryUpdateDsc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryUpdateDsc",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryUpdateDsc(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryDelete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryDelete(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryReadAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryReadAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryReadAll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryReadAll(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryReadAllDsc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryReadAllDsc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryReadAllDsc",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryReadAllDsc(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryDeleteAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryDeleteAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryDeleteAll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryDeleteAll(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_ServiceInit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ServiceInitRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(APIServer).ServiceInit(m, &aPIServiceInitServer{stream})
+}
+
+type API_ServiceInitServer interface {
+	Send(*ServiceControl) error
+	grpc.ServerStream
+}
+
+type aPIServiceInitServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPIServiceInitServer) Send(m *ServiceControl) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _API_MutationInit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ServiceInitRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(APIServer).MutationInit(m, &aPIMutationInitServer{stream})
+}
+
+type API_MutationInitServer interface {
+	Send(*MutationControl) error
+	grpc.ServerStream
+}
+
+type aPIMutationInitServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPIMutationInitServer) Send(m *MutationControl) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _API_DiscoveryInit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(APIServer).DiscoveryInit(&aPIDiscoveryInitServer{stream})
+}
+
+type API_DiscoveryInitServer interface {
+	SendAndClose(*empty.Empty) error
+	Recv() (*DiscoveryEvent, error)
+	grpc.ServerStream
+}
+
+type aPIDiscoveryInitServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPIDiscoveryInitServer) SendAndClose(m *empty.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *aPIDiscoveryInitServer) Recv() (*DiscoveryEvent, error) {
+	m := new(DiscoveryEvent)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _API_LoggerInit_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(APIServer).LoggerInit(&aPILoggerInitServer{stream})
+}
+
+type API_LoggerInitServer interface {
+	SendAndClose(*empty.Empty) error
+	Recv() (*LogMessage, error)
+	grpc.ServerStream
+}
+
+type aPILoggerInitServer struct {
+	grpc.ServerStream
+}
+
+func (x *aPILoggerInitServer) SendAndClose(m *empty.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *aPILoggerInitServer) Recv() (*LogMessage, error) {
+	m := new(LogMessage)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+var _API_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.API",
+	HandlerType: (*APIServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "QueryCreate",
+			Handler:    _API_QueryCreate_Handler,
+		},
+		{
+			MethodName: "QueryRead",
+			Handler:    _API_QueryRead_Handler,
+		},
+		{
+			MethodName: "QueryReadDot",
+			Handler:    _API_QueryReadDot_Handler,
+		},
+		{
+			MethodName: "QueryReadDsc",
+			Handler:    _API_QueryReadDsc_Handler,
+		},
+		{
+			MethodName: "QueryUpdate",
+			Handler:    _API_QueryUpdate_Handler,
+		},
+		{
+			MethodName: "QueryUpdateDsc",
+			Handler:    _API_QueryUpdateDsc_Handler,
+		},
+		{
+			MethodName: "QueryDelete",
+			Handler:    _API_QueryDelete_Handler,
+		},
+		{
+			MethodName: "QueryReadAll",
+			Handler:    _API_QueryReadAll_Handler,
+		},
+		{
+			MethodName: "QueryReadAllDsc",
+			Handler:    _API_QueryReadAllDsc_Handler,
+		},
+		{
+			MethodName: "QueryDeleteAll",
+			Handler:    _API_QueryDeleteAll_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ServiceInit",
+			Handler:       _API_ServiceInit_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "MutationInit",
+			Handler:       _API_MutationInit_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "DiscoveryInit",
+			Handler:       _API_DiscoveryInit_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "LoggerInit",
+			Handler:       _API_LoggerInit_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "API.proto",
+}
+
+func init() { proto.RegisterFile("API.proto", fileDescriptor_API_389d95aee1e1de49) }
+
+var fileDescriptor_API_389d95aee1e1de49 = []byte{
+	// 708 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xef, 0x4e, 0xdb, 0x30,
+	0x10, 0x4f, 0xfa, 0x97, 0x5e, 0x4b, 0xe9, 0x3c, 0x86, 0x4a, 0x11, 0x12, 0xf8, 0xc3, 0x54, 0x04,
+	0x0a, 0x53, 0x37, 0x69, 0x1f, 0xd8, 0x26, 0x95, 0xb6, 0x12, 0x95, 0x28, 0xeb, 0x4c, 0xbb, 0xaf,
+	0x53, 0x48, 0xdc, 0x28, 0x52, 0x1a, 0x97, 0xc4, 0xa9, 0x96, 0x57, 0x98, 0xf6, 0x14, 0x7b, 0x9d,
+	0xbd, 0xd4, 0x64, 0xc7, 0x81, 0x94, 0xc1, 0x3a, 0x3e, 0x25, 0xe7, 0xfb, 0xdd, 0xef, 0xee, 0x67,
+	0xdf, 0x1d, 0x54, 0xba, 0xe3, 0xa1, 0xb1, 0x08, 0x18, 0x67, 0xa8, 0x28, 0x3f, 0x2d, 0xb8, 0x62,
+	0x36, 0x4d, 0x8e, 0x5a, 0xbb, 0x0e, 0x63, 0x8e, 0x47, 0x4f, 0xa5, 0x75, 0x13, 0xcd, 0x4e, 0x4d,
+	0x3f, 0x56, 0xae, 0xbd, 0x87, 0xae, 0xc1, 0x7c, 0xc1, 0x95, 0x13, 0xff, 0xd0, 0xa1, 0xf8, 0x25,
+	0xa2, 0x41, 0x8c, 0x1a, 0x90, 0x9f, 0x92, 0xcb, 0xa6, 0x7e, 0xa0, 0xb7, 0x2b, 0x44, 0xfc, 0xa2,
+	0x43, 0x28, 0xf8, 0xcc, 0xa6, 0xcd, 0xdc, 0x81, 0xde, 0xae, 0x76, 0xaa, 0x49, 0x84, 0x21, 0x92,
+	0x5e, 0x68, 0x44, 0xba, 0xd0, 0x31, 0x14, 0x97, 0xa6, 0x17, 0xd1, 0x66, 0x5e, 0x62, 0x5e, 0x2a,
+	0x0c, 0xa1, 0x33, 0x8f, 0x5a, 0xfc, 0xab, 0x70, 0x5d, 0x68, 0x24, 0xc1, 0xa0, 0x6d, 0x28, 0x70,
+	0xfa, 0x9d, 0x37, 0x0b, 0x22, 0x85, 0xa0, 0x10, 0xd6, 0x79, 0x05, 0xca, 0x0b, 0x33, 0xf6, 0x98,
+	0x69, 0xe3, 0x77, 0x00, 0xb2, 0x96, 0x51, 0xe4, 0x71, 0x17, 0xbd, 0x86, 0xf2, 0x6d, 0x44, 0x03,
+	0x97, 0x86, 0x4d, 0xfd, 0x20, 0xdf, 0xae, 0x76, 0x6a, 0x8a, 0x5d, 0x62, 0x48, 0xea, 0xc4, 0x1f,
+	0x00, 0x5d, 0xd3, 0x60, 0xe9, 0x5a, 0x74, 0xe8, 0xbb, 0x9c, 0xd0, 0xdb, 0x88, 0x86, 0x1c, 0xd5,
+	0x21, 0xe7, 0xda, 0x4a, 0x4d, 0xce, 0xb5, 0xd1, 0x0e, 0x94, 0xe6, 0xcc, 0x8e, 0xbc, 0x44, 0x4e,
+	0x85, 0x28, 0x0b, 0xff, 0xd2, 0xa1, 0xae, 0xc2, 0x7b, 0xcc, 0xe7, 0x01, 0xf3, 0xd0, 0x7b, 0x28,
+	0x5b, 0x6c, 0x3e, 0x37, 0xfd, 0x24, 0xbe, 0xde, 0xd9, 0x57, 0x89, 0x57, 0x71, 0x46, 0x2f, 0x01,
+	0x91, 0x14, 0x8d, 0x4e, 0xa0, 0x64, 0x31, 0x7f, 0xe6, 0x3a, 0xea, 0xca, 0xb6, 0x8d, 0xe4, 0xea,
+	0x8d, 0xf4, 0xea, 0x8d, 0xae, 0x1f, 0x13, 0x85, 0xc1, 0x47, 0x50, 0x56, 0x0c, 0x68, 0x03, 0x0a,
+	0xd7, 0x93, 0xcf, 0xe3, 0x86, 0x86, 0x00, 0x4a, 0xd3, 0x71, 0xbf, 0x3b, 0x19, 0x34, 0x74, 0x71,
+	0x3a, 0xbc, 0x1a, 0x4e, 0x1a, 0x39, 0xfc, 0x5b, 0x87, 0xad, 0x51, 0xc4, 0x4d, 0xee, 0x32, 0x3f,
+	0xad, 0xf2, 0x5e, 0x90, 0x9e, 0x15, 0xa4, 0x84, 0xe7, 0xee, 0x84, 0x9f, 0x42, 0x81, 0xc7, 0x8b,
+	0xe4, 0x85, 0xea, 0x9d, 0x3d, 0x25, 0xe5, 0x01, 0x9b, 0x31, 0x89, 0x17, 0x94, 0x48, 0x20, 0xda,
+	0x87, 0xbc, 0x35, 0x73, 0xe4, 0x2b, 0xad, 0xbe, 0x3a, 0x11, 0xe7, 0xc2, 0x6d, 0x87, 0x56, 0xb3,
+	0xf8, 0x88, 0xdb, 0x0e, 0x2d, 0x7c, 0x08, 0x05, 0xc1, 0x25, 0x84, 0x8c, 0xa6, 0x13, 0x21, 0x44,
+	0x43, 0x9b, 0x50, 0x19, 0x5e, 0x4d, 0x06, 0x84, 0x4c, 0xc7, 0x93, 0x86, 0x8e, 0xa7, 0x50, 0xef,
+	0xbb, 0xa1, 0xc5, 0x96, 0x34, 0x88, 0x07, 0x4b, 0xea, 0xf3, 0x27, 0xb5, 0x34, 0x20, 0x1f, 0x05,
+	0x9e, 0x12, 0x23, 0x7e, 0xd1, 0x2e, 0x6c, 0xc8, 0x66, 0xfa, 0xe6, 0xda, 0x52, 0x51, 0x85, 0x94,
+	0xa5, 0x3d, 0xb4, 0x71, 0x1d, 0x6a, 0xd9, 0xbe, 0xc3, 0x97, 0x00, 0x97, 0xcc, 0x19, 0xd1, 0x30,
+	0x34, 0x1d, 0x2a, 0x52, 0xb0, 0xc0, 0x75, 0x5c, 0x3f, 0x4d, 0x91, 0x58, 0x68, 0x1b, 0x8a, 0x1e,
+	0x5d, 0xd2, 0x24, 0xc9, 0x26, 0x49, 0x0c, 0x91, 0x78, 0x1e, 0x3a, 0x2a, 0x83, 0xf8, 0xed, 0xfc,
+	0x2c, 0x41, 0xbe, 0x3b, 0x1e, 0xa2, 0x63, 0xa8, 0xca, 0xfe, 0xeb, 0x05, 0xd4, 0xe4, 0x14, 0xad,
+	0xf4, 0x64, 0x6b, 0xc5, 0xc2, 0x1a, 0x3a, 0x82, 0x4a, 0xd2, 0xac, 0xd4, 0xb4, 0xd7, 0x40, 0x4f,
+	0xa0, 0x76, 0x07, 0xed, 0x33, 0xfe, 0x1c, 0x74, 0x68, 0xad, 0x41, 0xa7, 0x35, 0x4f, 0x17, 0xf6,
+	0xfa, 0x9a, 0x0d, 0xa8, 0x67, 0xc0, 0xff, 0x4f, 0xde, 0xa7, 0x1e, 0x5d, 0x4b, 0x7e, 0x96, 0xa9,
+	0xbb, 0xeb, 0x79, 0x68, 0xe7, 0xaf, 0x09, 0x91, 0xcb, 0xa9, 0xf5, 0x22, 0x1b, 0x27, 0xd7, 0x01,
+	0xd6, 0xd0, 0x27, 0xd8, 0xca, 0x06, 0x8b, 0xd2, 0x9e, 0x15, 0xff, 0x51, 0x29, 0x4b, 0x2a, 0x7d,
+	0x76, 0xfa, 0x1e, 0x54, 0x33, 0x7b, 0x06, 0xed, 0xae, 0x2e, 0x85, 0xcc, 0xee, 0x69, 0xbd, 0x7a,
+	0x74, 0x5f, 0x60, 0xed, 0x8d, 0x8e, 0x06, 0x50, 0x4b, 0x47, 0x6f, 0x1d, 0xcb, 0xce, 0xe3, 0xa3,
+	0x2a, 0x69, 0xce, 0x61, 0xf3, 0x6e, 0x84, 0x24, 0x4f, 0x9a, 0x72, 0x75, 0xb0, 0x5a, 0x4f, 0x08,
+	0xc4, 0x5a, 0x5b, 0x47, 0x67, 0x72, 0x3e, 0x1c, 0x1a, 0x48, 0x82, 0x54, 0xf2, 0xfd, 0xc8, 0xfc,
+	0x2b, 0xf8, 0xa6, 0x24, 0xcf, 0xde, 0xfe, 0x09, 0x00, 0x00, 0xff, 0xff, 0x22, 0xd4, 0x97, 0x1b,
+	0x96, 0x06, 0x00, 0x00,
 }

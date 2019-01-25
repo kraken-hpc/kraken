@@ -112,6 +112,7 @@ func (s *APIServer) QueryReadDot(ctx context.Context, in *pb.Query) (out *pb.Que
 		e = fmt.Errorf("create query must contain a valid node")
 		return
 	}
+	s.Logf(lib.LLDEBUG, "Made it to apiServer!")
 	nin := NewNodeFromMessage(pbin)
 	var sout string
 	sout, e = s.query.ReadDot(nin)

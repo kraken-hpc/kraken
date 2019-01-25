@@ -164,11 +164,13 @@ func (k *Kraken) Bootstrap() {
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
 	k.Sde = NewStateDifferenceEngine(k.Ctx)
 	k.Ctx.Services = NewServiceManager("unix:" + k.Ctx.RPC.Path)
-	k.Ctx.Query = *NewQueryEngine(k.Sde.QueryChan())
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
 	k.Sme = NewStateMutationEngine(k.Ctx)
 	k.Api = NewAPIServer(k.Ctx)
+
+	// k.Ctx.Query = *NewQueryEngine(k.Sde.QueryChan(), k.Sme.QueryChan())
+	k.Ctx.Query = *NewQueryEngine(k.Sde.QueryChan())
 
 	k.Sde.Subscribe("SDE", k.Ede.EventChan())
 	k.Sme.Subscribe("SME", k.Ede.EventChan())

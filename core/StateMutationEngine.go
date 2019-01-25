@@ -117,6 +117,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 		nodes:       []*mutationNode{},
 		edges:       []*mutationEdge{},
 		em:          NewEventEmitter(lib.Event_STATE_MUTATION),
+		qc:          make(chan lib.Query),
 		run:         false,
 		echan:       make(chan lib.Event),
 		query:       &ctx.Query,
@@ -223,6 +224,11 @@ func (sme *StateMutationEngine) sendQueryResponse(qr lib.QueryResponse, r chan<-
 	r <- qr
 }
 
+// QueryChan returns a chanel that Queries can be sent on
+func (sme *StateMutationEngine) QueryChan() chan<- lib.Query {
+	return sme.qc
+}
+
 // Run is a goroutine that listens for state changes and performs StateMutation magic
 func (sme *StateMutationEngine) Run() {
 	// on run we import all mutations in the registry
@@ -272,9 +278,10 @@ func (sme *StateMutationEngine) Run() {
 		select {
 		case q := <-sme.qc:
 			switch q.Type() {
-			case lib.Query_READ:
+			case lib.Query_READDOT:
 				var v string
 				var e error
+				sme.Logf(NOTICE, "made it to the sme!")
 
 				v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
 				go sme.sendQueryResponse(NewQueryResponse(

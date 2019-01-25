@@ -507,6 +507,7 @@ type APIClient interface {
 	Self() NodeID
 	QueryCreate(Node) (Node, error)
 	QueryRead(string) (Node, error)
+	QueryReadDot(Node) (string, error)
 	QueryReadDsc(string) (Node, error)
 	QueryUpdate(Node) (Node, error)
 	QueryUpdateDsc(Node) (Node, error)

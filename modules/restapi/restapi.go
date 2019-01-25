@@ -98,6 +98,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/cfg/node/{id}", r.updateNode).Methods("PUT")
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
+	r.router.HandleFunc("/dot/node/{id}", r.readNodeDot).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -172,6 +173,7 @@ func (r *RestAPI) readNode(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
+	r.api.Logf(lib.LLDEBUG, "This is a test\n")
 	defer req.Body.Close()
 	params := mux.Vars(req)
 	n, e := r.api.QueryRead(params["id"])
@@ -179,9 +181,10 @@ func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	r.api.Logf(lib.LLDEBUG, "Got the node!\n")
 	g, e := r.api.QueryReadDot(n)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(g)
+	w.Write([]byte(g))
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
