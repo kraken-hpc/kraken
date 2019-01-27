@@ -1,4 +1,4 @@
-/* kraken.go: provides the main entry-point for Kraken
+/* main.go: provides the main entry-point for Kraken
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -25,9 +25,6 @@ import (
 	pb "github.com/hpc/kraken/core/proto"
 	pbr "github.com/hpc/kraken/modules/restapi/proto"
 	uuid "github.com/satori/go.uuid"
-
-	_ "github.com/hpc/kraken/extensions"
-	_ "github.com/hpc/kraken/modules"
 )
 
 func main() {
