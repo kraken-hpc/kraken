@@ -207,19 +207,18 @@ func (sme *StateMutationEngine) DumpGraph() {
 }
 
 // GetDotGraph returns the dot graph
-func (sme *StateMutationEngine) GetDotGraph(i lib.Node) (r string, e error) {
-	n := NewNodeFromMessage(i.Message().(*pb.Node))
+func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 	graphAst, _ := gographviz.ParseString(`digraph G {}`)
 	graph := gographviz.NewGraph()
 	if err := gographviz.Analyse(graphAst, graph); err != nil {
 		return "", err
 	}
 
-	platform := n.pb.Platform
-	arch := n.pb.Services
+	platform, _ := n.GetValue("/Platform")
+	arch, _ := n.GetValue("/Arch")
 
-	fmt.Printf("PLATFORM: %v\n", platform)
-	fmt.Printf("ARCH: %v\n", arch)
+	fmt.Printf("PLATFORM: %v\n", platform.String())
+	fmt.Printf("ARCH: %v\n", arch.String())
 	fmt.Printf("NODE: %v\n", n)
 
 	var nodes []string
@@ -306,6 +305,7 @@ func (sme *StateMutationEngine) QueryChan() chan<- lib.Query {
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
 func (sme *StateMutationEngine) Run() {
+	fmt.Printf("sme run called: %p\nsme query: %p\n", sme, sme.qc)
 	// on run we import all mutations in the registry
 	for mod := range Registry.Mutations {
 		for id, mut := range Registry.Mutations[mod] {
@@ -351,21 +351,21 @@ func (sme *StateMutationEngine) Run() {
 
 	for {
 		select {
-		case q := <-sme.qc:
-			switch q.Type() {
-			case lib.Query_READDOT:
-				var v string
-				var e error
-				sme.Logf(NOTICE, "made it to the sme!")
+		// case q := <-sme.qc:
+		// 	switch q.Type() {
+		// 	case lib.Query_READDOT:
+		// 		var v string
+		// 		var e error
+		// 		sme.Logf(lib.LLDEBUG, "made it to the sme!")
 
-				v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
-				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
-				break
-			default:
-				sme.Logf(NOTICE, "unsupported query type: %d", q.Type())
-			}
-			break
+		// 		v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
+		// 		go sme.sendQueryResponse(NewQueryResponse(
+		// 			[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+		// 		break
+		// 	default:
+		// 		sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
+		// 	}
+		// 	break
 
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
@@ -373,9 +373,10 @@ func (sme *StateMutationEngine) Run() {
 			sme.handleEvent(v)
 			break
 		case <-debugchan:
-			sme.Logf(DDEBUG, "There are %d active mutations.", len(sme.active))
+			sme.Logf(lib.LLDDEBUG, "There are %d active mutations.", len(sme.active))
 			break
 		}
+		fmt.Printf("sme %p running\n", sme)
 	}
 }
 

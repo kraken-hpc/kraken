@@ -91,13 +91,15 @@ func (q *QueryResponse) Value() []reflect.Value { return q.v }
 // QueryEngine provides a simple mechanism for state queries
 // FIXME: QueryEngine should probably be abstracted
 type QueryEngine struct {
-	s []chan<- lib.Query
+	sd chan<- lib.Query
+	sm chan<- lib.Query
 }
 
 // NewQueryEngine creates a specified QueryEngine; this is the only way to set it up
-func NewQueryEngine(s ...chan<- lib.Query) *QueryEngine {
+func NewQueryEngine(sd chan<- lib.Query, sm chan<- lib.Query) *QueryEngine {
 	qe := &QueryEngine{
-		s: s,
+		sd: sd,
+		sm: sm,
 	}
 	fmt.Printf("created new qe: %p\n", qe)
 	return qe
@@ -299,15 +301,19 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
 	fmt.Printf("qe: %p\n", q)
-	fmt.Printf("channels: %v\n", q.s)
-	var s chan<- lib.Query
-	if query.Type() == 10 {
-		s = q.s[1]
+	fmt.Printf("sd channel: %v\nsm channel: %v\n", q.sd, q.sm)
+	fmt.Printf("query type: %v\n", query.Type())
+	// var s chan<- lib.Query
+	if query.Type() == lib.Query_READDOT {
+		fmt.Printf("Sending message to sme on %v\n", q.sm)
+		q.sm <- query
+		fmt.Printf("got sme resonse\n")
 	} else {
-		s = q.s[0]
+		fmt.Printf("Sending message to sde on %v\n", q.sd)
+		q.sd <- query
+		fmt.Printf("got sde resonse\n")
 	}
-	s <- query
 	qr = <-r
-	fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
+	// fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
 	return qr.Value(), qr.Error()
 }
