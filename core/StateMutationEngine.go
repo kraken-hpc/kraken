@@ -107,7 +107,7 @@ type StateMutationEngine struct {
 }
 
 // NewStateMutationEngine creates an initialized StateMutationEngine
-func NewStateMutationEngine(ctx Context) *StateMutationEngine {
+func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine {
 	sme := &StateMutationEngine{
 		muts:        []lib.StateMutation{},
 		mutResolver: make(map[lib.StateMutation][2]string),
@@ -119,7 +119,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 		nodes:       []*mutationNode{},
 		edges:       []*mutationEdge{},
 		em:          NewEventEmitter(lib.Event_STATE_MUTATION),
-		qc:          make(chan lib.Query),
+		qc:          qc,
 		run:         false,
 		echan:       make(chan lib.Event),
 		query:       &ctx.Query,
@@ -208,7 +208,7 @@ func (sme *StateMutationEngine) DumpGraph() {
 
 // GetDotGraph returns the dot graph
 func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
-	graphAst, _ := gographviz.ParseString(`digraph G {}`)
+	graphAst, _ := gographviz.ParseString(`graph G {}`)
 	graph := gographviz.NewGraph()
 	if err := gographviz.Analyse(graphAst, graph); err != nil {
 		return "", err
@@ -217,29 +217,46 @@ func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 	platform, _ := n.GetValue("/Platform")
 	arch, _ := n.GetValue("/Arch")
 
-	fmt.Printf("PLATFORM: %v\n", platform.String())
-	fmt.Printf("ARCH: %v\n", arch.String())
-	fmt.Printf("NODE: %v\n", n)
+	platformString := lib.ValueToString(platform)
+	archString := lib.ValueToString(arch)
+
+	sme.Logf(lib.LLDDDEBUG, "PLATFORM: %v\n", platformString)
+	sme.Logf(lib.LLDDDEBUG, "ARCH: %v\n", archString)
+	sme.Logf(lib.LLDDDEBUG, "NODE: %v\n", n)
 
 	var nodes []string
 
 	// Add nodes to graph
 	for _, m := range sme.nodes {
-		fmt.Printf("node: %p\n", m)
 		label := ""
-		// label := sme.dumpMapOfValues(m.spec.Requires())
 		rm := m.spec.Requires()
-		for k := range rm {
-			fmt.Println(k)
-			if k == "/PhysState" || k == "/RunState" || k == "type.googleapis.com/proto.RPi3/Pxe" {
-				label += lib.ValueToString(rm[k])
+		if lib.ValueToString(rm["/Platform"]) == platformString && lib.ValueToString(rm["/Arch"]) == archString {
+			if rm["/PhysState"].IsValid() {
+				label += lib.ValueToString(rm["/PhysState"])
+			}
+			if rm["/RunState"].IsValid() {
+				label += lib.ValueToString(rm["/RunState"])
+			}
+			if rm["type.googleapis.com/proto.RPi3/Pxe"].IsValid() {
+				label += lib.ValueToString(rm["type.googleapis.com/proto.RPi3/Pxe"])
+			}
+		} else if !rm["/Platform"].IsValid() && !rm["/Platform"].IsValid() {
+			if rm["/PhysState"].IsValid() {
+				label += lib.ValueToString(rm["/PhysState"])
 			}
 		}
-		// label := strings.Replace(sme.dumpMapOfValues(m.spec.Requires()), "/", "", -1)
 		label = strings.Replace(label, ",", "", -1)
 		label = strings.Replace(label, " ", "", -1)
-		fmt.Printf("%v\n", label)
-		graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": label})
+		sme.Logf(lib.LLDDDEBUG, "label: %v\n", label)
+		if label == "" {
+			sme.Logf(lib.LLDDDEBUG, "requirements: %v\n", sme.dumpMapOfValues(rm))
+			// if rm["/PhysState"].IsValid() {
+			// 	label += lib.ValueToString(rm["/PhysState"])
+			// }
+			graph.AddNode("G", fmt.Sprintf("%p", m), nil)
+		} else {
+			graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": label})
+		}
 		nodes = append(nodes, fmt.Sprintf("%p", m))
 	}
 
@@ -351,21 +368,21 @@ func (sme *StateMutationEngine) Run() {
 
 	for {
 		select {
-		// case q := <-sme.qc:
-		// 	switch q.Type() {
-		// 	case lib.Query_READDOT:
-		// 		var v string
-		// 		var e error
-		// 		sme.Logf(lib.LLDEBUG, "made it to the sme!")
+		case q := <-sme.qc:
+			switch q.Type() {
+			case lib.Query_READDOT:
+				var v string
+				var e error
+				sme.Logf(lib.LLDEBUG, "made it to the sme!")
 
-		// 		v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
-		// 		go sme.sendQueryResponse(NewQueryResponse(
-		// 			[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
-		// 		break
-		// 	default:
-		// 		sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
-		// 	}
-		// 	break
+				v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				break
+			default:
+				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
+			}
+			break
 
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;

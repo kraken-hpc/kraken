@@ -98,7 +98,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/cfg/node/{id}", r.updateNode).Methods("PUT")
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
-	r.router.HandleFunc("/dot/node/{id}", r.readNodeDot).Methods("GET")
+	r.router.HandleFunc("/graph/node/{id}/dot", r.readNodeDot).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
