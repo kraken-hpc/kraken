@@ -11,8 +11,10 @@ targets:
 extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/VBox
+  - github.com/hpc/kraken/extensions/PXE
 
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
   - github.com/hpc/kraken/modules/vboxmanage
+  - github.com/hpc/kraken/modules/pxe
