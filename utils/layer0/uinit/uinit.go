@@ -1,4 +1,4 @@
-/* inito.go: a simple init launcher for kraken layer0
+/* uinit.go: a simple init launcher for kraken layer0
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
