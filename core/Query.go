@@ -286,8 +286,6 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 //////////////////////
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
-	fmt.Printf("QE: %p\n", q)
-	fmt.Printf("Channel: %p\n", q.s)
 	q.s <- query
 	qr := <-r
 	return qr.Value(), qr.Error()
