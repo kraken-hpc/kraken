@@ -29,8 +29,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var urlBase, vbmPath, listenIP string
-var listenPort uint32
+var listenIP, urlBase, vbmPath *string
+var listenPort *uint
 var verbose *bool
 
 type vbmResponse struct {
@@ -41,18 +41,18 @@ type vbmResponse struct {
 }
 
 func main() {
-	urlBase = *flag.String("base", "/vboxmanage", "base URL for api")
-	vbmPath = *flag.String("vbm", "/usr/local/bin/vboxmanage", "full path to vboxmanage command")
-	listenIP = *flag.String("ip", "127.0.0.1", "ip to listen on")
-	listenPort = uint32(*flag.Uint("port", 8269, "port to listen on"))
+	urlBase = flag.String("base", "/vboxmanage", "base URL for api")
+	vbmPath = flag.String("vbm", "/usr/local/bin/vboxmanage", "full path to vboxmanage command")
+	listenIP = flag.String("ip", "127.0.0.1", "ip to listen on")
+	listenPort = flag.Uint("port", 8269, "port to listen on")
 	verbose = flag.Bool("v", false, "verbose messages")
 	flag.Parse()
 
 	router := mux.NewRouter()
-	router.HandleFunc(urlBase+"/showvminfo/{name}", showVMInfo).Methods("GET")
-	router.HandleFunc(urlBase+"/controlvm/{name}/poweroff", powerOff).Methods("GET")
-	router.HandleFunc(urlBase+"/startvm/{name}", startVM).Methods("GET")
-	router.HandleFunc(urlBase+"/startvm/{name}", startVM).Methods("GET").Queries("type", "{type}")
+	router.HandleFunc(*urlBase+"/showvminfo/{name}", showVMInfo).Methods("GET")
+	router.HandleFunc(*urlBase+"/controlvm/{name}/poweroff", powerOff).Methods("GET")
+	router.HandleFunc(*urlBase+"/startvm/{name}", startVM).Methods("GET")
+	router.HandleFunc(*urlBase+"/startvm/{name}", startVM).Methods("GET").Queries("type", "{type}")
 
 	srv := &http.Server{
 		Handler: handlers.CORS(
@@ -60,12 +60,12 @@ func main() {
 			handlers.AllowedOrigins([]string{"*"}),
 			handlers.AllowedMethods([]string{"GET"}),
 		)(router),
-		Addr:         fmt.Sprintf("%s:%d", listenIP, listenPort),
+		Addr:         fmt.Sprintf("%s:%d", *listenIP, *listenPort),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Printf("starting http service at: http://%s:%d%s", listenIP, listenPort, urlBase)
+	log.Printf("starting http service at: http://%s:%d%s", *listenIP, *listenPort, *urlBase)
 	if e := srv.ListenAndServe(); e != nil {
 		log.Printf("failed to start http service: %v", e)
 		return
@@ -75,7 +75,7 @@ func main() {
 func showVMInfo(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
-	cmd := exec.Command(vbmPath, "showvminfo", params["name"])
+	cmd := exec.Command(*vbmPath, "showvminfo", params["name"])
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
@@ -130,7 +130,7 @@ func showVMInfo(w http.ResponseWriter, req *http.Request) {
 func powerOff(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
-	cmd := exec.Command(vbmPath, "controlvm", params["name"], "poweroff")
+	cmd := exec.Command(*vbmPath, "controlvm", params["name"], "poweroff")
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
@@ -161,12 +161,11 @@ func startVM(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
 	guiType := req.FormValue("type")
-	fmt.Printf("%v\n", guiType)
 	args := []string{"startvm", params["name"]}
 	if guiType != "" {
 		args = append(args, "--type", guiType)
 	}
-	cmd := exec.Command(vbmPath, args...)
+	cmd := exec.Command(*vbmPath, args...)
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
