@@ -13,6 +13,42 @@
 			"revisionTime": "2016-10-02T11:37:05Z"
 		},
 		{
+			"checksumSHA1": "Ay8+8ImpPbOesVGwmt4ur6Y7YBo=",
+			"path": "github.com/awalterschulze/gographviz",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
+			"checksumSHA1": "s9EHKuS0JX0FmK/2B63oikxvkso=",
+			"path": "github.com/awalterschulze/gographviz/ast",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
+			"checksumSHA1": "LCHqj3/4Kp8QUJuxEfqKuUE+n1c=",
+			"path": "github.com/awalterschulze/gographviz/internal/errors",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
+			"checksumSHA1": "KXDyRfth+z5VBiBfOjUNDDhR7VE=",
+			"path": "github.com/awalterschulze/gographviz/internal/lexer",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
+			"checksumSHA1": "PFf2q3Amsbc0uXILP4qiOke32Is=",
+			"path": "github.com/awalterschulze/gographviz/internal/parser",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
+			"checksumSHA1": "+31fviZoNt2fGZVFdqaE96NEa3g=",
+			"path": "github.com/awalterschulze/gographviz/internal/token",
+			"revision": "b2885df043103cbc0f17a907a17f68ea22c76681",
+			"revisionTime": "2018-10-13T15:20:38Z"
+		},
+		{
 			"checksumSHA1": "GAqpU/McvDmpHUgguKefJTA9yho=",
 			"path": "github.com/flynn/go-shlex",
 			"revision": "3f9db97f856818214da2e1057f8ad84803971cff",
