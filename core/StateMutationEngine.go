@@ -522,17 +522,22 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			// fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			//sme.DumpGraph()
 		}
-	} /*else if len(ge) > 1 {
-		e = fmt.Errorf("could not find path: ambiguous end")
-		sme.Log(DEBUG, "could not find path: ambiguous end")
-		if sme.GetLoggerLevel() >= DDEBUG {
-			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-			fmt.Printf("ends: %v\n", ge)
-			sme.DumpGraph()
-		}
-	}*/
+	}
 	if e != nil {
 		return
+	}
+	// If start is contained in end, we're already where we want to be
+	// In this case, we return a valid mutationPath with a zero length chain
+	for _, gend := range ge {
+		if gend == gs[0] {
+			path = &mutationPath{
+				start: start,
+				end:   end,
+				cur:   0,
+				chain: []*mutationEdge{},
+			}
+			return
+		}
 	}
 	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
@@ -563,6 +568,10 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	p, e := sme.findPath(start, end)
 	if e != nil {
 		sme.Log(ERROR, e.Error())
+		return
+	}
+	if len(p.chain) == 0 { // we're already there
+		sme.Log(DEBUG, "discovered that we're already where we want to be")
 		return
 	}
 	// new mutation, record it, and start it in motion
