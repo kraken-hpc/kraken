@@ -27,6 +27,7 @@ message Query {
     oneof payload {
         Node node = 2;
         ReflectValue value = 3;
+        string text = 4;
     }
 }
 
@@ -80,6 +81,7 @@ service API {
     // TODO: create API for bulk CRUD operations
     rpc QueryCreate(Query) returns (Query) {}
     rpc QueryRead(Query) returns (Query) {}
+    rpc QueryReadDot(Query) returns (Query) {}
     rpc QueryReadDsc(Query) returns (Query) {}
     rpc QueryUpdate(Query) returns (Query) {}
     rpc QueryUpdateDsc(Query) returns (Query) {}

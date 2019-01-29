@@ -1,4 +1,4 @@
-/* inito.go: a simple init launcher for kraken layer0
+/* uinit.go: a simple init launcher for kraken layer0
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -10,6 +10,8 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -36,7 +38,37 @@ var myNet string
 var myID string
 var myParent string
 
-const kernArgFile = "/proc/cmdline"
+const (
+	kernArgFile = "/proc/cmdline"
+	moduleFile  = "/modules.txt"
+	insmodCmd   = "/bbin/insmod"
+)
+
+// loadModules doesn't actually load the modules.  It just creates a list of commands to get executed
+// it reads moduleFile, and creates a list of insmod commands in order
+func loadModules() (cmds []command, e error) {
+	var f *os.File
+	if _, e = os.Stat(moduleFile); os.IsNotExist(e) {
+		fmt.Printf("%s does not exist, we will not load modules", moduleFile)
+		return
+	}
+	if f, e = os.Open(moduleFile); e != nil {
+		fmt.Printf("failed to open module file, %s: %v", moduleFile, e)
+		return
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		fmt.Printf("adding module to load list: %s", scanner.Text())
+		cmd := command{
+			Cmd:        insmodCmd,
+			Args:       []string{insmodCmd, scanner.Text()},
+			Background: false,
+		}
+		cmds = append(cmds, cmd)
+	}
+	return
+}
 
 func goExec(cmd *exec.Cmd) {
 	if err := cmd.Run(); err != nil {
@@ -129,6 +161,10 @@ func main() {
 			Background: false,
 		},
 	}
+
+	modCmds, _ := loadModules()
+
+	cmdList = append(modCmds, cmdList...)
 
 	envs := os.Environ()
 	os.MkdirAll(ioDir, os.ModeDir&ioMode)

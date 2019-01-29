@@ -1,0 +1,24 @@
+/* rpi3.proto: describes Bitscope/Raspberry Pi 3B specific state objects
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Los Alamos National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+message VBox {
+    string api_server = 1; // chassis name
+    string name = 2; // vm name
+    string uuid = 3; // vm uuid 
+    enum PXE {
+        NONE = 0; 
+        WAIT = 1; // PXE information passed to module
+        INIT = 2; // DHCP handshake complete
+        COMP = 3; // PXE process complete
+    }
+    PXE pxe = 4;
+}

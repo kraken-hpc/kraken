@@ -91,13 +91,15 @@ func (q *QueryResponse) Value() []reflect.Value { return q.v }
 // QueryEngine provides a simple mechanism for state queries
 // FIXME: QueryEngine should probably be abstracted
 type QueryEngine struct {
-	s chan<- lib.Query
+	sd chan<- lib.Query
+	sm chan<- lib.Query
 }
 
 // NewQueryEngine creates a specified QueryEngine; this is the only way to set it up
-func NewQueryEngine(s chan<- lib.Query) *QueryEngine {
+func NewQueryEngine(sd chan<- lib.Query, sm chan<- lib.Query) *QueryEngine {
 	qe := &QueryEngine{
-		s: s,
+		sd: sd,
+		sm: sm,
 	}
 	return qe
 }
@@ -137,6 +139,16 @@ func (q *QueryEngine) ReadDsc(n lib.NodeID) (nc lib.Node, e error) {
 		return
 	}
 	return v[0].Interface().(lib.Node), e
+}
+
+// ReadDot will get a dot graph from the sme for a node
+func (q *QueryEngine) ReadDot(n lib.Node) (sc string, e error) {
+	query, r := NewQuery(lib.Query_READDOT, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().(string), e
 }
 
 // Update will update a node in the Engine's Cfg store
@@ -286,7 +298,14 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 //////////////////////
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
-	q.s <- query
-	qr := <-r
+	var qr lib.QueryResponse
+	var s chan<- lib.Query
+	if query.Type() != lib.Query_READDOT {
+		s = q.sd
+	} else {
+		s = q.sm
+	}
+	s <- query
+	qr = <-r
 	return qr.Value(), qr.Error()
 }
