@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/awalterschulze/gographviz"
+	gv "github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -206,11 +206,35 @@ func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n=== END: Edge list ===\n")
 }
 
+//GenDotString returns a DOT formatted string of the mutation graph
+func (sme *StateMutationEngine) GenDotString() string {
+	g := gv.NewGraph()
+	g.SetName("MutGraph")
+	g.SetDir(true) //indicates that the graph is directed
+	for _, e := range sme.edges {
+		if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
+		}
+
+		if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
+		}
+
+		var attributes map[string]string
+		g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
+	}
+	return g.String()
+}
+
 // GetDotGraph returns the dot graph
 func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
-	graphAst, _ := gographviz.ParseString(`graph G {}`)
-	graph := gographviz.NewGraph()
-	if err := gographviz.Analyse(graphAst, graph); err != nil {
+	graphAst, _ := gv.ParseString(`graph G {}`)
+	graph := gv.NewGraph()
+	if err := gv.Analyse(graphAst, graph); err != nil {
 		return "", err
 	}
 
@@ -219,10 +243,6 @@ func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 
 	platformString := lib.ValueToString(platform)
 	archString := lib.ValueToString(arch)
-
-	sme.Logf(lib.LLDDDEBUG, "PLATFORM: %v\n", platformString)
-	sme.Logf(lib.LLDDDEBUG, "ARCH: %v\n", archString)
-	sme.Logf(lib.LLDDDEBUG, "NODE: %v\n", n)
 
 	var nodes []string
 
@@ -247,12 +267,7 @@ func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 		}
 		label = strings.Replace(label, ",", "", -1)
 		label = strings.Replace(label, " ", "", -1)
-		sme.Logf(lib.LLDDDEBUG, "label: %v\n", label)
 		if label == "" {
-			sme.Logf(lib.LLDDDEBUG, "requirements: %v\n", sme.dumpMapOfValues(rm))
-			// if rm["/PhysState"].IsValid() {
-			// 	label += lib.ValueToString(rm["/PhysState"])
-			// }
 			graph.AddNode("G", fmt.Sprintf("%p", m), nil)
 		} else {
 			graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": label})
@@ -260,28 +275,8 @@ func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 		nodes = append(nodes, fmt.Sprintf("%p", m))
 	}
 
-	// for _, m := range sme.nodes {
-	// 	fmt.Printf("node: %p\n", m)
-
-	// 	rm := m.spec.Requires()
-	// 	for k := range rm {
-	// 		// if k == "/Platform" && lib.ValueToString(rm[k]) == platform {
-	// 		if k == "/Platform" {
-	// 			for l := range rm {
-	// 				// if l == "/Arch" && lib.ValueToString(rm[l]) == arch {
-	// 				if l == "/Arch" {
-	// 					fmt.Printf("req: %s\n", sme.dumpMapOfValues(m.spec.Requires()))
-	// 					graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": sme.dumpMapOfValues(m.spec.Requires())})
-	// 					nodes = append(nodes, fmt.Sprintf("%p", m))
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
 	// Add edges to graph
 	for _, m := range sme.edges {
-		fmt.Printf("edge: %p\n", m)
 		from := fmt.Sprintf("%p", m.from)
 		to := fmt.Sprintf("%p", m.to)
 
@@ -291,10 +286,6 @@ func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
 			}
 		}
 	}
-
-	// graph.AddNode("G", "a", nil)
-	// graph.AddNode("G", "b", nil)
-	// graph.AddEdge("a", "b", true, nil)
 
 	output := graph.String()
 	return output, nil
@@ -322,7 +313,6 @@ func (sme *StateMutationEngine) QueryChan() chan<- lib.Query {
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
 func (sme *StateMutationEngine) Run() {
-	fmt.Printf("sme run called: %p\nsme query: %p\n", sme, sme.qc)
 	// on run we import all mutations in the registry
 	for mod := range Registry.Mutations {
 		for id, mut := range Registry.Mutations[mod] {
@@ -373,9 +363,7 @@ func (sme *StateMutationEngine) Run() {
 			case lib.Query_READDOT:
 				var v string
 				var e error
-				sme.Logf(lib.LLDEBUG, "made it to the sme!")
-
-				v, e = sme.GetDotGraph(q.Value()[0].Interface().(lib.Node))
+				v = sme.GenDotString()
 				go sme.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
@@ -393,7 +381,6 @@ func (sme *StateMutationEngine) Run() {
 			sme.Logf(lib.LLDDEBUG, "There are %d active mutations.", len(sme.active))
 			break
 		}
-		fmt.Printf("sme %p running\n", sme)
 	}
 }
 

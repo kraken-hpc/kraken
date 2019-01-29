@@ -74,7 +74,6 @@ func (a *APIClient) QueryReadDot(n lib.Node) (r string, e error) {
 			Node: n.Message().(*pb.Node),
 		},
 	}
-	a.Logf(lib.LLDEBUG, "Made it to apiclient!")
 	rv, e := a.oneshot("QueryReadDot", reflect.ValueOf(q))
 	if e != nil {
 		return

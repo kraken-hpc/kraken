@@ -101,7 +101,6 @@ func NewQueryEngine(sd chan<- lib.Query, sm chan<- lib.Query) *QueryEngine {
 		sd: sd,
 		sm: sm,
 	}
-	fmt.Printf("created new qe: %p\n", qe)
 	return qe
 }
 
@@ -300,20 +299,13 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
-	fmt.Printf("qe: %p\n", q)
-	fmt.Printf("sd channel: %v\nsm channel: %v\n", q.sd, q.sm)
-	fmt.Printf("query type: %v\n", query.Type())
-	// var s chan<- lib.Query
-	if query.Type() == lib.Query_READDOT {
-		fmt.Printf("Sending message to sme on %v\n", q.sm)
-		q.sm <- query
-		fmt.Printf("got sme resonse\n")
+	var s chan<- lib.Query
+	if query.Type() != lib.Query_READDOT {
+		s = q.sd
 	} else {
-		fmt.Printf("Sending message to sde on %v\n", q.sd)
-		q.sd <- query
-		fmt.Printf("got sde resonse\n")
+		s = q.sm
 	}
+	s <- query
 	qr = <-r
-	// fmt.Printf("Response from %v: %v\n", s, qr.Value()[0])
 	return qr.Value(), qr.Error()
 }
