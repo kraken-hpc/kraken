@@ -60,13 +60,17 @@ type mutationNode struct {
 }
 
 type mutationPath struct {
-	cur    int // where are we currently?
-	start  lib.Node
-	end    lib.Node
-	gstart *mutationNode
-	gend   *mutationNode
-	chain  []*mutationEdge
-	timer  *time.Timer
+	mutex *sync.Mutex
+	cur   int // where are we currently?
+	// curSeen is a slice of URLs that we've seen (correct) changes in the current mut
+	// 	This is important to keep track of muts that change more than one URL
+	curSeen []string
+	start   lib.Node
+	end     lib.Node
+	gstart  *mutationNode
+	gend    *mutationNode
+	chain   []*mutationEdge
+	timer   *time.Timer
 }
 
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
@@ -88,7 +92,8 @@ type StateMutationEngine struct {
 	mutators    map[string]uint32 // ref count, all URLs that mutate
 	requires    map[string]uint32 // ref count, referenced (req/exc) urls that don't mutate
 	graph       *mutationNode     // graph start
-	nodes       []*mutationNode   // so we can search for matches
+	graphMutex  *sync.RWMutex
+	nodes       []*mutationNode // so we can search for matches
 	edges       []*mutationEdge
 	em          *EventEmitter
 	schan       chan<- lib.EventListener // subscription channel
@@ -113,6 +118,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
 		graph:       &mutationNode{spec: ctx.SME.RootSpec},
+		graphMutex:  &sync.RWMutex{},
 		nodes:       []*mutationNode{},
 		edges:       []*mutationEdge{},
 		em:          NewEventEmitter(lib.Event_STATE_MUTATION),
@@ -130,9 +136,12 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 
 // RegisterMutation injects new mutaitons into the SME. muts[i] should match callback[i]
 // We take a list so that we only call onUpdate once
+// LOCKS: graphMutex (RW)
 func (sme *StateMutationEngine) RegisterMutation(module, id string, mut lib.StateMutation) (e error) {
+	sme.graphMutex.Lock()
 	sme.muts = append(sme.muts, mut)
 	sme.mutResolver[mut] = [2]string{module, id}
+	sme.graphMutex.Unlock()
 	sme.onUpdate()
 	return
 }
@@ -163,7 +172,9 @@ func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s str
 }
 
 // DumpGraph FIXME: REMOVE -- for debugging
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) DumpGraph() {
+	sme.graphMutex.RLock()
 	fmt.Printf("\n")
 	fmt.Printf("=== START: Mutators URLs ===\n")
 	for k, v := range sme.mutators {
@@ -200,10 +211,12 @@ func (sme *StateMutationEngine) DumpGraph() {
 		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
 	}
 	fmt.Printf("\n=== END: Edge list ===\n")
+	sme.graphMutex.RUnlock()
 }
 
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.
 // If the path doesn't exist, it also returns the error.
+// LOCKS: graphMutex (R) via findPath
 func (sme *StateMutationEngine) PathExists(start lib.Node, end lib.Node) (r bool, e error) {
 	p, e := sme.findPath(start, end)
 	if p != nil {
@@ -213,14 +226,17 @@ func (sme *StateMutationEngine) PathExists(start lib.Node, end lib.Node) (r bool
 }
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
+// LOCKS: all
 func (sme *StateMutationEngine) Run() {
 	// on run we import all mutations in the registry
+	sme.graphMutex.Lock()
 	for mod := range Registry.Mutations {
 		for id, mut := range Registry.Mutations[mod] {
 			sme.muts = append(sme.muts, mut)
 			sme.mutResolver[mut] = [2]string{mod, id}
 		}
 	}
+	sme.graphMutex.Unlock()
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
 		sme.DumpGraph() // Use this to debug your graph
@@ -232,6 +248,8 @@ func (sme *StateMutationEngine) Run() {
 		lib.Event_STATE_CHANGE,
 		func(v lib.Event) bool {
 			_, url := lib.NodeURLSplit(v.URL())
+			sme.graphMutex.RLock()
+			defer sme.graphMutex.RUnlock()
 			for m := range sme.mutators { // NOTE: doesn't fix beginning slashes, etc
 				if url == m {
 					return true
@@ -275,6 +293,9 @@ func (sme *StateMutationEngine) Run() {
 // Unexported methods /
 //////////////////////
 
+// !!!IMPORTANT!!!
+// collectURLs assumes you already hold a lock
+// currently only used in onUpdate
 func (sme *StateMutationEngine) collectURLs() {
 	for _, m := range sme.muts {
 		for u := range m.Mutates() {
@@ -321,6 +342,9 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 
 // buildGraph builds the graph of Specs/Mutations.  It is depth-first, recursive.
 // TODO: this function may eventually need recursion protection
+// !!!IMPORTANT!!!
+// buildGraph assumes you already hold a lock
+// currently only used in onUpdate
 func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, seenMut map[int]*mutationNode, chain []*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
 	nodes = append(nodes, root)
 	edges = []*mutationEdge{}
@@ -371,6 +395,10 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 	}
 	return
 }
+
+// !!!IMPORTANT!!!
+// clearGraph assumes you already hold a lock
+// currently only used in onUpdate
 func (sme *StateMutationEngine) clearGraph() {
 	sme.mutators = make(map[string]uint32)
 	sme.requires = make(map[string]uint32)
@@ -380,15 +408,24 @@ func (sme *StateMutationEngine) clearGraph() {
 }
 
 // onUpdate should get called any time a new mutation is registered
+// onUpdate gets a graphMutex around everything, so it's important that it doesn't
+// call anything that tries to get it's own lock, or it will deadlock
+// LOCKS: graphMutex (RW)
+// FIXME: We should re-compute active mutations?
 func (sme *StateMutationEngine) onUpdate() {
+	sme.graphMutex.Lock()
 	sme.clearGraph()
 	sme.collectURLs()
 	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode), []*mutationNode{})
 	sme.Logf(DEBUG, "Built graph [ Mutations: %d Mutation URLs: %d Requires URLs: %d Graph Nodes: %d Graph Edges: %d ]",
 		len(sme.muts), len(sme.mutators), len(sme.requires), len(sme.nodes), len(sme.edges))
+	sme.graphMutex.Unlock()
 }
 
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) nodeSearch(node lib.Node) (mns []*mutationNode) {
+	sme.graphMutex.RLock()
+	defer sme.graphMutex.RUnlock()
 	for _, n := range sme.nodes {
 		if n.spec.NodeMatch(node) {
 			mns = append(mns, n)
@@ -397,8 +434,10 @@ func (sme *StateMutationEngine) nodeSearch(node lib.Node) (mns []*mutationNode) 
 	return
 }
 
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gstart []*mutationNode, gend []*mutationNode) {
 	startMerge := sme.dscNodeMeld(end, start)
+	sme.graphMutex.RLock()
 	for _, n := range sme.nodes {
 		// in general, we don't want the graph root as an option
 		if n != sme.graph && n.spec.NodeMatchWithMutators(startMerge, sme.mutators) {
@@ -408,6 +447,7 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 			gend = append(gend, n)
 		}
 	}
+	sme.graphMutex.RUnlock()
 	// there's one exception: we may be starting on the graph root (if nothing else matched)
 	if len(gstart) == 0 {
 		gstart = append(gstart, sme.graph)
@@ -417,7 +457,10 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 
 // drijkstra implements the Drijkstra shortest path graph algorithm.
 // NOTE: An alternative would be to pre-compute trees for every node
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutationNode) *mutationPath {
+	sme.graphMutex.RLock()
+	defer sme.graphMutex.RUnlock()
 	isEnd := func(i *mutationNode) (r bool) {
 		for _, j := range gend {
 			if i == j {
@@ -459,9 +502,11 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 				i = prev[i].from
 			}
 			path := &mutationPath{
-				gstart: gstart,
-				gend:   u,
-				chain:  chain,
+				mutex:   &sync.Mutex{},
+				gstart:  gstart,
+				gend:    u,
+				chain:   chain,
+				curSeen: []string{},
 			}
 			return path
 		}
@@ -483,6 +528,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 }
 
 // findPath finds the sequence of edges (if it exists) between two lib.Nodes
+// LOCKS: graphMutex (R) via boundarySearch, drijkstra
 func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mutationPath, e error) {
 	gs, ge := sme.boundarySearch(start, end)
 	if len(gs) < 1 {
@@ -506,10 +552,12 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	for _, gend := range ge {
 		if gend == gs[0] {
 			path = &mutationPath{
-				start: start,
-				end:   end,
-				cur:   0,
-				chain: []*mutationEdge{},
+				mutex:   &sync.Mutex{},
+				start:   start,
+				end:     end,
+				cur:     0,
+				curSeen: []string{},
+				chain:   []*mutationEdge{},
 			}
 			return
 		}
@@ -527,6 +575,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 
 // startNewMutation sees if we need a new mutation
 // if we do, it starts it
+// LOCKS: graphMutex (R) via findPath; activeMutex; path.mutex
 func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we assume it's already been verified that this is *new*
 	nid := NewNodeIDFromURL(node)
@@ -550,6 +599,11 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		return
 	}
 	// new mutation, record it, and start it in motion
+
+	// we need to hold the path mutex for the rest of this function
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	sme.activeMutex.Lock()
 	sme.active[node] = p
 	sme.activeMutex.Unlock()
@@ -565,7 +619,11 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	}
 }
 
+// LOCKS: graphMutex (R); path.mutex
 func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	nid := p.start.ID()
 	d := p.chain[p.cur].mut.FailTo()
 	sme.Logf(INFO, "mutation timeout for %s, emitting: %s:%s:%s", nid.String(), d[0], d[1], d[2])
@@ -573,6 +631,7 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	// reset all mutators to zero, except the failure mutator
 	// FIXME: setting things without discovery isn't very polite
 	node, _ := sme.query.ReadDsc(nid)
+	sme.graphMutex.RLock()
 	for m := range sme.mutators {
 		if m == d[1] {
 			continue
@@ -580,6 +639,7 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 		v, _ := node.GetValue(m)
 		node.SetValue(m, reflect.Zero(v.Type()))
 	}
+	sme.graphMutex.RUnlock()
 	sme.query.UpdateDsc(node)
 
 	// now send a discover to whatever failed state
@@ -608,6 +668,7 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	sme.Emit([]lib.Event{dv, iv})
 }
 
+// LOCKS: activeMutex; path.mutex; graphMutex (R) via startNewMutation
 func (sme *StateMutationEngine) updateMutation(node string, url string, val reflect.Value) {
 	sme.activeMutex.Lock()
 	m, ok := sme.active[node]
@@ -618,6 +679,8 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		sme.startNewMutation(node)
 		return
 	}
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	// stop any timer clocks
 	if m.timer != nil {
@@ -647,40 +710,58 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	// ok, we got an expected URL.  Is this the value we were looking for?
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
+		m.curSeen = append(m.curSeen, url)
+		// Ok, everything checks out, but maybe we have more things to discover before progressing?
+		// TODO: more efficient way to do this for large numbers of URL changes/mut?
+		for url := range cmuts {
+			got := false
+			for _, seen := range m.curSeen {
+				if url == seen { // ok, we got this one
+					got = true
+					break
+				}
+			}
+			if !got {
+				// ok, we haven't seen all of the URL's discovered
+				sme.Logf(DEBUG, "mutation chain for %s progressing as normal, but this mutation isn't complete yet. Still need: %s", node, url)
+				return
+			}
+		}
 		m.cur++
+		m.curSeen = []string{}
 		m.timer.Stop()
 		// are we done?
 		if len(m.chain) <= m.cur {
 			// all done!
-			sme.Logf(DEBUG, "mutation chain completed (%d/%d)", m.cur, len(m.chain))
+			sme.Logf(DEBUG, "mutation chain completed for %s (%d/%d)", node, m.cur, len(m.chain))
 			sme.activeMutex.Lock()
 			delete(sme.active, node)
 			sme.activeMutex.Unlock()
 			return
 		}
-		sme.Logf(DEBUG, "mutation is progressing as normal, moving to next (%d/%d)", m.cur, len(m.chain))
+		sme.Logf(DEBUG, "mutation for %s progressing as normal, moving to next (%d/%d)", node, m.cur, len(m.chain))
 		// advance
 		// TODO: there might be a more clever way that just updates the node we already have?
 		n, e := sme.query.ReadDsc(NewNodeID(node))
 		if e != nil {
-			sme.Logf(ERROR, "couldn't query state of node in active mutation: %v", e)
+			sme.Logf(ERROR, "couldn't query state of node %s in active mutation: %v", node, e)
 			return
 		}
 		if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
-			sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
+			sme.Logf(DDEBUG, "firing mutation in context for %s, timeout %s.", node, m.chain[m.cur].mut.Timeout().String())
 			sme.emitMutation(m.end, n, m.chain[m.cur].mut)
 			if m.chain[m.cur].mut.Timeout() != 0 {
 				m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(n, m) })
 			}
 		}
 	} else if val.Interface() == vs[0].Interface() { // might want to do more with this case later; for now we have to just recalculate
-		sme.Logf(DEBUG, "mutation failed to progress, got %v, expected %v\n", val.Interface(), vs[1].Interface())
+		sme.Logf(DEBUG, "mutation for %s failed to progress, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		sme.activeMutex.Lock()
 		delete(sme.active, node)
 		sme.activeMutex.Unlock()
 		sme.startNewMutation(node)
 	} else {
-		sme.Logf(DEBUG, "unexpected mutation step, got %v, expected %v\n", val.Interface(), vs[1].Interface())
+		sme.Logf(DEBUG, "unexpected mutation step for %s, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		// we got something completely unexpected... start over
 		sme.activeMutex.Lock()
 		delete(sme.active, node)
@@ -689,6 +770,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	}
 }
 
+// Assumes you already hold a lock
 func (sme *StateMutationEngine) mutationInContext(n lib.Node, m lib.StateMutation) (r bool) {
 	switch m.Context() {
 	case lib.StateMutationContext_SELF:
@@ -728,7 +810,10 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 	case StateChange_DELETE:
 		if ok {
 			sme.activeMutex.Lock()
+			m := sme.active[node]
+			m.mutex.Lock()
 			delete(sme.active, node)
+			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
 		}
 		break
@@ -747,13 +832,16 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 	}
 }
 
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) emitMutation(cfg lib.Node, dsc lib.Node, sm lib.StateMutation) {
+	sme.graphMutex.RLock()
 	smee := &MutationEvent{
 		Type:     MutationEvent_MUTATE,
 		NodeCfg:  cfg,
 		NodeDsc:  dsc,
 		Mutation: sme.mutResolver[sm],
 	}
+	sme.graphMutex.RUnlock()
 	v := NewEvent(
 		lib.Event_STATE_MUTATION,
 		cfg.ID().String(),
