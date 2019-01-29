@@ -66,6 +66,20 @@ RUN set -e \
 
 COPY container-files /
 
+# Create needed files if they weren't in container-files
+RUN if [ ! -e /etc/munge/munge.key ]; then \
+      /bin/dd if=/dev/urandom bs=1 count=1024 >/etc/munge/munge.key 2>/dev/null; \
+    fi \
+    && if [ ! -e /etc/ssh/ssh_host_ecdsa_key -a ! -e /etc/ssh/ssh_host_ecdsa_key.pub ]; then \
+         ssh-keygen -q -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -C '' -N ''; \
+       fi \
+    && if [ ! -e /etc/ssh/ssh_host_ed25519_key -a ! -e /etc/ssh/ssh_host_ed25519_key.pub ]; then \
+         ssh-keygen -q -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -C '' -N ''; \
+       fi \
+    && if [ ! -e /etc/ssh/ssh_host_rsa_key -a ! -e /etc/ssh/ssh_host_rsa_key.pub ]; then \
+         ssh-keygen -q -t rsa -f /etc/ssh/ssh_host_rsa_key -C '' -N ''; \
+       fi
+
 # Modify permissions and enable services
 RUN set -e \
     && chmod 0700 /root/ /root/.ssh \

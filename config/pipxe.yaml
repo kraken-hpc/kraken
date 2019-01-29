@@ -10,30 +10,13 @@ targets:
     os: 'darwin'
     arch: 'amd64'
 
+# included extensions
 extensions:
-  - github.com/kraken/extensions/IPv4
-  - github.com/kraken/extensions/RPi3
+  - github.com/hpc/kraken/extensions/IPv4
+  - github.com/hpc/kraken/extensions/RPi3
 
-instances: 
-  - name: restapi
-    module: github.com/kraken/modules/restapi
-    config: # default configuration
-      addr: '127.0.0.1'
-      port: 3141
-
-  - name: pipower 
-    module: github.com/kraken/modules/pipower
-    requires:   # these requires apply to all mutations
-      '/Arch': 'aarch64'
-      '/Platform': 'rpi3'
-    excludes:   # these excluses apply to all mutations
-    mutations:  # mutation names map to exports from the module
-      'UKtoOFF':
-        mutates:
-          '/PhysState': { from: 'UNKNOWN', to: 'OFF' }
-      'OFFtoON':
-        mutates:
-          '/PhysState': { from: 'OFF', to: 'ON' }
-      'ONtoOFF':
-        mutates:
-          '/PhysState': { from: 'ON', to: 'OFF' }
+# included modules
+modules:
+  - github.com/hpc/kraken/modules/restapi
+  - github.com/hpc/kraken/modules/pipower
+  - github.com/hpc/kraken/modules/pipxe
