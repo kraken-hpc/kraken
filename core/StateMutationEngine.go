@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	gv "github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -128,7 +129,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 	return sme
 }
 
-// RegisterMutation injects new mutaitons into the SME. muts[i] should match callback[i]
+// RegisterMutation injects new mutations into the SME. muts[i] should match callback[i]
 // We take a list so that we only call onUpdate once
 func (sme *StateMutationEngine) RegisterMutation(module, id string, mut lib.StateMutation) (e error) {
 	sme.muts = append(sme.muts, mut)
@@ -160,6 +161,30 @@ func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s str
 		s += fmt.Sprintf("%s: %s -> %s, ", k, lib.ValueToString(m[k][0]), lib.ValueToString(m[k][1]))
 	}
 	return
+}
+
+//GenDotString returns a DOT formatted string of the mutation graph
+func (sme *StateMutationEngine) GenDotString() string {
+	g := gv.NewGraph()
+	g.SetName("MutGraph")
+	g.SetDir(true) //indicates that the graph is directed
+	for _, e := range sme.edges {
+		if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
+		}
+
+		if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
+		}
+
+		var attributes map[string]string
+		g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
+	}
+	return g.String()
 }
 
 // DumpGraph FIXME: REMOVE -- for debugging
@@ -494,8 +519,8 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 		e = fmt.Errorf("could not find path: end not in graph")
 		sme.Log(DEBUG, "could not find path: end not in graph")
 		if sme.GetLoggerLevel() >= DDEBUG {
-			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-			sme.DumpGraph()
+			// fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			//sme.DumpGraph()
 		}
 	} /*else if len(ge) > 1 {
 		e = fmt.Errorf("could not find path: ambiguous end")
