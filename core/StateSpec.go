@@ -105,6 +105,31 @@ func (s *StateSpec) NodeCompatWithMutators(n lib.Node, muts map[string]uint32) (
 	return
 }
 
+// NodeCompatWithoutMutators is how we find endpoints for mutation paths
+// 1) For each requires in the spec that is not a mutator, node must be equal
+// 2) For each excludes in the spec that is not a mutator, node must not be equal
+func (s *StateSpec) NodeCompatWithoutMutators(n lib.Node, muts map[string]uint32) (r bool) {
+	r = true
+	// 1) For each requires in the spec that is not a mutator, node must be equal
+	for u, v := range s.req {
+		if _, ok := muts[u]; ok {
+			continue
+		}
+		nv, e := n.GetValue(u)
+		if e != nil || nv.Interface() != v.Interface() {
+			return false
+		}
+	}
+	// 2) For each excludes in the spec that is not a mutator, node must not be equal (should this check for mutator status?)
+	for u, v := range s.exc {
+		nv, e := n.GetValue(u)
+		if e == nil && nv.Interface() == v.Interface() {
+			return false
+		}
+	}
+	return
+}
+
 // NodeMatchWithMutators is like NodeMatch, but requires any mutators be present and match
 // if they are non-zero in the node
 func (s *StateSpec) NodeMatchWithMutators(n lib.Node, muts map[string]uint32) bool {

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	gv "github.com/awalterschulze/gographviz"
+	// gv "github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -47,27 +47,114 @@ func (me *MutationEvent) String() string {
 	return fmt.Sprintf("(%s) %s : %s -> %s", MutationEventString[me.Type], me.NodeCfg.ID().String(), me.Mutation[0], me.Mutation[1])
 }
 
-type mutationEdge struct {
+//MutationEdge is used in constructing the graph (MutationPath)
+type MutationEdge struct {
 	cost uint32
 	mut  lib.StateMutation
-	from *mutationNode
-	to   *mutationNode
+	from *MutationNode
+	to   *MutationNode
 }
 
-type mutationNode struct {
+//Cost accessor for MutationEdge
+func (me *MutationEdge) Cost() uint32 {
+	return me.cost
+}
+
+//Mut accessor for MutationEdge
+func (me *MutationEdge) Mut() lib.StateMutation {
+	return me.mut
+}
+
+//From accessor for MutationEdge
+func (me *MutationEdge) From() *MutationNode {
+	return me.from
+}
+
+//To accessor for MutationEdge
+func (me *MutationEdge) To() *MutationNode {
+	return me.to
+}
+
+type MutationNode struct {
 	spec lib.StateSpec // spec with aggregated require/excludes
-	in   []*mutationEdge
-	out  []*mutationEdge
+	in   []*MutationEdge
+	out  []*MutationEdge
 }
 
-type mutationPath struct {
+//Spec accessor for MutationNode
+func (mn *MutationNode) Spec() lib.StateSpec {
+	return mn.spec
+}
+
+//In accessor for MutationNode
+func (mn *MutationNode) In() []*MutationEdge {
+	return mn.in
+}
+
+//Out accessor for MutationNode
+func (mn *MutationNode) Out() []*MutationEdge {
+	return mn.out
+}
+
+//MutationPath is where the graph is constructed
+type MutationPath struct {
 	cur    int // where are we currently?
 	start  lib.Node
 	end    lib.Node
-	gstart *mutationNode
-	gend   *mutationNode
-	chain  []*mutationEdge
+	gstart *MutationNode
+	gend   *MutationNode
+	chain  []*MutationEdge
 	timer  *time.Timer
+	mutex  *sync.RWMutex
+}
+
+//Cur accessor for MutationPath
+func (mp *MutationPath) Cur() int {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.cur
+}
+
+//Start accessor for MutationPath
+func (mp *MutationPath) Start() lib.Node {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.start
+}
+
+//End accessor for MutationPath
+func (mp *MutationPath) End() lib.Node {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.end
+}
+
+//Gstart accessor for MutationPath
+func (mp *MutationPath) GStart() *MutationNode {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.gstart
+}
+
+//Gend accessor for MutationPath
+func (mp *MutationPath) GEnd() *MutationNode {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.gend
+}
+
+//Chain accessor for MutationPath
+func (mp *MutationPath) Chain() []*MutationEdge {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.chain
+}
+
+//Mutex accessor for MutationPath
+func (mp *MutationPath) Mutex() *sync.RWMutex {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	return mp.mutex
 }
 
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
@@ -88,15 +175,15 @@ type StateMutationEngine struct {
 	// stuff we can compute from muts
 	mutators    map[string]uint32 // ref count, all URLs that mutate
 	requires    map[string]uint32 // ref count, referenced (req/exc) urls that don't mutate
-	graph       *mutationNode     // graph start
-	nodes       []*mutationNode   // so we can search for matches
-	edges       []*mutationEdge
+	graph       *MutationNode     // graph start
+	nodes       []*MutationNode   // so we can search for matches
+	edges       []*MutationEdge
 	em          *EventEmitter
 	schan       chan<- lib.EventListener // subscription channel
 	echan       chan lib.Event
 	selist      *EventListener
 	run         bool                     // are we running?
-	active      map[string]*mutationPath // active mutations
+	active      map[string]*MutationPath // active mutations
 	activeMutex *sync.Mutex              // active needs some synchronization, or we can get in bad places
 	query       *QueryEngine
 	log         lib.Logger
@@ -109,13 +196,13 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 	sme := &StateMutationEngine{
 		muts:        []lib.StateMutation{},
 		mutResolver: make(map[lib.StateMutation][2]string),
-		active:      make(map[string]*mutationPath),
+		active:      make(map[string]*MutationPath),
 		activeMutex: &sync.Mutex{},
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
-		graph:       &mutationNode{spec: ctx.SME.RootSpec},
-		nodes:       []*mutationNode{},
-		edges:       []*mutationEdge{},
+		graph:       &MutationNode{spec: ctx.SME.RootSpec},
+		nodes:       []*MutationNode{},
+		edges:       []*MutationEdge{},
 		em:          NewEventEmitter(lib.Event_STATE_MUTATION),
 		run:         false,
 		echan:       make(chan lib.Event),
@@ -163,29 +250,64 @@ func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s str
 	return
 }
 
-//GenDotString returns a DOT formatted string of the mutation graph
-func (sme *StateMutationEngine) GenDotString() string {
-	g := gv.NewGraph()
-	g.SetName("MutGraph")
-	g.SetDir(true) //indicates that the graph is directed
-	for _, e := range sme.edges {
-		if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
-		}
+// //GenDotString returns a DOT formatted string of the mutation graph
+// func (sme *StateMutationEngine) GenDotString(req map[string]reflect.Value, exc map[string]reflect.Value) string {
+// 	g := gv.NewGraph()
+// 	g.SetName("MutGraph")
+// 	g.SetDir(true) //indicates that the graph is directed
 
-		if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
-		}
+// 	for _, e := range sme.edges {
+// 		match := true
+// 		for k, v := range req {
+// 			if ev, ok := e.mut.Requires()[k]; ok {
+// 				if ev.Interface() != v.Interface() {
+// 					match = false
+// 					break
+// 				}
+// 			} else {
+// 				match = false
+// 				break
+// 			}
+// 		}
+// 		if match {
+// 			for k, v := range exc {
+// 				if ev, ok := e.mut.Excludes()[k]; ok {
+// 					if ev.Interface() == v.Interface() {
+// 						match = false
+// 						break
+// 					}
+// 				} else {
+// 					match = false
+// 					break
+// 				}
+// 			}
+// 		}
 
-		var attributes map[string]string
-		g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
-	}
-	return g.String()
-}
+// 		if match {
+// 			if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
+// 				var attributes map[string]string
+// 				attributes = make(map[string]string)
+// 				g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
+// 			}
+
+// 			if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
+// 				var attributes map[string]string
+// 				attributes = make(map[string]string)
+// 				g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
+// 			}
+
+// 			var attributes map[string]string
+// 			g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
+// 		}
+// 		// for key, value := range e.mut.Requires() {
+// 		// 	fmt.Println("Requires| ", "Key:", key, "Value:", value)
+// 		// }
+// 		// for key, value := range e.mut.Excludes() {
+// 		// 	fmt.Println("Exclude| ", "Key:", key, "Value:", value)
+// 		// }
+// 	}
+// 	return g.String()
+// }
 
 // DumpGraph FIXME: REMOVE -- for debugging
 func (sme *StateMutationEngine) DumpGraph() {
@@ -249,6 +371,7 @@ func (sme *StateMutationEngine) Run() {
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
 		sme.DumpGraph() // Use this to debug your graph
+		// fmt.Printf("%s \n", sme.GenDotString(map[string]reflect.Value{}, map[string]reflect.Value{}))
 	}
 
 	// create a listener for state change events we care about
@@ -337,7 +460,7 @@ func (sme *StateMutationEngine) collectURLs() {
 	}
 }
 
-func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode) {
+func (sme *StateMutationEngine) remapToNode(root *MutationNode, to *MutationNode) {
 	realNode := to
 	inEdge := root.in[0]
 	inEdge.to = realNode
@@ -346,9 +469,9 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 
 // buildGraph builds the graph of Specs/Mutations.  It is depth-first, recursive.
 // TODO: this function may eventually need recursion protection
-func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, seenMut map[int]*mutationNode, chain []*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
+func (sme *StateMutationEngine) buildGraph(root *MutationNode, seenNode map[lib.StateSpec]*MutationNode, seenMut map[int]*MutationNode, chain []*MutationNode) (nodes []*MutationNode, edges []*MutationEdge) {
 	nodes = append(nodes, root)
-	edges = []*mutationEdge{}
+	edges = []*MutationEdge{}
 
 	// There are two thing that can make a node equal:
 	// 1) we have seen this exact node spec...
@@ -356,7 +479,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 		if sp.Equal(root.spec) {
 			// we've seen an identical spec already
 			sme.remapToNode(root, n)
-			return []*mutationNode{}, []*mutationEdge{}
+			return []*MutationNode{}, []*MutationEdge{}
 		}
 	}
 
@@ -367,22 +490,22 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 				// Ok, I've seen this mutation -> I'm not actually a new node
 				// Which node am I? -> seen[i]
 				sme.remapToNode(root, n)
-				return []*mutationNode{}, []*mutationEdge{}
+				return []*MutationNode{}, []*MutationEdge{}
 			}
-			nme := &mutationEdge{
+			nme := &MutationEdge{
 				cost: 1,
 				mut:  m,
 				from: root,
 			}
-			nn := &mutationNode{
+			nn := &MutationNode{
 				spec: root.spec.SpecMergeMust(m.After()),
-				in:   []*mutationEdge{nme},
-				out:  []*mutationEdge{},
+				in:   []*MutationEdge{nme},
+				out:  []*MutationEdge{},
 			}
 			nme.to = nn
 			root.out = append(root.out, nme)
 			//ineffient, but every chain needs its own copy of seenMut
-			newseenMut := make(map[int]*mutationNode)
+			newseenMut := make(map[int]*MutationNode)
 			for k := range seenMut {
 				newseenMut[k] = seenMut[k]
 			}
@@ -399,8 +522,8 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 func (sme *StateMutationEngine) clearGraph() {
 	sme.mutators = make(map[string]uint32)
 	sme.requires = make(map[string]uint32)
-	sme.graph.in = []*mutationEdge{}
-	sme.graph.out = []*mutationEdge{}
+	sme.graph.in = []*MutationEdge{}
+	sme.graph.out = []*MutationEdge{}
 	sme.graph.spec = sme.root
 }
 
@@ -408,12 +531,12 @@ func (sme *StateMutationEngine) clearGraph() {
 func (sme *StateMutationEngine) onUpdate() {
 	sme.clearGraph()
 	sme.collectURLs()
-	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode), []*mutationNode{})
+	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*MutationNode), make(map[int]*MutationNode), []*MutationNode{})
 	sme.Logf(DEBUG, "Built graph [ Mutations: %d Mutation URLs: %d Requires URLs: %d Graph Nodes: %d Graph Edges: %d ]",
 		len(sme.muts), len(sme.mutators), len(sme.requires), len(sme.nodes), len(sme.edges))
 }
 
-func (sme *StateMutationEngine) nodeSearch(node lib.Node) (mns []*mutationNode) {
+func (sme *StateMutationEngine) nodeSearch(node lib.Node) (mns []*MutationNode) {
 	for _, n := range sme.nodes {
 		if n.spec.NodeMatch(node) {
 			mns = append(mns, n)
@@ -422,7 +545,7 @@ func (sme *StateMutationEngine) nodeSearch(node lib.Node) (mns []*mutationNode) 
 	return
 }
 
-func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gstart []*mutationNode, gend []*mutationNode) {
+func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gstart []*MutationNode, gend []*MutationNode) {
 	startMerge := sme.dscNodeMeld(end, start)
 	for _, n := range sme.nodes {
 		// in general, we don't want the graph root as an option
@@ -442,8 +565,8 @@ func (sme *StateMutationEngine) boundarySearch(start lib.Node, end lib.Node) (gs
 
 // drijkstra implements the Drijkstra shortest path graph algorithm.
 // NOTE: An alternative would be to pre-compute trees for every node
-func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutationNode) *mutationPath {
-	isEnd := func(i *mutationNode) (r bool) {
+func (sme *StateMutationEngine) drijkstra(gstart *MutationNode, gend []*MutationNode) *MutationPath {
+	isEnd := func(i *MutationNode) (r bool) {
 		for _, j := range gend {
 			if i == j {
 				return true
@@ -452,9 +575,9 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 		return
 	}
 
-	dist := make(map[*mutationNode]uint32)
-	prev := make(map[*mutationNode]*mutationEdge)
-	queue := make(map[*mutationNode]*mutationNode)
+	dist := make(map[*MutationNode]uint32)
+	prev := make(map[*MutationNode]*MutationEdge)
+	queue := make(map[*MutationNode]*MutationNode)
 
 	for _, n := range sme.nodes {
 		dist[n] = ^uint32(0) - 1 // max uint32 - 1, a total hack
@@ -466,7 +589,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 
 	for len(queue) > 0 {
 		min := ^uint32(0)
-		var idx *mutationNode
+		var idx *MutationNode
 		for k, v := range queue {
 			if dist[v] < min {
 				min = dist[v]
@@ -477,13 +600,13 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 
 		if isEnd(u) {
 			// found it!
-			var chain []*mutationEdge
+			var chain []*MutationEdge
 			i := u
 			for prev[i] != nil {
-				chain = append([]*mutationEdge{prev[i]}, chain...)
+				chain = append([]*MutationEdge{prev[i]}, chain...)
 				i = prev[i].from
 			}
-			path := &mutationPath{
+			path := &MutationPath{
 				gstart: gstart,
 				gend:   u,
 				chain:  chain,
@@ -508,7 +631,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 }
 
 // findPath finds the sequence of edges (if it exists) between two lib.Nodes
-func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mutationPath, e error) {
+func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *MutationPath, e error) {
 	gs, ge := sme.boundarySearch(start, end)
 	if len(gs) < 1 {
 		e = fmt.Errorf("could not find path: start not in graph")
@@ -519,8 +642,8 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 		e = fmt.Errorf("could not find path: end not in graph")
 		sme.Log(DEBUG, "could not find path: end not in graph")
 		if sme.GetLoggerLevel() >= DDEBUG {
-			// fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
-			//sme.DumpGraph()
+			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
+			sme.DumpGraph()
 		}
 	}
 	if e != nil {
@@ -530,11 +653,11 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	// In this case, we return a valid mutationPath with a zero length chain
 	for _, gend := range ge {
 		if gend == gs[0] {
-			path = &mutationPath{
+			path = &MutationPath{
 				start: start,
 				end:   end,
 				cur:   0,
-				chain: []*mutationEdge{},
+				chain: []*MutationEdge{},
 			}
 			return
 		}
@@ -590,7 +713,7 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	}
 }
 
-func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
+func (sme *StateMutationEngine) emitFail(start lib.Node, p *MutationPath) {
 	nid := p.start.ID()
 	d := p.chain[p.cur].mut.FailTo()
 	sme.Logf(INFO, "mutation timeout for %s, emitting: %s:%s:%s", nid.String(), d[0], d[1], d[2])

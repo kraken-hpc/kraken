@@ -317,6 +317,7 @@ type StateSpec interface {
 	Equal(StateSpec) bool
 	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
 	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
+	NodeCompatWithoutMutators(n Node, muts map[string]uint32) (r bool)
 }
 
 // StateMutationContext specifies the context in which a mutation is activated
