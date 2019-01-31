@@ -75,6 +75,7 @@ func (me *MutationEdge) To() *MutationNode {
 	return me.to
 }
 
+//MutationNode is used in constructing the graph (MutationPath)
 type MutationNode struct {
 	spec lib.StateSpec // spec with aggregated require/excludes
 	in   []*MutationEdge
@@ -129,14 +130,14 @@ func (mp *MutationPath) End() lib.Node {
 	return mp.end
 }
 
-//Gstart accessor for MutationPath
+//GStart accessor for MutationPath
 func (mp *MutationPath) GStart() *MutationNode {
 	mp.mutex.RLock()
 	defer mp.mutex.RUnlock()
 	return mp.gstart
 }
 
-//Gend accessor for MutationPath
+//GEnd accessor for MutationPath
 func (mp *MutationPath) GEnd() *MutationNode {
 	mp.mutex.RLock()
 	defer mp.mutex.RUnlock()
@@ -155,6 +156,16 @@ func (mp *MutationPath) Mutex() *sync.RWMutex {
 	mp.mutex.RLock()
 	defer mp.mutex.RUnlock()
 	return mp.mutex
+}
+
+//ChainAt gets the MutationEdge at a given index. Returns nil if index not in slice.
+func (mp *MutationPath) ChainAt(i int) *MutationEdge {
+	mp.mutex.RLock()
+	defer mp.mutex.RUnlock()
+	if i >= 0 && i < len(mp.chain) {
+		return mp.chain[i]
+	}
+	return nil
 }
 
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
@@ -214,6 +225,21 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 	}
 	sme.log.SetModule("StateMutationEngine")
 	return sme
+}
+
+//Nodes accessor for NewStateMutationEngine
+func (sme *StateMutationEngine) Nodes() []*MutationNode {
+	return sme.nodes
+}
+
+//Edges accessor for NewStateMutationEngine
+func (sme *StateMutationEngine) Edges() []*MutationEdge {
+	return sme.edges
+}
+
+//Active accessor for NewStateMutationEngine
+func (sme *StateMutationEngine) Active() map[string]*MutationPath {
+	return sme.active
 }
 
 // RegisterMutation injects new mutations into the SME. muts[i] should match callback[i]
@@ -519,6 +545,7 @@ func (sme *StateMutationEngine) buildGraph(root *MutationNode, seenNode map[lib.
 	}
 	return
 }
+
 func (sme *StateMutationEngine) clearGraph() {
 	sme.mutators = make(map[string]uint32)
 	sme.requires = make(map[string]uint32)

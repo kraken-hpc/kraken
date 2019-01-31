@@ -105,14 +105,14 @@ func (s *StateSpec) NodeCompatWithMutators(n lib.Node, muts map[string]uint32) (
 	return
 }
 
-// NodeCompatWithoutMutators is how we find endpoints for mutation paths
+// NodeCompatWithoutDiscovery
 // 1) For each requires in the spec that is not a mutator, node must be equal
 // 2) For each excludes in the spec that is not a mutator, node must not be equal
-func (s *StateSpec) NodeCompatWithoutMutators(n lib.Node, muts map[string]uint32) (r bool) {
+func (s *StateSpec) NodeCompatWithoutDiscovery(n lib.Node, disc map[string]map[string]map[string]reflect.Value) (r bool) {
 	r = true
-	// 1) For each requires in the spec that is not a mutator, node must be equal
+	// 1) For each requires in the spec that is not a discovery, node must be equal
 	for u, v := range s.req {
-		if _, ok := muts[u]; ok {
+		if _, ok := disc[u]; ok {
 			continue
 		}
 		nv, e := n.GetValue(u)
