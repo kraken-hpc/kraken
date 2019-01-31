@@ -562,7 +562,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	same := true
 	for m := range sme.mutators {
 		sv, _ := start.GetValue(m)
-		ev, _ := start.GetValue(m)
+		ev, _ := end.GetValue(m)
 		if sv.Interface() != ev.Interface() {
 			same = false
 			break
