@@ -12,7 +12,6 @@ package main
 import (
 	"flag"
 	"go/build"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
@@ -20,6 +19,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -32,6 +32,7 @@ var (
 	force     = flag.Bool("force", false, "force will overwrite existing build targets")
 	verbose   = flag.Bool("v", false, "verbose will print extra information about the build process")
 	race      = flag.Bool("race", false, "build with -race, warning: enables CGO")
+	pprof     = flag.Bool("pprof", false, "build with pprof support")
 )
 
 // config
@@ -45,6 +46,7 @@ type Target struct {
 
 // Config yaml file structure
 type Config struct {
+	Pprof      bool
 	Targets    map[string]Target
 	Extensions []string
 	Modules    []string
@@ -120,11 +122,10 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 		defer f.Close()
 	}
 
-	args := []string{"build"}
+	args := []string{"build", "-o", "main"}
 	if *race {
 		args = append(args, "-race")
 	}
-	args = append(args, "main.go")
 	args = append(args, fromTemplates...)
 	cmd := exec.Command("go", args...)
 	if verbose {
@@ -161,6 +162,9 @@ func main() {
 	if e = yaml.Unmarshal(cfgBytes, cfg); e != nil {
 		log.Fatalf("could not read config: %v", e)
 	}
+	if *pprof {
+		cfg.Pprof = true
+	}
 
 	// create build dir
 	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
@@ -181,9 +185,6 @@ func main() {
 
 	// setup build environment
 	log.Println("setting up build environment")
-
-	// hardlink kraken.go to tmpDir
-	os.Link(filepath.Join(krakenDir, "kraken/main.go"), filepath.Join(tmpDir, "main.go"))
 
 	// build templates
 	var fromTemplates []string
