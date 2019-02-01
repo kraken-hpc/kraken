@@ -534,7 +534,6 @@ func (sse *StateSyncEngine) sortQueue() {
 	}
 }
 
-//HERE
 func (sse *StateSyncEngine) wakeForNext() {
 	var next time.Time
 	sse.lock.RLock()
@@ -544,17 +543,17 @@ func (sse *StateSyncEngine) wakeForNext() {
 		next = sse.queue[0].nextAction()
 	}
 	sse.lock.RUnlock()
+	d := time.Until(next)
 	if !next.After(time.Now()) {
 		// we need to do work now!
-		sse.tchan <- nil
-	} else {
-		go func() {
-			d := time.Until(next)
-			sse.Logf(DDEBUG, "next timer due in: %s\n", d.String())
-			time.Sleep(d)
-			sse.tchan <- nil
-		}()
+		d = 0
 	}
+	// we *must* make this a goroutine, or we introduce deadlocks
+	go func(d time.Duration) {
+		sse.Logf(DDEBUG, "next timer due in: %s\n", d.String())
+		time.Sleep(d)
+		sse.tchan <- nil
+	}(d)
 }
 
 func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighbor {
