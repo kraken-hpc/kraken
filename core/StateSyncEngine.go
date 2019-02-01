@@ -394,6 +394,7 @@ func (sse *StateSyncEngine) nodeGetKey(id lib.NodeID) (key []byte, e error) {
 	n, ok := sse.getNeighbor(id)
 	if !ok {
 		e = fmt.Errorf("key not found for %s", id.String())
+		return
 	}
 	key = n.getKey()
 	return
