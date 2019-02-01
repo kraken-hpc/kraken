@@ -106,6 +106,7 @@ type StateMutationEngine struct {
 	log         lib.Logger
 	self        lib.NodeID
 	root        lib.StateSpec
+	freeze      bool
 }
 
 // NewStateMutationEngine creates an initialized StateMutationEngine
@@ -129,6 +130,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 		log:         &ctx.Logger,
 		self:        ctx.Self,
 		root:        ctx.SME.RootSpec,
+		freeze:      true,
 	}
 	sme.log.SetModule("StateMutationEngine")
 	return sme
@@ -280,12 +282,39 @@ func (sme *StateMutationEngine) Run() {
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
 			// we should make them concurrent with a queue
-			sme.handleEvent(v)
+			if !sme.Frozen() {
+				sme.handleEvent(v)
+			}
 			break
 		case <-debugchan:
 			sme.Logf(DDEBUG, "There are %d active mutations.", len(sme.active))
 			break
 		}
+	}
+}
+
+func (sme *StateMutationEngine) Frozen() bool {
+	sme.activeMutex.Lock()
+	defer sme.activeMutex.Unlock()
+	return sme.freeze
+}
+
+func (sme *StateMutationEngine) Freeze() {
+	sme.Log(INFO, "freezing")
+	sme.activeMutex.Lock()
+	sme.freeze = true
+	sme.activeMutex.Unlock()
+}
+
+func (sme *StateMutationEngine) Thaw() {
+	sme.Log(INFO, "thawing")
+	sme.activeMutex.Lock()
+	sme.active = make(map[string]*mutationPath)
+	sme.freeze = false
+	sme.activeMutex.Unlock()
+	ns, _ := sme.query.ReadAll()
+	for _, n := range ns {
+		sme.startNewMutation(n.ID().String())
 	}
 }
 
@@ -530,6 +559,26 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 // findPath finds the sequence of edges (if it exists) between two lib.Nodes
 // LOCKS: graphMutex (R) via boundarySearch, drijkstra
 func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mutationPath, e error) {
+	same := true
+	for m := range sme.mutators {
+		sv, _ := start.GetValue(m)
+		ev, _ := end.GetValue(m)
+		if sv.Interface() != ev.Interface() {
+			same = false
+			break
+		}
+	}
+	if same {
+		path = &mutationPath{
+			mutex:   &sync.Mutex{},
+			start:   start,
+			end:     end,
+			cur:     0,
+			curSeen: []string{},
+			chain:   []*mutationEdge{},
+		}
+		return
+	}
 	gs, ge := sme.boundarySearch(start, end)
 	if len(gs) < 1 {
 		e = fmt.Errorf("could not find path: start not in graph")
@@ -538,7 +587,6 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	if len(ge) < 1 {
 		e = fmt.Errorf("could not find path: end not in graph")
-		sme.Log(DEBUG, "could not find path: end not in graph")
 		if sme.GetLoggerLevel() >= DDEBUG {
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
@@ -549,6 +597,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	// If start is contained in end, we're already where we want to be
 	// In this case, we return a valid mutationPath with a zero length chain
+	/* this should be caught by the test above already
 	for _, gend := range ge {
 		if gend == gs[0] {
 			path = &mutationPath{
@@ -562,6 +611,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			return
 		}
 	}
+	*/
 	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
 	path.end = end
