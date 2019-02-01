@@ -20,6 +20,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	pb "github.com/hpc/kraken/core/proto"
@@ -49,6 +50,7 @@ type recvPacket struct {
  */
 
 type stateSyncNeighbor struct {
+	lock   sync.Mutex
 	parent bool // sync up? (or down)
 	key    []byte
 	id     lib.NodeID
@@ -61,31 +63,61 @@ type stateSyncNeighbor struct {
 
 // are we due to send?
 func (ssn *stateSyncNeighbor) due() bool {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
 	return time.Since(ssn.lastSent) >= ssn.helloTime
 }
 
 // have we passed the dead timer?
 func (ssn *stateSyncNeighbor) dead() bool {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
 	return time.Since(ssn.lastRecv) > ssn.deadTime
 }
 
 // mark lastRecv as now
 func (ssn *stateSyncNeighbor) recv() {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
 	ssn.lastRecv = time.Now()
 }
 
 // mark lastSent as now
 func (ssn *stateSyncNeighbor) sent() {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
 	ssn.lastSent = time.Now()
 }
 
 func (ssn *stateSyncNeighbor) nextAction() time.Time {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
 	d := ssn.lastRecv.Add(ssn.deadTime)
 	h := ssn.lastSent.Add(ssn.helloTime)
 	if d.Before(h) {
 		return d
 	}
 	return h
+}
+
+// locking accessors
+
+func (ssn *stateSyncNeighbor) getKey() []byte {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
+	return ssn.key
+}
+
+func (ssn *stateSyncNeighbor) getParent() bool {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
+	return ssn.parent
+}
+
+func (ssn *stateSyncNeighbor) getID() lib.NodeID {
+	ssn.lock.Lock()
+	defer ssn.lock.Unlock()
+	return ssn.id
 }
 
 ////////////////////////////
@@ -96,9 +128,12 @@ var _ lib.StateSyncEngine = (*StateSyncEngine)(nil)
 
 // StateSyncEngine manages tree-style, eventual consistency state synchronization
 type StateSyncEngine struct {
-	cfg     ContextSSE
-	pool    map[string]*stateSyncNeighbor // it's useful to keep an index
-	queue   []*stateSyncNeighbor          // but we need a timing queue too
+	cfg ContextSSE
+
+	lock  sync.RWMutex                  // applies to pool & queue
+	pool  map[string]*stateSyncNeighbor // it's useful to keep an index
+	queue []*stateSyncNeighbor          // but we need a timing queue too
+
 	query   *QueryEngine
 	schan   chan<- lib.EventListener
 	tchan   chan interface{} // channel tells us when to wake up and do work
@@ -114,6 +149,7 @@ type StateSyncEngine struct {
 func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 	sse := &StateSyncEngine{
 		cfg:     ctx.SSE,
+		lock:    sync.RWMutex{},
 		pool:    make(map[string]*stateSyncNeighbor),
 		queue:   []*stateSyncNeighbor{},
 		em:      NewEventEmitter(lib.Event_STATE_SYNC),
@@ -173,8 +209,8 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		},
 	)
 	sse.EmitOne(ev)
-	sse.addNeighbor(id.String(), false)
-	cfg, e := sse.nodeToMessage(n.ID().String(), n)
+	ssn := sse.addNeighbor(id.String(), false)
+	cfg, e := sse.nodeToMessage(n.ID(), n)
 	if e != nil {
 		return
 	}
@@ -190,12 +226,12 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		sse.Logf(DEBUG, "sending a phone home reply, but /RunState != SYNC, this shouldn't happen: %s", id.String())
 	}
 
-	dsc, e := sse.nodeToMessage(n.ID().String(), nd)
+	dsc, e := sse.nodeToMessage(n.ID(), nd)
 	if e != nil {
 		return
 	}
 	sse.Logf(DEBUG, "successful phone home for: %s", id.String())
-	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: sse.pool[id.String()].key, Cfg: cfg, Dsc: dsc}, nil
+	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: ssn.getKey(), Cfg: cfg, Dsc: dsc}, nil
 }
 
 // Run is a goroutine that makes StateSyncEngine active
@@ -271,8 +307,10 @@ func (sse *StateSyncEngine) Run() {
 			sse.eventHandler(v)
 			break
 		case <-debugchan:
+			sse.lock.RLock()
 			sse.Logf(DDEBUG, "current pool: %v\n", sse.pool)
 			sse.Logf(DDEBUG, "current queue: %v\n", sse.queue)
+			sse.lock.RUnlock()
 			break
 		}
 	}
@@ -310,9 +348,10 @@ func (sse *StateSyncEngine) callParent(p string) {
 	}
 	// ok! we successfully phoned home, now let's setup our parent neighbor.  Also, register our cfg state
 	nid := NewNodeIDFromBinary(r.GetPid())
-	sse.addNeighbor(nid.String(), true)
-	n := sse.pool[nid.String()]
+	n := sse.addNeighbor(nid.String(), true)
+	n.lock.Lock()
 	n.key = r.Key
+	n.lock.Unlock()
 	rp, e := sse.ssmToNode(r.Cfg)
 	if e != nil {
 		sse.Logf(ERROR, "malformed response from phone home: %v", e)
@@ -351,16 +390,17 @@ func (sse *StateSyncEngine) callParent(p string) {
 	n.recv()
 }
 
-func (sse *StateSyncEngine) nodeGetKey(id string) (key []byte, e error) {
-	n, ok := sse.pool[id]
+func (sse *StateSyncEngine) nodeGetKey(id lib.NodeID) (key []byte, e error) {
+	n, ok := sse.getNeighbor(id)
 	if !ok {
-		e = fmt.Errorf("key not found for %s", id)
+		e = fmt.Errorf("key not found for %s", id.String())
+		return
 	}
-	key = n.key
+	key = n.getKey()
 	return
 }
 
-func (sse *StateSyncEngine) nodeToMessage(to string, n lib.Node) (msg *pb.StateSyncMessage, e error) {
+func (sse *StateSyncEngine) nodeToMessage(to lib.NodeID, n lib.Node) (msg *pb.StateSyncMessage, e error) {
 	key, e := sse.nodeGetKey(to)
 	if e != nil {
 		return
@@ -377,7 +417,7 @@ func (sse *StateSyncEngine) nodeToMessage(to string, n lib.Node) (msg *pb.StateS
 	return m, nil
 }
 
-func (sse *StateSyncEngine) nodeToBinary(to string, n lib.Node) (msg []byte, e error) {
+func (sse *StateSyncEngine) nodeToBinary(to lib.NodeID, n lib.Node) (msg []byte, e error) {
 	m, e := sse.nodeToMessage(to, n)
 	if e != nil {
 		return
@@ -391,7 +431,7 @@ func (sse *StateSyncEngine) ssmToNode(m *pb.StateSyncMessage) (rp recvPacket, e 
 		e = fmt.Errorf("could not unmarshal NodeID")
 		return
 	}
-	key, e := sse.nodeGetKey(rp.From.String())
+	key, e := sse.nodeGetKey(rp.From)
 	if e != nil {
 		return
 	}
@@ -416,28 +456,28 @@ func (sse *StateSyncEngine) binaryToNode(buf []byte) (rp recvPacket, e error) {
 }
 
 func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
-	node, e := sse.query.Read(n.id)
+	node, e := sse.query.Read(n.getID())
 	if e != nil {
 		sse.Logf(ERROR, "couldn't get node info, deleting from pool: %v", e)
-		sse.delNeighbor(n.id)
+		sse.delNeighbor(n.getID())
 		return
 	}
 	addr, e := node.GetValue(sse.cfg.AddrURL)
 	if e != nil {
-		sse.Logf(ERROR, "couldn't get node address, deleting from pool: %s, %v\n", n.id.String(), e)
-		sse.delNeighbor(n.id)
+		sse.Logf(ERROR, "couldn't get node address, deleting from pool: %s, %v\n", n.getID().String(), e)
+		sse.delNeighbor(n.getID())
 		return
 	}
 	// FIXME: @important sending assumes udp4
 	ip := net.IPv4(addr.Bytes()[0], addr.Bytes()[1], addr.Bytes()[2], addr.Bytes()[3])
-	if n.parent {
+	if n.getParent() {
 		node, e = sse.query.ReadDsc(sse.self)
 		if e != nil {
 			sse.Logf(CRITICAL, "couldn't get node info on self")
 			return
 		}
 	}
-	msg, _ := sse.nodeToBinary(n.id.String(), node)
+	msg, _ := sse.nodeToBinary(n.getID(), node)
 	cnt, e := sse.conn.WriteTo(msg, &net.UDPAddr{IP: ip, Port: sse.cfg.Port})
 	if e != nil {
 		sse.Logf(ERROR, "udp write failed: %v", e)
@@ -448,7 +488,7 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		return
 	}
 	n.sent()
-	sse.Logf(DEBUG, "sent sync to: %s", n.id.String())
+	sse.Logf(DEBUG, "sent sync to: %s", n.getID().String())
 }
 
 func (sse *StateSyncEngine) sendDiscoverable(id lib.NodeID)  {}
@@ -479,6 +519,8 @@ func (sse *StateSyncEngine) listen(c chan<- recvPacket, conn net.PacketConn) {
 // this can probably be managed by only moving items when they change
 // queue[0] is the next item
 func (sse *StateSyncEngine) sortQueue() {
+	sse.lock.Lock()
+	defer sse.lock.Unlock()
 	j := 0
 	swapped := true
 	for swapped {
@@ -495,27 +537,30 @@ func (sse *StateSyncEngine) sortQueue() {
 
 func (sse *StateSyncEngine) wakeForNext() {
 	var next time.Time
+	sse.lock.RLock()
 	if len(sse.queue) < 1 {
 		next = time.Now().Add(sse.cfg.HelloTime)
 	} else {
 		next = sse.queue[0].nextAction()
 	}
+	sse.lock.RUnlock()
+	d := time.Until(next)
 	if !next.After(time.Now()) {
 		// we need to do work now!
-		sse.tchan <- nil
-	} else {
-		go func() {
-			d := time.Until(next)
-			sse.Logf(DDEBUG, "next timer due in: %s\n", d.String())
-			time.Sleep(d)
-			sse.tchan <- nil
-		}()
+		d = 0
 	}
+	// we *must* make this a goroutine, or we introduce deadlocks
+	go func(d time.Duration) {
+		sse.Logf(DDEBUG, "next timer due in: %s\n", d.String())
+		time.Sleep(d)
+		sse.tchan <- nil
+	}(d)
 }
 
-func (sse *StateSyncEngine) addNeighbor(id string, parent bool) {
+func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighbor {
 	nid := NewNodeID(id)
 	n := &stateSyncNeighbor{
+		lock:      sync.Mutex{},
 		parent:    parent,
 		key:       sse.generateKey(),
 		id:        nid,
@@ -524,12 +569,18 @@ func (sse *StateSyncEngine) addNeighbor(id string, parent bool) {
 		lastSent:  time.Now(), // we count creation as a sync
 		lastRecv:  time.Now(),
 	}
+	sse.lock.Lock()
 	sse.pool[id] = n
 	sse.queue = append(sse.queue, n)
+	sse.lock.Unlock()
+
 	sse.sortQueue()
+	return n
 }
 
 func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
+	sse.lock.Lock()
+	defer sse.lock.Unlock()
 	delete(sse.pool, string(id.String()))
 	for i, n := range sse.queue {
 		if n.id.Equal(id) {
@@ -540,11 +591,28 @@ func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
 	}
 }
 
+// just a map query, but with locking
+func (sse *StateSyncEngine) getNeighbor(id lib.NodeID) (n *stateSyncNeighbor, ok bool) {
+	sse.lock.RLock()
+	defer sse.lock.RUnlock()
+	n, ok = sse.pool[id.String()]
+	return
+}
+
+func (sse *StateSyncEngine) getNeighborMust(id lib.NodeID) (n *stateSyncNeighbor) {
+	var ok bool
+	n, ok = sse.getNeighbor(id)
+	if ok {
+		return n
+	}
+	return nil
+}
+
 func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 	if n.dead() {
-		if n.parent {
+		if n.getParent() {
 			// this is pretty bad; lost sync with a parent
-			sse.Logf(CRITICAL, "lost sync with parent: %s", n.id.String())
+			sse.Logf(CRITICAL, "lost sync with parent: %s", n.getID().String())
 			// drop back to INIT status
 			//sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
 			url := lib.NodeURLJoin(sse.self.String(), "/RunState")
@@ -558,11 +626,11 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 				},
 			)
 			sse.EmitOne(ev)
-			sse.delNeighbor(n.id)
+			sse.delNeighbor(n.getID())
 		} else {
 			// declare this node to be dead
 			// we make the declaration, and delete it from our records
-			url := lib.NodeURLJoin(n.id.String(), "/RunState")
+			url := lib.NodeURLJoin(n.getID().String(), "/RunState")
 			ev := NewEvent(
 				lib.Event_DISCOVERY,
 				url,
@@ -573,7 +641,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 				},
 			)
 			sse.EmitOne(ev)
-			url = lib.NodeURLJoin(n.id.String(), "/PhysState")
+			url = lib.NodeURLJoin(n.getID().String(), "/PhysState")
 			ev = NewEvent(
 				lib.Event_DISCOVERY,
 				url,
@@ -586,33 +654,45 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			sse.EmitOne(ev)
 
 			//sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
-			sse.delNeighbor(n.id)
-			sse.Logf(INFO, "a neighbor died: %s", n.id.String())
+			sse.delNeighbor(n.getID())
+			sse.Logf(INFO, "a neighbor died: %s", n.getID().String())
 		}
 	}
 	if n.due() {
-		sse.Logf(DEBUG, "sending hello: %s", n.id.String())
+		sse.Logf(DEBUG, "sending hello: %s", n.getID().String())
 		sse.send(n)
 		sse.sortQueue()
 	}
 }
-func (sse *StateSyncEngine) syncNext() {
+
+// returns nil if queue is empty
+func (sse *StateSyncEngine) queueGetNext() (n *stateSyncNeighbor) {
+	sse.lock.RLock()
+	defer sse.lock.RUnlock()
 	if len(sse.queue) < 1 {
 		return
 	}
-	sse.sync(sse.queue[0])
+	return sse.queue[0]
+}
+
+func (sse *StateSyncEngine) syncNext() {
+	n := sse.queueGetNext()
+	if n != nil {
+		sse.sync(n)
+	}
 }
 
 // sync items on queue until we're caught up
 func (sse *StateSyncEngine) catchupSync() {
-	for len(sse.queue) > 0 && !time.Now().Before(sse.queue[0].nextAction()) {
+	n := sse.queueGetNext()
+	for n != nil && !time.Now().Before(n.nextAction()) {
 		sse.syncNext()
 	}
 	sse.Log(DDEBUG, "caught up on sync work items")
 }
 
 func (sse *StateSyncEngine) processRecv(rp recvPacket) {
-	n, ok := sse.pool[rp.From.String()]
+	n, ok := sse.getNeighbor(rp.From)
 	if !ok {
 		// got sync from something we don't know about, ignore
 		sse.Logf(INFO, "got unexpected hello from: %s", rp.From.String())
@@ -621,12 +701,13 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	n.recv()
 	sse.sortQueue()
 	sse.Logf(DEBUG, "got a hello from: %s", rp.From.String())
-	if n.parent {
+	if n.getParent() {
 		sse.query.Update(rp.Node)
 	} else {
 		sse.query.UpdateDsc(rp.Node)
 	}
 }
+
 func eventFilter(v lib.Event) bool {
 	sce := v.Data().(*StateChangeEvent)
 	switch sce.Type {
