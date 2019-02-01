@@ -645,7 +645,7 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		return
 	}
 	if len(p.chain) == 0 { // we're already there
-		sme.Log(DEBUG, "discovered that we're already where we want to be")
+		sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
 		return
 	}
 	// new mutation, record it, and start it in motion
