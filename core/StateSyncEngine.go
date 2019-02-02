@@ -209,6 +209,11 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		},
 	)
 	sse.EmitOne(ev)
+	_, ok := sse.getNeighbor(id)
+	if ok {
+		sse.Logf(DEBUG, "deleting stale neighbor: %s", id.String())
+		sse.delNeighbor(id)
+	}
 	ssn := sse.addNeighbor(id.String(), false)
 	cfg, e := sse.nodeToMessage(n.ID(), n)
 	if e != nil {
