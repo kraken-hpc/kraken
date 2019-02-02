@@ -625,6 +625,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 
 // startNewMutation sees if we need a new mutation
 // if we do, it starts it
+// if we don't already have a mutation object, it creates it
 // LOCKS: graphMutex (R) via findPath; activeMutex; path.mutex
 func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we assume it's already been verified that this is *new*
@@ -718,6 +719,158 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	sme.Emit([]lib.Event{dv, iv})
 }
 
+func (sme *StateMutationEngine) devolveMutation(node, url string, val reflect.Value) {
+	sme.activeMutex.Lock()
+	m, ok := sme.active[node]
+	sme.activeMutex.Unlock()
+	if !ok {
+		// there's no existing mutation chain
+		// shouldn't really happen
+		sme.startNewMutation(node)
+		return
+	}
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	rewind := make(map[string]reflect.Value)
+	// starting from the current position, look backwards in the chain
+	// have we seen this value before?  Maybe we need to reset to that point...
+	found := false
+	var i int
+	for i = m.cur; i >= 0; i-- {
+		// is there a mutation with this url?
+		for murl, mvs := range m.chain[i].mut.Mutates() {
+			if murl == url {
+				// this mutation deals with the url of interest
+				if mvs[0].Interface() == val.Interface() {
+					// this is our rewind point, but we need the rest of this loop
+					found = true
+				}
+			} else {
+				// add to our rewind
+				rewind[url] = mvs[0]
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	// this is a bit bad.  We don't want to get our own state changes, so we change the node directly
+	nid := NewNodeIDFromURL(node)
+	n, e := sme.query.ReadDsc(nid)
+	if e != nil {
+		// ok, I give up.  The node has just disappeared.
+		sme.Logf(ERROR, "%s node unexpectly disappeared", node)
+		return
+	}
+
+	if found {
+		// ok, let's devolve
+		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
+
+		n.SetValues(rewind)
+		m.cur = i
+
+		// now try to evolve forward
+		sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur, len(m.chain))
+		if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
+			sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
+			sme.emitMutation(m.end, m.start, m.chain[m.cur].mut)
+			if m.chain[m.cur].mut.Timeout() != 0 {
+				m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(m.start, m) })
+			}
+		} else {
+			sme.Log(DDEBUG, "mutation is not in our context.")
+		}
+	} else {
+		sme.Logf(DEBUG, "%s could neither find a path, nor devolve.  We're lost.", node)
+
+		sme.graphMutex.RLock()
+		defer sme.graphMutex.RUnlock()
+		// set everything to unknown except the value we were given
+		for u := range sme.mutators {
+			if u == url {
+				// don't reset the unexpected value...
+				continue
+			}
+			v, _ := n.GetValue(u)
+			n.SetValue(u, reflect.Zero(v.Type()))
+		}
+	}
+}
+
+// handleUnexpected is called anytime we got an unexpected event
+// It's logic is:
+// 1) can we directly evolve from where we are now?
+// 2) can we devolve to a previous point in our chain?
+// 3) we're lost, forget all mutators except this new discovery, hope we learn more
+func (sme *StateMutationEngine) handleUnexpected(node string, url string, val reflect.Value) {
+	sme.activeMutex.Lock()
+	m, ok := sme.active[node]
+	sme.activeMutex.Unlock()
+	if !ok {
+		// there's no existing mutation chain
+		// shouldn't really happen
+		sme.startNewMutation(node)
+		return
+	}
+
+	// get the full node objects
+	nid := NewNodeIDFromURL(node)
+	start, e := sme.query.ReadDsc(nid)
+	if e != nil {
+		sme.Log(ERROR, e.Error())
+		return
+	} // this is bad...
+	end, e := sme.query.Read(nid)
+	if e != nil {
+		sme.Log(ERROR, e.Error())
+		return
+	}
+
+	// try to find a new mutation path from where we are
+	p, e := sme.findPath(start, end)
+	if e != nil {
+		// we couldn't find a path, can we devolve?
+		sme.Logf(DEBUG, "%s could not find a path for unexpected mutation, attempting to devolve", node)
+		sme.devolveMutation(node, url, val)
+		return
+	}
+
+	if len(p.chain) == 0 { // we're already there
+		sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
+		return
+	}
+	// new mutation, record it, and start it in motion
+
+	// we need to hold the path mutex for the rest of this function
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	// update mutation with new info
+	m.start = start
+	m.end = end
+	m.chain = append(m.chain, p.chain...)
+	m.curSeen = []string{}
+	m.cur++
+
+	sme.Logf(DEBUG, "started new mutation for %s (%d/%d).", nid.String(), m.cur, len(p.chain))
+	if sme.mutationInContext(end, p.chain[p.cur].mut) {
+		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", p.chain[p.cur].mut.Timeout().String())
+		sme.emitMutation(end, start, p.chain[p.cur].mut)
+		if p.chain[p.cur].mut.Timeout() != 0 {
+			p.timer = time.AfterFunc(p.chain[p.cur].mut.Timeout(), func() { sme.emitFail(start, p) })
+		}
+	} else {
+		sme.Log(DDEBUG, "mutation is not in our context.")
+	}
+}
+
+// updateMutation attempts to progress along an existing mutation chain
 // LOCKS: activeMutex; path.mutex; graphMutex (R) via startNewMutation
 func (sme *StateMutationEngine) updateMutation(node string, url string, val reflect.Value) {
 	sme.activeMutex.Lock()
@@ -725,7 +878,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	sme.activeMutex.Unlock()
 	if !ok {
 		// this shouldn't happen
-		sme.Log(ERROR, "tried to call updateMutation, but no mutation exists")
+		sme.Logf(DDEBUG, "call to updateMutation, but no mutation exists %s", node)
 		sme.startNewMutation(node)
 		return
 	}
@@ -737,26 +890,16 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		m.timer.Stop()
 	}
 
-	// we still query this to make sure it's the Dsc value
-	var e error
-	val, e = sme.query.GetValueDsc(lib.NodeURLJoin(node, url))
-	if e != nil {
-		sme.Log(ERROR, e.Error())
-		return
-	}
-
 	// is this a value change we were expecting?
 	cmuts := m.chain[m.cur].mut.Mutates()
 	vs, match := cmuts[url]
 	if !match {
 		// we got an unexpected change!  Recalculating...
 		sme.Logf(DEBUG, "node (%s) got an unexpected change of state (%s)\n", node, url)
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.handleUnexpected(node, url, val)
 		return
 	}
+
 	// ok, we got an expected URL.  Is this the value we were looking for?
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
@@ -784,9 +927,6 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		if len(m.chain) <= m.cur {
 			// all done!
 			sme.Logf(DEBUG, "mutation chain completed for %s (%d/%d)", node, m.cur, len(m.chain))
-			sme.activeMutex.Lock()
-			delete(sme.active, node)
-			sme.activeMutex.Unlock()
 			return
 		}
 		sme.Logf(DEBUG, "mutation for %s progressing as normal, moving to next (%d/%d)", node, m.cur, len(m.chain))
@@ -806,17 +946,11 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		}
 	} else if val.Interface() == vs[0].Interface() { // might want to do more with this case later; for now we have to just recalculate
 		sme.Logf(DEBUG, "mutation for %s failed to progress, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.handleUnexpected(node, url, val)
 	} else {
 		sme.Logf(DEBUG, "unexpected mutation step for %s, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		// we got something completely unexpected... start over
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.handleUnexpected(node, url, val)
 	}
 }
 
@@ -868,13 +1002,7 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 		}
 		break
 	case StateChange_UPDATE:
-		if ok {
-			// work on an active mutation?
-			sme.updateMutation(node, url, sce.Value)
-		} else {
-			// new mutation?
-			sme.startNewMutation(node)
-		}
+		sme.updateMutation(node, url, sce.Value)
 		break
 	case StateChange_READ:
 		//ignore; shouldn't be created anyway
