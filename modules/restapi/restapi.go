@@ -43,7 +43,9 @@ type RestAPI struct {
 
 func (r *RestAPI) Entry() {
 	r.setupRouter()
-	r.startServer()
+	for {
+		r.startServer()
+	}
 }
 
 func (r *RestAPI) Stop() { os.Exit(0) }
@@ -53,10 +55,9 @@ func (r *RestAPI) Name() string { return "github.com/hpc/kraken/modules/restapi"
 func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
 	if rc, ok := cfg.(*pb.RestAPIConfig); ok {
 		r.cfg = rc
-		/* this is broken
-		r.srvStop() // we just restart everything
-		r.Entry()
-		*/
+		if r.srv != nil {
+			r.srvStop() // we just stop, entry will (re)start
+		}
 		return
 	}
 	return fmt.Errorf("wrong config type")
@@ -113,13 +114,15 @@ func (r *RestAPI) startServer() {
 	}
 	r.api.Logf(lib.LLINFO, "restapi is listening on: %s\n", r.srv.Addr)
 	if e := r.srv.ListenAndServe(); e != nil {
-		r.api.Logf(lib.LLERROR, "%v\n", e)
+		if e != http.ErrServerClosed {
+			r.api.Logf(lib.LLNOTICE, "http stopped: %v\n", e)
+		}
 	}
 	r.api.Log(lib.LLNOTICE, "restapi listener stopped")
 }
 
 func (r *RestAPI) srvStop() {
-	r.api.Log(lib.LLNOTICE, "restapi is shutting down listener")
+	r.api.Log(lib.LLDEBUG, "restapi is shutting down listener")
 	r.srv.Shutdown(context.Background())
 }
 
