@@ -726,7 +726,7 @@ func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
 	nid := NewNodeIDFromURL(node)
 	m.cur++
 	m.curSeen = []string{}
-	sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur, len(m.chain))
+	sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur+1, len(m.chain))
 	if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
 		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
 		sme.emitMutation(m.end, m.start, m.chain[m.cur].mut)
