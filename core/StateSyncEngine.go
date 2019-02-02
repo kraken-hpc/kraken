@@ -493,7 +493,6 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		return
 	}
 	n.sent()
-	sse.Logf(DEBUG, "sent sync to: %s", n.getID().String())
 }
 
 func (sse *StateSyncEngine) sendDiscoverable(id lib.NodeID)  {}
