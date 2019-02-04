@@ -167,6 +167,7 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 	var cur reflect.Value
 	cur, e = n.cfg.GetValue(url)
 	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		n.Logf(DDEBUG, "SetValue called, but it's not a change: %s", url)
 		r = v
 		return
 	}
@@ -183,6 +184,7 @@ func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r refl
 	var cur reflect.Value
 	cur, e = n.dsc.GetValue(url)
 	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+		n.Logf(DDEBUG, "SetValueDsc called, but it's not a change: %s", url)
 		r = v
 		return
 	}
@@ -423,6 +425,7 @@ func (n *StateDifferenceEngine) Run() {
 			data := v.Data().(*DiscoveryEvent)
 			_, url := lib.NodeURLSplit(data.URL)
 			val, ok := Registry.Discoverables[data.Module][url][data.ValueID]
+			n.Logf(DDEBUG, "processing discovery: mod (%s) url (%s) id(%s)", data.Module, url, data.ValueID)
 			if !ok {
 				n.Logf(ERROR, "got discover, but can't lookup value: mod (%s) url (%s) id(%s)", data.Module, url, data.ValueID)
 				break

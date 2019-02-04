@@ -1,4 +1,4 @@
-/* kraken.go: provides the main entry-point for Kraken
+/* main.go: provides the main entry-point for Kraken
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -21,17 +21,15 @@ import (
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib"
 
+	_ "net/http/pprof"
+
 	"github.com/golang/protobuf/ptypes"
 	pb "github.com/hpc/kraken/core/proto"
 	pbr "github.com/hpc/kraken/modules/restapi/proto"
 	uuid "github.com/satori/go.uuid"
-
-	_ "github.com/hpc/kraken/extensions"
-	_ "github.com/hpc/kraken/modules"
 )
 
 func main() {
-
 	me := filepath.Base(os.Args[0])
 	fmt.Printf("I am: %s\n", me)
 	if me != "kraken" {
@@ -200,6 +198,7 @@ func main() {
 	// subscribe our listener
 	k.Ctx.SubChan <- sclist
 
+	k.Sme.Thaw()
 	// wait forever
 	for {
 		select {
