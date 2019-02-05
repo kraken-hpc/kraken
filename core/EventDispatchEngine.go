@@ -11,6 +11,7 @@ package core
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/hpc/kraken/lib"
 )
@@ -28,21 +29,26 @@ type EventDispatchEngine struct {
 	// should we have a unique echan for each source?
 	echan chan []lib.Event // where we get events
 	log   lib.Logger
+	lock  *sync.RWMutex // Make sure we don't concurrently add a listener and iterate through the list
 }
 
 // NewEventDispatchEngine creates an initialized EventDispatchEngine
 func NewEventDispatchEngine(ctx Context) (v *EventDispatchEngine) {
-	v = &EventDispatchEngine{}
-	v.lists = make(map[string]lib.EventListener)
-	v.schan = make(chan lib.EventListener)
-	v.echan = make(chan []lib.Event)
-	v.log = &ctx.Logger
+	v = &EventDispatchEngine{
+		lists: make(map[string]lib.EventListener),
+		schan: make(chan lib.EventListener),
+		echan: make(chan []lib.Event),
+		log:   &ctx.Logger,
+		lock:  &sync.RWMutex{},
+	}
 	v.log.SetModule("EventDispatchEngine")
 	return
 }
 
 // AddListener gets called to add a Listener; Listeners are filtered subscribers
 func (v *EventDispatchEngine) AddListener(el lib.EventListener) (e error) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
 	k := el.Name()
 	switch el.State() {
 	case lib.EventListener_UNSUBSCRIBE:
@@ -102,6 +108,8 @@ func (v *EventDispatchEngine) Run() {
 
 // goroutine
 func (v *EventDispatchEngine) sendEvents(evs []lib.Event) {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
 	for _, ev := range evs {
 		for _, el := range v.lists {
 			if ev.Type() == el.Type() {

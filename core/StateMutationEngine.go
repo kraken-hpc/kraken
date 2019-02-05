@@ -109,6 +109,7 @@ type StateMutationEngine struct {
 	log         lib.Logger
 	self        lib.NodeID
 	root        lib.StateSpec
+	freeze      bool
 }
 
 // NewStateMutationEngine creates an initialized StateMutationEngine
@@ -133,6 +134,7 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 		log:         &ctx.Logger,
 		self:        ctx.Self,
 		root:        ctx.SME.RootSpec,
+		freeze:      true,
 	}
 	sme.log.SetModule("StateMutationEngine")
 	return sme
@@ -399,12 +401,39 @@ func (sme *StateMutationEngine) Run() {
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
 			// we should make them concurrent with a queue
-			sme.handleEvent(v)
+			if !sme.Frozen() {
+				sme.handleEvent(v)
+			}
 			break
 		case <-debugchan:
 			sme.Logf(lib.LLDDEBUG, "There are %d active mutations.", len(sme.active))
 			break
 		}
+	}
+}
+
+func (sme *StateMutationEngine) Frozen() bool {
+	sme.activeMutex.Lock()
+	defer sme.activeMutex.Unlock()
+	return sme.freeze
+}
+
+func (sme *StateMutationEngine) Freeze() {
+	sme.Log(INFO, "freezing")
+	sme.activeMutex.Lock()
+	sme.freeze = true
+	sme.activeMutex.Unlock()
+}
+
+func (sme *StateMutationEngine) Thaw() {
+	sme.Log(INFO, "thawing")
+	sme.activeMutex.Lock()
+	sme.active = make(map[string]*mutationPath)
+	sme.freeze = false
+	sme.activeMutex.Unlock()
+	ns, _ := sme.query.ReadAll()
+	for _, n := range ns {
+		sme.startNewMutation(n.ID().String())
 	}
 }
 
@@ -649,6 +678,26 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 // findPath finds the sequence of edges (if it exists) between two lib.Nodes
 // LOCKS: graphMutex (R) via boundarySearch, drijkstra
 func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mutationPath, e error) {
+	same := true
+	for m := range sme.mutators {
+		sv, _ := start.GetValue(m)
+		ev, _ := end.GetValue(m)
+		if sv.Interface() != ev.Interface() {
+			same = false
+			break
+		}
+	}
+	if same {
+		path = &mutationPath{
+			mutex:   &sync.Mutex{},
+			start:   start,
+			end:     end,
+			cur:     0,
+			curSeen: []string{},
+			chain:   []*mutationEdge{},
+		}
+		return
+	}
 	gs, ge := sme.boundarySearch(start, end)
 	if len(gs) < 1 {
 		e = fmt.Errorf("could not find path: start not in graph")
@@ -657,7 +706,6 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	if len(ge) < 1 {
 		e = fmt.Errorf("could not find path: end not in graph")
-		sme.Log(DEBUG, "could not find path: end not in graph")
 		if sme.GetLoggerLevel() >= DDEBUG {
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
@@ -668,6 +716,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	}
 	// If start is contained in end, we're already where we want to be
 	// In this case, we return a valid mutationPath with a zero length chain
+	/* this should be caught by the test above already
 	for _, gend := range ge {
 		if gend == gs[0] {
 			path = &mutationPath{
@@ -681,6 +730,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			return
 		}
 	}
+	*/
 	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
 	path.end = end
@@ -694,6 +744,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 
 // startNewMutation sees if we need a new mutation
 // if we do, it starts it
+// if we don't already have a mutation object, it creates it
 // LOCKS: graphMutex (R) via findPath; activeMutex; path.mutex
 func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we assume it's already been verified that this is *new*
@@ -714,7 +765,7 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		return
 	}
 	if len(p.chain) == 0 { // we're already there
-		sme.Log(DEBUG, "discovered that we're already where we want to be")
+		sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
 		return
 	}
 	// new mutation, record it, and start it in motion
@@ -787,6 +838,122 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	sme.Emit([]lib.Event{dv, iv})
 }
 
+// advanceMutation fires off the next mutation in the chain
+// does *not* check to make sure there is one
+// assumes m.mutex is locked by surrounding func
+func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
+	nid := NewNodeIDFromURL(node)
+	m.cur++
+	m.curSeen = []string{}
+	sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur+1, len(m.chain))
+	if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
+		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
+		sme.emitMutation(m.end, m.start, m.chain[m.cur].mut)
+		if m.chain[m.cur].mut.Timeout() != 0 {
+			m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(m.start, m) })
+		}
+	} else {
+		sme.Logf(DDEBUG, "node (%s) mutation is not in our context", node)
+	}
+}
+
+// handleUnexpected deals with unexpected events in updateMutaion
+// Logic:
+// 1) did we regress to a previous point in the chain?  devolve.
+// 2) no? can we find a direct path?
+// 3) no? give up, declare everything (except the unexpected discovery) unknown
+// LOCKS: !!! this does *not* lock the mutationPath, it assumes it is already locked by the calling function
+// (generally updateMutation)
+func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.Value) {
+	sme.activeMutex.Lock()
+	m, ok := sme.active[node]
+	sme.activeMutex.Unlock()
+	if !ok {
+		// there's no existing mutation chain
+		// shouldn't really happen
+		sme.startNewMutation(node)
+		return
+	}
+
+	rewind := make(map[string]reflect.Value)
+	// starting from the current position, look backwards in the chain
+	// have we seen this value before?  Maybe we need to reset to that point...
+	found := false
+	var i int
+	for i = m.cur; i >= 0; i-- {
+		// is there a mutation with this url?
+		for murl, mvs := range m.chain[i].mut.Mutates() {
+			if murl == url {
+				// this mutation deals with the url of interest
+				if mvs[0].Interface() == val.Interface() {
+					// this is our rewind point, but we need the rest of this loop
+					found = true
+				}
+			} else {
+				// add to our rewind
+				rewind[url] = mvs[0]
+			}
+		}
+		if found {
+			break
+		}
+	}
+
+	// this is a bit bad.  We don't want to get our own state changes, so we change the node directly
+	nid := NewNodeIDFromURL(node)
+	n, e := sme.query.ReadDsc(nid)
+	if e != nil {
+		// ok, I give up.  The node has just disappeared.
+		sme.Logf(ERROR, "%s node unexpectly disappeared", node)
+		return
+	}
+
+	// this is a devolution
+	if found {
+		// ok, let's devolve
+		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
+
+		n.SetValues(rewind)
+		m.chain = append(m.chain[:m.cur], m.chain[i-1:]...)
+		sme.advanceMutation(node, m)
+		return
+	}
+
+	// not a devolution, can we find a path?
+	end, e := sme.query.Read(nid)
+	if e != nil {
+		sme.Log(ERROR, e.Error())
+		return
+	}
+	p, e := sme.findPath(n, end)
+	if e == nil {
+		if len(p.chain) == 0 { // we're already there
+			sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
+			return
+		}
+		// update the chain & increment
+		sme.Logf(DEBUG, "%s found a new path", node)
+		m.chain = append(m.chain[:m.cur], p.chain...)
+		sme.advanceMutation(node, m)
+		return
+	}
+
+	sme.Logf(DEBUG, "%s could neither find a path, nor devolve.  We're lost.", node)
+
+	sme.graphMutex.RLock()
+	defer sme.graphMutex.RUnlock()
+	// set everything to unknown except the value we were given
+	for u := range sme.mutators {
+		if u == url {
+			// don't reset the unexpected value...
+			continue
+		}
+		v, _ := n.GetValue(u)
+		n.SetValue(u, reflect.Zero(v.Type()))
+	}
+}
+
+// updateMutation attempts to progress along an existing mutation chain
 // LOCKS: activeMutex; path.mutex; graphMutex (R) via startNewMutation
 func (sme *StateMutationEngine) updateMutation(node string, url string, val reflect.Value) {
 	sme.activeMutex.Lock()
@@ -794,7 +961,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 	sme.activeMutex.Unlock()
 	if !ok {
 		// this shouldn't happen
-		sme.Log(ERROR, "tried to call updateMutation, but no mutation exists")
+		sme.Logf(DDEBUG, "call to updateMutation, but no mutation exists %s", node)
 		sme.startNewMutation(node)
 		return
 	}
@@ -814,18 +981,23 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		return
 	}
 
+	// this is a discovery on a completed chain
+	if m.cur >= len(m.chain) {
+		sme.Logf(DEBUG, "node (%s) got a discovery on a completed chain (%s)", node, url)
+		sme.handleUnexpected(node, url, val)
+		return
+	}
+
 	// is this a value change we were expecting?
 	cmuts := m.chain[m.cur].mut.Mutates()
 	vs, match := cmuts[url]
 	if !match {
 		// we got an unexpected change!  Recalculating...
-		sme.Logf(DEBUG, "node (%s) got an unexpected change of state (%s)\n", node, url)
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.Logf(DEBUG, "node (%s) got an unexpected change of state (%s)", node, url)
+		sme.handleUnexpected(node, url, val)
 		return
 	}
+
 	// ok, we got an expected URL.  Is this the value we were looking for?
 	if val.Interface() == vs[1].Interface() {
 		// Ah!  Good, we're mutating as intended.
@@ -846,46 +1018,24 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 				return
 			}
 		}
-		m.cur++
-		m.curSeen = []string{}
+		m.curSeen = []string{} // possibly redundant
 		m.timer.Stop()
 		// are we done?
-		if len(m.chain) <= m.cur {
+		if len(m.chain) == m.cur+1 {
 			// all done!
-			sme.Logf(DEBUG, "mutation chain completed for %s (%d/%d)", node, m.cur, len(m.chain))
-			sme.activeMutex.Lock()
-			delete(sme.active, node)
-			sme.activeMutex.Unlock()
+			sme.Logf(DEBUG, "mutation chain completed for %s (%d/%d)", node, m.cur+1, len(m.chain))
 			return
 		}
-		sme.Logf(DEBUG, "mutation for %s progressing as normal, moving to next (%d/%d)", node, m.cur, len(m.chain))
+		sme.Logf(DEBUG, "mutation for %s progressing as normal, moving to next (%d/%d)", node, m.cur+1, len(m.chain))
 		// advance
-		// TODO: there might be a more clever way that just updates the node we already have?
-		n, e := sme.query.ReadDsc(NewNodeID(node))
-		if e != nil {
-			sme.Logf(ERROR, "couldn't query state of node %s in active mutation: %v", node, e)
-			return
-		}
-		if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
-			sme.Logf(DDEBUG, "firing mutation in context for %s, timeout %s.", node, m.chain[m.cur].mut.Timeout().String())
-			sme.emitMutation(m.end, n, m.chain[m.cur].mut)
-			if m.chain[m.cur].mut.Timeout() != 0 {
-				m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(n, m) })
-			}
-		}
+		sme.advanceMutation(node, m)
 	} else if val.Interface() == vs[0].Interface() { // might want to do more with this case later; for now we have to just recalculate
 		sme.Logf(DEBUG, "mutation for %s failed to progress, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.handleUnexpected(node, url, val)
 	} else {
 		sme.Logf(DEBUG, "unexpected mutation step for %s, got %v, expected %v\n", node, val.Interface(), vs[1].Interface())
 		// we got something completely unexpected... start over
-		sme.activeMutex.Lock()
-		delete(sme.active, node)
-		sme.activeMutex.Unlock()
-		sme.startNewMutation(node)
+		sme.handleUnexpected(node, url, val)
 	}
 }
 
@@ -937,13 +1087,7 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 		}
 		break
 	case StateChange_UPDATE:
-		if ok {
-			// work on an active mutation?
-			sme.updateMutation(node, url, sce.Value)
-		} else {
-			// new mutation?
-			sme.startNewMutation(node)
-		}
+		sme.updateMutation(node, url, sce.Value)
 		break
 	case StateChange_READ:
 		//ignore; shouldn't be created anyway

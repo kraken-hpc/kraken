@@ -74,7 +74,7 @@ echo "Creating base cpio..."
 
 if [ ! -x $GOPATH/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
-    GOPATH=$GOPATH go install github.com/u-root/u-root
+    GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 echo "Creating image..."
 GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio

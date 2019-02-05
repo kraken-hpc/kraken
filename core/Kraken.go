@@ -144,6 +144,18 @@ func (k *Kraken) Bootstrap() {
 		}
 	}
 
+	extString := ""
+	for e := range Registry.Extensions {
+		extString += fmt.Sprintf("\n\t%s", e)
+	}
+	k.Logf(INFO, "this kraken is built with extensions: %s", extString)
+
+	modString := ""
+	for m := range Registry.Modules {
+		modString += fmt.Sprintf("\n\t%s", m)
+	}
+	k.Logf(INFO, "this kraken is built with modules: %s", modString)
+
 	// Create service instances
 	k.Log(INFO, "bootstrapping core services")
 

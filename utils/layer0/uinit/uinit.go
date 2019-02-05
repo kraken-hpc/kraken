@@ -148,7 +148,7 @@ func main() {
 			Args:       []string{"/bbin/ip", "link", "set", "eth0", "up"},
 		},
 		command{
-			Cmd:        "/bin/dssh",
+			Cmd:        "/bbin/sshd",
 			Background: true,
 		},
 		command{
