@@ -385,6 +385,12 @@ func (sme *StateMutationEngine) Run() {
 				go sme.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
+			case lib.Query_MUTATIONNODES:
+				var v []*mutationNode
+				var e error
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				break
 			default:
 				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
 			}

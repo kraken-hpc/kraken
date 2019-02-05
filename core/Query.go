@@ -151,6 +151,15 @@ func (q *QueryEngine) ReadDot(n lib.Node) (sc string, e error) {
 	return v[0].Interface().(string), e
 }
 
+func (q *QueryEngine) ReadMutationNodes() (mc []*mutationNode, e error) {
+	query, r := NewQuery(lib.Query_MUTATIONNODES, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().([]*mutationNode), e
+}
+
 // Update will update a node in the Engine's Cfg store
 func (q *QueryEngine) Update(n lib.Node) (nc lib.Node, e error) {
 	query, r := NewQuery(

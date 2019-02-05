@@ -122,6 +122,34 @@ func (s *APIServer) QueryReadDot(ctx context.Context, in *pb.Query) (out *pb.Que
 	return
 }
 
+func (s *APIServer) QueryReadMutationNodes(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+	var mout []*mutationNode
+	out = &pb.Query{}
+	mout, e = s.query.ReadMutationNodes()
+	out.URL = in.URL
+	any, err := ptypes.MarshalAny(mout)
+	var testing any.Any
+	testing.Pack(mout)
+	if mout != nil {
+		out.Payload = &pb.Query_Test{Test: mout}
+	}
+
+	pbin := in.GetNode()
+	out = &pb.Query{}
+	if pbin == nil {
+		e = fmt.Errorf("create query must contain a valid node")
+		return
+	}
+	nin := NewNodeFromMessage(pbin)
+	var sout string
+	sout, e = s.query.ReadDot(nin)
+	out.URL = in.URL
+	if sout != "" {
+		out.Payload = &pb.Query_Text{Text: sout}
+	}
+	return
+}
+
 func (s *APIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout lib.Node
 	out = &pb.Query{}

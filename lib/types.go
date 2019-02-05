@@ -278,6 +278,7 @@ const (
 	Query_SETVALUE
 	Query_RESPONSE
 	Query_READDOT
+	Query_MUTATIONNODES
 )
 
 type QueryState uint8
