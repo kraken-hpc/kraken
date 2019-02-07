@@ -279,6 +279,8 @@ const (
 	Query_RESPONSE
 	Query_READDOT
 	Query_MUTATIONNODES
+	Query_MUTATIONEDGES
+	Query_MUTATIONPATH
 )
 
 type QueryState uint8
@@ -515,6 +517,11 @@ type APIClient interface {
 	QueryDelete(string) (Node, error)
 	QueryReadAll() ([]Node, error)
 	QueryReadAllDsc() ([]Node, error)
+	QueryMutationNodes() (pb.MutationNodeList, error)
+	QueryMutationEdges() (pb.MutationEdgeList, error)
+	QueryNodeMutationNodes(string) (pb.MutationNodeList, error)
+	QueryNodeMutationEdges(string) (pb.MutationEdgeList, error)
+	QueryNodeMutationPath(string) (pb.MutationPath, error)
 	QueryDeleteAll() ([]Node, error)
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }

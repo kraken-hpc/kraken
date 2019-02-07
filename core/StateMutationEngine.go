@@ -10,6 +10,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -220,6 +221,96 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
+func MutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
+	for _, mn := range nodes {
+		var nmn pb.MutationNode
+		nmn.Id = fmt.Sprintf("%p", mn)
+		reqsMap := mn.spec.Requires()
+		excsMap := mn.spec.Excludes()
+		for k := range reqsMap {
+			newPair := &pb.Pair{
+				Key:   k,
+				Value: lib.ValueToString(reqsMap[k]),
+			}
+			nmn.Reqs = append(nmn.Reqs, newPair)
+		}
+		for k := range excsMap {
+			newPair := &pb.Pair{
+				Key:   k,
+				Value: lib.ValueToString(excsMap[k]),
+			}
+			nmn.Excs = append(nmn.Excs, newPair)
+		}
+		for _, me := range mn.in {
+			newEdge := &pb.MutationEdge{
+				Cost: me.cost,
+				From: fmt.Sprintf("%p", me.from),
+				To:   fmt.Sprintf("%p", me.to),
+			}
+			nmn.In = append(nmn.In, newEdge)
+		}
+		for _, me := range mn.out {
+			newEdge := &pb.MutationEdge{
+				Cost: me.cost,
+				From: fmt.Sprintf("%p", me.from),
+				To:   fmt.Sprintf("%p", me.to),
+			}
+			nmn.Out = append(nmn.Out, newEdge)
+		}
+		r.MutationNodeList = append(r.MutationNodeList, &nmn)
+	}
+	return
+}
+
+func MutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
+	for _, me := range edges {
+		var nme pb.MutationEdge
+		nme.Cost = me.cost
+		nme.From = fmt.Sprintf("%p", me.from)
+		nme.To = fmt.Sprintf("%p", me.to)
+
+		r.MutationEdgeList = append(r.MutationEdgeList, &nme)
+	}
+	return
+}
+
+func MutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
+	if path != nil {
+		r.Cur = int64(path.cur)
+		for _, me := range path.chain {
+			var nme pb.MutationEdge
+			nme.Cost = me.cost
+			nme.From = fmt.Sprintf("%p", me.from)
+			nme.To = fmt.Sprintf("%p", me.to)
+
+			r.Chain = append(r.Chain, &nme)
+		}
+	} else {
+		e = fmt.Errorf("Mutation path is nil")
+	}
+
+	return
+}
+
+func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutationNode, e error) {
+	// Get node from path
+	sme.Logf(lib.LLDEBUG, "got to filtered nodes method")
+	mp := sme.active[n.String()]
+	if mp != nil {
+		jmp, _ := json.Marshal(mp)
+		sme.Logf(lib.LLDEBUG, string(jmp))
+		node := mp.end
+		fmt.Println(node)
+
+		sme.Logf(lib.LLDEBUG, "Muts: %v", sme.muts)
+
+	} else {
+		e = fmt.Errorf("Can't get node info because mutation path is nil")
+	}
+
+	return
+}
+
 //GenDotString returns a DOT formatted string of the mutation graph
 func (sme *StateMutationEngine) GenDotString() string {
 	g := gv.NewGraph()
@@ -388,8 +479,38 @@ func (sme *StateMutationEngine) Run() {
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
 			case lib.Query_MUTATIONNODES:
-				var v []*mutationNode
+				_, u := lib.NodeURLSplit(q.URL())
 				var e error
+				if u == "" {
+					v := MutationNodesToProto(sme.nodes)
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				} else {
+					sme.Logf(lib.LLDEBUG, "getting filtered nodes")
+					n := NewNodeIDFromURL(q.URL())
+					r, e := sme.filterMutationNodesForNode(*n)
+					v := MutationNodesToProto(r)
+					sme.Logf(lib.LLDEBUG, "filtered nodes: %v", v)
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				}
+				break
+			case lib.Query_MUTATIONEDGES:
+				n, u := lib.NodeURLSplit(q.URL())
+				sme.Logf(lib.LLDEBUG, "node: %v url: %v", n, u)
+				var e error
+				if u == "" {
+					v := MutationEdgesToProto(sme.edges)
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				} else {
+
+				}
+				break
+			case lib.Query_MUTATIONPATH:
+				n, _ := lib.NodeURLSplit(q.URL())
+				var e error
+				v, e := MutationPathToProto(sme.active[n])
 				go sme.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
@@ -397,7 +518,6 @@ func (sme *StateMutationEngine) Run() {
 				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
 			}
 			break
-
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
 			// we should make them concurrent with a queue

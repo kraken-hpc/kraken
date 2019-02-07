@@ -19,6 +19,7 @@ import (
 	"os"
 	"time"
 
+	gv "github.com/awalterschulze/gographviz"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/gorilla/handlers"
@@ -99,7 +100,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/cfg/node/{id}", r.updateNode).Methods("PUT")
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
-	r.router.HandleFunc("/graph/node/{id}/dot", r.readNodeDot).Methods("GET")
+	r.router.HandleFunc("/graph/node/{id}/dot", r.genDotString).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -186,6 +187,74 @@ func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
 	g, e := r.api.QueryReadDot(n)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write([]byte(g))
+}
+
+//GenDotString returns a DOT formatted string of the mutation graph
+func (r *RestAPI) genDotString(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	params := mux.Vars(req)
+	g := gv.NewGraph()
+	g.SetName("MutGraph")
+	g.SetDir(true) //indicates that the graph is directed
+	r.api.Logf(lib.LLDEBUG, "getting edges")
+	mel, e := r.readMutationEdges()
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	// r.api.Logf(lib.LLDEBUG, "edges: %v", mel)
+	mnl, e := r.readNodeMutationNodes(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDEBUG, "Filtered nodes: %v", mnl)
+	for _, me := range mel.MutationEdgeList {
+		if g.IsNode(me.To) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", me.To, attributes)
+		}
+
+		if g.IsNode(me.From) == false {
+			var attributes map[string]string
+			attributes = make(map[string]string)
+			g.AddNode("MutGraph", me.From, attributes)
+		}
+
+		var attributes map[string]string
+		g.AddEdge(me.From, me.To, true, attributes)
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write([]byte(g.String()))
+}
+
+func (r *RestAPI) readMutationNodes() (mnl cpb.MutationNodeList, e error) {
+	mnl, e = r.api.QueryMutationNodes()
+	return
+}
+
+func (r *RestAPI) readMutationEdges() (mel cpb.MutationEdgeList, e error) {
+	mel, e = r.api.QueryMutationEdges()
+	return
+}
+
+func (r *RestAPI) readNodeMutationNodes(id string) (mnl cpb.MutationNodeList, e error) {
+	mnl, e = r.api.QueryNodeMutationNodes(id)
+	return
+}
+
+func (r *RestAPI) readNodeMutationEdges(id string) (mel cpb.MutationEdgeList, e error) {
+	mel, e = r.api.QueryNodeMutationEdges(id)
+	return
+}
+
+func (r *RestAPI) readNodeMutationPath(id string) (mp cpb.MutationPath, e error) {
+	mp, e = r.api.QueryNodeMutationPath(id)
+	return
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
