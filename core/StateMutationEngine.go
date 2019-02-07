@@ -305,7 +305,9 @@ func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutat
 
 		sme.Logf(lib.LLDEBUG, "Mutators: %v", sme.mutators)
 		sme.Logf(lib.LLDEBUG, "Discoverables: %v", Registry.Discoverables)
-		sme.Logf(lib.LLDEBUG, "state varables: %v", "")
+		for _, mn := range sme.nodes {
+			sme.Logf(lib.LLDEBUG, "node reqs: %v", mn.spec.Requires())
+		}
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
