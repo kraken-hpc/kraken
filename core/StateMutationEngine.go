@@ -300,7 +300,8 @@ func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutat
 		jmp, _ := json.Marshal(mp)
 		sme.Logf(lib.LLDEBUG, string(jmp))
 		node := mp.end
-		fmt.Println(node)
+		plat, e := node.GetValue("/Platform")
+		sme.Logf(lib.LLDEBUG, "plat: %v err: %v", plat, e)
 
 		sme.Logf(lib.LLDEBUG, "Muts: %v", sme.muts)
 
