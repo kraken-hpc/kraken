@@ -203,7 +203,7 @@ func (r *RestAPI) genDotString(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
-	// r.api.Logf(lib.LLDEBUG, "edges: %v", mel)
+	r.api.Logf(lib.LLDEBUG, "edges: %v", mel)
 	mnl, e := r.readNodeMutationNodes(params["id"])
 	if e != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -211,22 +211,40 @@ func (r *RestAPI) genDotString(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	r.api.Logf(lib.LLDEBUG, "Filtered nodes: %v", mnl)
-	for _, me := range mel.MutationEdgeList {
-		if g.IsNode(me.To) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", me.To, attributes)
+	for _, mn := range mnl.MutationNodeList {
+		for _, me := range mn.In {
+			g.AddEdge(me.From, me.To, true, nil)
 		}
-
-		if g.IsNode(me.From) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", me.From, attributes)
+		// Build node label
+		label := ""
+		for _, req := range mn.Reqs {
+			if req.Key == "/PhysState" || req.Key == "/RunState" {
+				label = fmt.Sprintf("%s%s", label, req.Value)
+			}
 		}
-
-		var attributes map[string]string
-		g.AddEdge(me.From, me.To, true, attributes)
+		if label != "" {
+			g.AddNode("MutGraph", mn.Id, map[string]string{"label": label})
+		} else {
+			g.AddNode("MutGraph", mn.Id, nil)
+		}
 	}
+
+	// for _, me := range mel.MutationEdgeList {
+	// 	if g.IsNode(me.To) == false {
+	// 		var attributes map[string]string
+	// 		attributes = make(map[string]string)
+	// 		g.AddNode("MutGraph", me.To, attributes)
+	// 	}
+
+	// 	if g.IsNode(me.From) == false {
+	// 		var attributes map[string]string
+	// 		attributes = make(map[string]string)
+	// 		g.AddNode("MutGraph", me.From, attributes)
+	// 	}
+
+	// 	var attributes map[string]string
+	// 	g.AddEdge(me.From, me.To, true, attributes)
+	// }
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write([]byte(g.String()))

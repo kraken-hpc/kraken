@@ -303,30 +303,64 @@ func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutat
 		plat, e := node.GetValue("/Platform")
 		sme.Logf(lib.LLDEBUG, "plat: %v err: %v", plat, e)
 
-		var discoverables []string
+		discoverables := make(map[string]string)
 
 		for _, moduleMap := range Registry.Discoverables {
 			for key := range moduleMap {
-				discoverables = append(discoverables, key)
+				discoverables[key] = ""
 			}
 		}
 
 		for key := range sme.mutators {
-			discoverables = append(discoverables, key)
+			discoverables[key] = ""
 		}
 
-		sme.Logf(lib.LLDEBUG, "discoverables: %v", discoverables)
-		// for _, mn := range sme.nodes {
-		// 	sme.Logf(lib.LLDEBUG, "node reqs: %v", mn.spec.Requires())
-		// 	r = append(r, mn)
-		// 	for reqKey, reqVal := range mn.spec.Requires() {
-		// 		// if reqkey is in mutators, remove
-		// 		if val, ok := sme.mutators[reqKey]; ok {
-		// 			//do something here
-		// 		}
+		filteredNodes := make(map[*mutationNode]string)
 
-		// 	}
-		// }
+		sme.Logf(lib.LLDEBUG, "discoverables: %v", discoverables)
+		for _, mn := range sme.nodes {
+			sme.Logf(lib.LLDEBUG, "node reqs: %v", mn.spec.Requires())
+			filteredNodes[mn] = ""
+			for reqKey, reqVal := range mn.spec.Requires() {
+				// if reqkey is not in discoverables
+				if _, ok := discoverables[reqKey]; !ok {
+					// if physical node has the reqkey as a value, check if it doesn't match
+					if nodeVal, err := node.GetValue(reqKey); err == nil {
+						// if it doesn't match, remove mn from final nodes
+						if nodeVal.String() != reqVal.String() {
+							sme.Logf(lib.LLDDDEBUG, "removing %v from final nodes because req %v doesn't match", mn, reqKey)
+							sme.Logf(lib.LLDDDEBUG, "%v vs %v", nodeVal.String(), reqVal.String())
+							delete(filteredNodes, mn)
+						} else {
+							sme.Logf(lib.LLDDDEBUG, "%v matches %v. It can stay", nodeVal.String(), reqVal.String())
+						}
+					}
+				} else {
+					sme.Logf(lib.LLDDDEBUG, "req %v is a discoverable...", reqKey)
+				}
+			}
+
+			for excKey, excVal := range mn.spec.Excludes() {
+				// if excKey is in discoverables, move on
+				if _, ok := discoverables[excKey]; ok {
+					sme.Logf(lib.LLDDDEBUG, "exc %v is a discoverable. breaking.", excKey)
+					break
+				}
+				// if physical node has the exckey as a value, check if it does match
+				if nodeVal, err := node.GetValue(excKey); err == nil {
+					// if it doesn't match, remove mn from final nodes
+					if nodeVal == excVal {
+						sme.Logf(lib.LLDDDEBUG, "removing %v from final nodes because exc %v does match", mn, excKey)
+						delete(filteredNodes, mn)
+					}
+				}
+			}
+		}
+		sme.Logf(lib.LLDDDEBUG, "final mn: %v", filteredNodes)
+
+		for mn := range filteredNodes {
+			r = append(r, mn)
+		}
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
