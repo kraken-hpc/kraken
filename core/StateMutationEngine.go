@@ -795,7 +795,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
 
 		n.SetValues(rewind)
-		m.chain = append(m.chain[:m.cur], m.chain[i-1:]...)
+		m.chain = append(m.chain[:m.cur+1], m.chain[i:]...)
 		sme.advanceMutation(node, m)
 		return
 	}
@@ -814,7 +814,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		}
 		// update the chain & increment
 		sme.Logf(DEBUG, "%s found a new path", node)
-		m.chain = append(m.chain[:m.cur], p.chain...)
+		m.chain = append(m.chain[:m.cur+1], p.chain...)
 		sme.advanceMutation(node, m)
 		return
 	}
