@@ -1,3 +1,17 @@
+Table of Contents
+=================
+
+   * [Kraken vagrant/virtualbox example](#kraken-vagrantvirtualbox-example)
+      * [Dependencies](#dependencies)
+      * [Instructions](#instructions)
+      * [How it works](#how-it-works)
+      * [Helper scripts](#helper-scripts)
+      * [How to use your own fork/branch](#how-to-use-your-own-forkbranch)
+      * [Using custom kraken-build args](#using-custom-kraken-build-args)
+      * [How to add things to the image](#how-to-add-things-to-the-image)
+         * [Adding a kernel module](#adding-a-kernel-module)
+   * [<em>Now: $ go get kraken!</em>](#now--go-get-kraken)
+
 # Kraken vagrant/virtualbox example
 
 The contents of this directory can be used to generate a VirtualBox virtual kraken cluster using Vagrant and Ansible.  It has been tested on a Mac, but should work on Linux as well.
@@ -73,6 +87,15 @@ There are a number of helper scripts in this directory.  Here's what they do:
 ## How to use your own fork/branch
 
 For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master". 
+
+## Using custom kraken-build args
+
+You can add custom arguments to `kraken-build` by setting `kr_build_args` in `kraken.yml`.  You should avoid changing `-dir` and `-config`, as the ansible role expects to set these.
+
+The following args may be particularly helpful:
+
+- `-pprof` - build kraken with pprof support
+- `-race` - build kraken with the race detection
 
 ## How to add things to the image
 
