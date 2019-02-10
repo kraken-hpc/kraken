@@ -632,34 +632,48 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			sse.EmitOne(ev)
 			sse.delNeighbor(n.getID())
 		} else {
-			// declare this node to be dead
-			// we make the declaration, and delete it from our records
-			url := lib.NodeURLJoin(n.getID().String(), "/RunState")
-			ev := NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				&DiscoveryEvent{
-					Module:  "sse",
-					URL:     url,
-					ValueID: "ERROR",
-				},
-			)
-			sse.EmitOne(ev)
-			url = lib.NodeURLJoin(n.getID().String(), "/PhysState")
-			ev = NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				&DiscoveryEvent{
-					Module:  "sse",
-					URL:     url,
-					ValueID: "HANG",
-				},
-			)
-			sse.EmitOne(ev)
+			sse.delNeighbor(n.getID()) // in all cases, we need to delete this neighbor
 
-			//sse.query.SetValueDsc(lib.NodeURLJoin(n.id.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
-			sse.delNeighbor(n.getID())
-			sse.Logf(INFO, "a neighbor died: %s", n.getID().String())
+			// before we assume this node went to error, make sure it's actually in SYNC
+			// this can happen if, e.g. we got an unexpected event and devolved but SSE didn't notice
+			cur, e := sse.query.GetValueDsc(lib.NodeURLJoin(n.getID().String(), "/RunState"))
+			if e != nil {
+				sse.Logf(INFO, "lost sync on a non-existent node?: %s, %v", n.getID().String(), e)
+			}
+
+			if cur.Interface() == pb.Node_SYNC {
+				// ok, we thought we were in sync; a neighbor died
+				// declare this node to be dead
+				// we make the declaration, and delete it from our records
+				url := lib.NodeURLJoin(n.getID().String(), "/RunState")
+				ev := NewEvent(
+					lib.Event_DISCOVERY,
+					url,
+					&DiscoveryEvent{
+						Module:  "sse",
+						URL:     url,
+						ValueID: "ERROR",
+					},
+				)
+				sse.EmitOne(ev)
+				/* if we reach ERROR state, just hang
+				url = lib.NodeURLJoin(n.getID().String(), "/PhysState")
+				ev = NewEvent(
+					lib.Event_DISCOVERY,
+					url,
+					&DiscoveryEvent{
+						Module:  "sse",
+						URL:     url,
+						ValueID: "HANG",
+					},
+				)
+				sse.EmitOne(ev)
+				*/
+				sse.Logf(INFO, "a neighbor died: %s", n.getID().String())
+			} else {
+				// we actually didn't think we were in SYNC anyway
+				sse.Logf(DEBUG, "lost sync on a node that wasn't in SYNC: %s", n.getID().String())
+			}
 		}
 	}
 	if n.due() {
