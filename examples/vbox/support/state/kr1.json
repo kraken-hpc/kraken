@@ -1,0 +1,37 @@
+{
+  "nodes": [
+
+{
+  "id": "Ej5FZ+idEtOkVkJUVUQAlg==",
+  "parentId": "Ej5FZ+ibEtOkVkJmVUQAAA==",
+  "runState": "SYNC",
+  "nodename": "kr1",
+  "arch": "amd64",
+  "platform": "vbox",
+  "extensions": [
+    {
+      "@type": "type.googleapis.com/proto.IPv4OverEthernet",
+      "ifaces": [
+        {
+          "eth": {
+            "iface": "eth0",
+            "mac": "qrvMABEB",
+            "mtu": 1500,
+            "control": true
+        },
+          "ip": {
+            "ip": "CgsMCw==",
+            "subnet": "////AA=="
+          }
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/proto.VBox",
+      "apiServer": "vbm",
+      "name": "kr1"
+    }
+  ]
+}
+]
+}

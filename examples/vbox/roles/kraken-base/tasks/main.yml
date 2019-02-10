@@ -1,0 +1,6 @@
+---
+- name: Install golang
+  become: yes
+  package:
+    name: golang
+    state: present

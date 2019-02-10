@@ -1,0 +1,6 @@
+---
+- hosts: kraken
+  roles:
+    - common
+    - kraken-all
+#    - extras
