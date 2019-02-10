@@ -585,6 +585,9 @@ func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighb
 func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
 	sse.lock.Lock()
 	defer sse.lock.Unlock()
+	n := sse.pool[id.String()]
+	n.lock.Lock()
+	defer n.lock.Unlock()
 	delete(sse.pool, string(id.String()))
 	for i, n := range sse.queue {
 		if n.id.Equal(id) {
