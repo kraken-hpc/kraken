@@ -1,6 +1,6 @@
 # NEW!  Want to give it a spin?
 
-Look under `examples/vbox` for instructions to deploy a virtual Kraken cluster with a single command.  See the `examples/vbox/README.md`.
+Look under `examples/vbox` for instructions to deploy a virtual Kraken cluster with a single command.  See the [README](examples/vbox/README.md).
 
 # What is Kraken?
 
