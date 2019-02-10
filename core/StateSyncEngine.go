@@ -632,7 +632,6 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			sse.EmitOne(ev)
 			sse.delNeighbor(n.getID())
 		} else {
-			sse.delNeighbor(n.getID()) // in all cases, we need to delete this neighbor
 
 			// before we assume this node went to error, make sure it's actually in SYNC
 			// this can happen if, e.g. we got an unexpected event and devolved but SSE didn't notice
@@ -656,24 +655,12 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 					},
 				)
 				sse.EmitOne(ev)
-				/* if we reach ERROR state, just hang
-				url = lib.NodeURLJoin(n.getID().String(), "/PhysState")
-				ev = NewEvent(
-					lib.Event_DISCOVERY,
-					url,
-					&DiscoveryEvent{
-						Module:  "sse",
-						URL:     url,
-						ValueID: "HANG",
-					},
-				)
-				sse.EmitOne(ev)
-				*/
 				sse.Logf(INFO, "a neighbor died: %s", n.getID().String())
 			} else {
 				// we actually didn't think we were in SYNC anyway
 				sse.Logf(DEBUG, "lost sync on a node that wasn't in SYNC: %s", n.getID().String())
 			}
+			sse.delNeighbor(n.getID()) // in all cases, we need to delete this neighbor
 		}
 	}
 	if n.due() {
