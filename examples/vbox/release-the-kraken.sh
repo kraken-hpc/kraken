@@ -88,6 +88,7 @@ ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 
 echo "Injecting kraken state/provisioning nodes"
 echo RUN: sh inject-state.sh
+sleep 1
 sh inject-state.sh 2>&1 | tee -a log/inject-state.log
 
 echo

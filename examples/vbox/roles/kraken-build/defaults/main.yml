@@ -1,4 +1,6 @@
 kr_url: github.com/hpc/kraken
+kr_repo: https://github.com/hpc/kraken.git
+kr_repo_version: master
 kr_build: /home/vagrant/go/bin/kraken
 kr_src_dir: "/home/vagrant/go/src/{{ kr_url }}"
 kr_build_dir: "{{ kr_src_dir }}/build"
