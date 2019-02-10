@@ -1,0 +1,19 @@
+---
+- name: Include 'insecure' role 
+  include_role:
+    name: insecure
+
+- name: Copy hosts file
+  become: yes
+  copy:
+    src: hosts
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install epel-release
+  become: yes
+  package:
+    name: epel-release
+    state: present

@@ -1,0 +1,45 @@
+---
+- name: Get running kernel version
+  shell: uname -r
+  register: kern_out
+
+- set_fact: 
+    mod_dir: "/lib/modules/{{ kern_out.stdout }}"
+    kernel_file: "/boot/vmlinuz-{{ kern_out.stdout }}"
+    kr_tftp_dir: "{{ kr_tftp_base }}/amd64/vbox"
+
+- debug: 
+    msg: "Kernel module directory is: {{ mod_dir }}, kernel is: {{ kernel_file }}"
+
+- name: Create TFTP directory
+  file:
+    path: "{{ kr_tftp_dir }}"
+    state: directory
+    mode: 0755
+
+- debug: 
+    msg: "TFTP directory is {{ kr_tftp_dir }}"
+
+- name: Install syslinux-tftpboot
+  become: yes
+  package:
+    name: syslinux-tftpboot
+    state: present
+
+- name: Copy tftpboot files
+  synchronize:
+   src: "{{ syslinux_tftpboot }}/"
+   dest: "{{ kr_tftp_dir }}"
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: Copy kernel to TFTP directory
+  copy:
+    src: "{{ kernel_file }}"
+    dest: "{{ kr_tftp_dir }}/vmlinuz"
+    remote_src: yes
+
+- name: Link pxelinux.cfg to TFTP directory
+  file:
+    src: "{{ kr_pxelinux_cfg }}"
+    dest: "{{ kr_tftp_dir }}/pxelinux.cfg"
+    state: link

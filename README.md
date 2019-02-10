@@ -1,3 +1,7 @@
+# NEW!  Want to give it a spin?
+
+Look under `examples/vbox` for instructions to deploy a virtual Kraken cluster with a single command.  See the `examples/vbox/README.md`.
+
 # What is Kraken?
 
 Kraken is a distributed state engine that can maintain state across a large set of computers.  It was designed to provide full-lifecycle maintenance of HPC compute clusters, from cold boot to ongoing system state maintenance and automation.  

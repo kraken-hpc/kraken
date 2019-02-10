@@ -1,0 +1,31 @@
+---
+- name: Copy e1000 module to image base
+  copy:
+    src: "{{ mod_dir }}/{{ e1000_mod }}"
+    dest: "{{ kr_img_base }}"
+    remote_src: yes
+
+- name: Uncompress e1000 module
+  shell: "xz -d e1000.ko.xz"
+  args:
+    chdir: "{{ kr_img_base }}"
+    creates: e1000.ko
+
+- name: Create image SSH keys
+  shell: ssh-keygen -N "" -f id_rsa
+  args:
+    chdir: "{{ kr_img_base }}"
+    creates: id_rsa
+
+- name: Create authorized_keys
+  copy:
+    src: "{{ kr_img_base }}/id_rsa.pub"
+    dest: "{{ kr_img_base }}/authorized_keys"
+    remote_src: yes
+    mode: 0600
+
+- name: Create boot image
+  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -b {{ kr_img_base }} amd64"
+  args:
+    chdir: "{{ kr_tftp_dir }}"
+    creates: initramfs.cpio.gz
