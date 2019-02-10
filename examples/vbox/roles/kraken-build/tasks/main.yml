@@ -1,6 +1,17 @@
 ---
+#- name: go get kraken
+#  shell: "go get {{ kr_url }}"
+#  args:
+#    creates: "{{ kr_build }}"
+
 - name: go get kraken
-  shell: "go get {{ kr_url }}"
+  git:
+    repo: "{{ kr_repo }}"
+    dest: "{{ kr_src_dir }}"
+    version: "{{ kr_repo_version }}"
+
+- name: Install kraken-build
+  shell: "go install {{ kr_url }}"
   args:
     creates: "{{ kr_build }}"
 
