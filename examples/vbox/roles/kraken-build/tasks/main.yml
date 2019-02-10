@@ -1,0 +1,16 @@
+---
+- name: go get kraken
+  shell: "go get {{ kr_url }}"
+  args:
+    creates: "{{ kr_build }}"
+
+- name: Build kraken
+  shell: "{{ kr_build }} -dir {{ kr_build_dir }} -config {{ kr_conf_file }}"
+  args:
+    creates: "{{ kr_build_dir }}/{{ kr_target }}"
+
+- name: Symlink local kraken
+  file:
+    src: "{{ kr_build_dir }}/{{ kr_target }}"
+    dest: "{{ kr_link_dir }}/kraken"
+    state: link

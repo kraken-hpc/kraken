@@ -1,0 +1,7 @@
+kr_url: github.com/hpc/kraken
+kr_build: /home/vagrant/go/bin/kraken
+kr_src_dir: "/home/vagrant/go/src/{{ kr_url }}"
+kr_build_dir: "{{ kr_src_dir }}/build"
+kr_conf_file: "{{ kr_src_dir }}/config/vbox.yaml"
+kr_target: kraken-linux-amd64
+kr_link_dir: /home/vagrant
