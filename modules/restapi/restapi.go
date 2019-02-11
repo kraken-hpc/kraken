@@ -489,9 +489,8 @@ func (r *RestAPI) smeFreeze(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
-	} else {
-		w.Write([]byte("sme frozen successfully"))
 	}
+	w.Write([]byte("sme frozen successfully"))
 }
 func (r *RestAPI) smeThaw(w http.ResponseWriter, req *http.Request) {
 	e := r.api.SmeThaw()
@@ -500,9 +499,8 @@ func (r *RestAPI) smeThaw(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
-	} else {
-		w.Write([]byte("sme thawed successfully"))
 	}
+	w.Write([]byte("sme thawed successfully"))
 }
 
 func init() {

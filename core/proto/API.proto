@@ -119,6 +119,8 @@ service API {
     rpc QueryNodeMutationEdges(Query) returns (Query) {}    
     rpc QueryNodeMutationPath(Query) returns (Query) {}    
     rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
+    rpc SmeFreeze(google.protobuf.Empty) returns (Query) {}
+    rpc SmeThaw(google.protobuf.Empty) returns (Query) {}
 
     // Service management
     rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}
