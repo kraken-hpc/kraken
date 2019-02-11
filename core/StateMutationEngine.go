@@ -795,7 +795,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
 
 		n.SetValues(rewind)
-		m.chain = append(m.chain[:m.cur], m.chain[i-1:]...)
+		m.chain = append(m.chain[:m.cur+1], m.chain[i:]...)
 		sme.advanceMutation(node, m)
 		return
 	}
@@ -814,7 +814,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		}
 		// update the chain & increment
 		sme.Logf(DEBUG, "%s found a new path", node)
-		m.chain = append(m.chain[:m.cur], p.chain...)
+		m.chain = append(m.chain[:m.cur+1], p.chain...)
 		sme.advanceMutation(node, m)
 		return
 	}
@@ -956,7 +956,6 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			sme.activeMutex.Unlock()
 		}
 		sme.startNewMutation(node)
-		break
 	case StateChange_DELETE:
 		if ok {
 			sme.activeMutex.Lock()
@@ -966,12 +965,20 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
 		}
-		break
 	case StateChange_UPDATE:
 		sme.updateMutation(node, url, sce.Value)
-		break
-	case StateChange_READ:
-		//ignore; shouldn't be created anyway
+	case StateChange_CFG_UPDATE:
+		// for a cfg update, we need to create a new chain
+		if ok {
+			sme.activeMutex.Lock()
+			m := sme.active[node]
+			m.mutex.Lock()
+			delete(sme.active, node)
+			m.mutex.Unlock()
+			sme.activeMutex.Unlock()
+		}
+		sme.Logf(DEBUG, "our cfg has changed, creating new mutaiton path: %s:%s", node, url)
+		sme.startNewMutation(node)
 	default:
 	}
 }
