@@ -21,12 +21,25 @@ It will build a cluster with a master and four nodes.  The nodes run a minimal [
 ## Dependencies
 
 The following need to be installed for this to work:
+- [Go](https://golang.org/) - "The Go Programming Language"
 - [VirtualBox](https://virtulabox.org) - "VirtualBox is a powerful x86 and AMD64/Intel64 virtualization product for enterprise as well as home use."
 - [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) - "Support for USB 2.0 and USB 3.0 devices, VirtualBox RDP, disk encryption, NVMe and PXE boot for Intel cards."  We need this for PXE boot capabilities.
 - [Vagrant](https://www.vagrantup.com) - "Vagrant is a tool for building and managing virtual machine environments in a single workflow."  This is used to manage our virtualbox VMs.
 - [Ansible](https://www.ansible.com) - Orchestration/configuration management tool.  We use this to provision the master.
 
 ## Instructions
+
+If you have not set a `$GOPATH` variable set it to where you want source code to live.  The default is `$HOME/go`.
+Clone the repository into the following directory: `$GOPATH/src/github.com/hpc/`.
+
+To setup the environment:
+```bash 
+$ export GOPATH=$HOME/go 
+$ mkdir -p $GOPATH/src/github.com/hpc
+$ cd $GOPATH/src/github.com/hpc/
+$ git clone https://github.com/hpc/kraken.git
+$ cd kraken/examples/vbox
+``` 
 
 Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet1" is configured.  It should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
 
