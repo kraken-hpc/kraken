@@ -683,18 +683,12 @@ func (sse *StateSyncEngine) queueGetNext() (n *stateSyncNeighbor) {
 	return sse.queue[0]
 }
 
-func (sse *StateSyncEngine) syncNext() {
-	n := sse.queueGetNext()
-	if n != nil {
-		sse.sync(n)
-	}
-}
-
 // sync items on queue until we're caught up
 func (sse *StateSyncEngine) catchupSync() {
 	n := sse.queueGetNext()
 	for n != nil && !time.Now().Before(n.nextAction()) {
-		sse.syncNext()
+		sse.sync(n)
+		n = sse.queueGetNext()
 	}
 	sse.Log(DDEBUG, "caught up on sync work items")
 }
