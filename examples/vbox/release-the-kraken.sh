@@ -41,26 +41,26 @@ echo "Using GOPATH: $GOPATH"
 
 echo "Checking vbox hostonly network settings..."
 
-${VB} list hostonlyifs | grep -E '^Name.*vboxnet1' > /dev/null 2>&1
+${VB} list hostonlyifs | grep -E '^Name.*vboxnet99' > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo "you don't have a vboxnet1, see vbox network setup instructions"
+    echo "you don't have a vboxnet99, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet1 is present"
+echo "   vboxnet99 is present"
 
-${VB} list hostonlyifs | grep -A3 -E '^Name.*vboxnet1' | grep 192.168.57.1 > /dev/null 2>&1
+${VB} list hostonlyifs | grep -A3 -E '^Name.*vboxnet99' | grep 192.168.57.1 > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo "vboxnet1 is not on 192.168.57.1, see vbox network setup instructions"
+    echo "vboxnet99 is not on 192.168.57.1, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet1 is on 192.168.57.1"
+echo "   vboxnet99 is on 192.168.57.1"
 
-${VB} list hostonlyifs | grep -A2 -E '^Name.*vboxnet1' | grep -E '^DHCP.*Disabled' > /dev/null 2>&1
+${VB} list hostonlyifs | grep -A2 -E '^Name.*vboxnet99' | grep -E '^DHCP.*Disabled' > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo "vboxnet1 does not have DHCP disable, see vbox network setup instructions"
+    echo "vboxnet99 does not have DHCP disable, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet1 DHCP is disabled"
+echo "   vboxnet99 DHCP is disabled"
 echo "hostonly network settings OK."
 
 echo "Creating and provisioning the master (this may take a while)..."
@@ -86,6 +86,15 @@ ssh -F ssh-config kraken 'sudo pkill kraken'
 echo RUN: ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 
+
+which open > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "Launching dashboard viewer to: http://192.168.57.10/"
+    open http://192.168.57.10/
+else 
+    echo "Kraken dashboard is running on: http://192.168.57.10/"
+fi
+
 echo "Injecting kraken state/provisioning nodes"
 echo RUN: sh inject-state.sh
 sleep 1
@@ -93,6 +102,6 @@ sh inject-state.sh 2>&1 | tee -a log/inject-state.log
 
 echo
 echo "==="
-echo "=== Done."
+echo "=== Done.  View the dashboard at: http://192.168.57.10/"
 echo "=== Enjoy your Kraken!"
 echo "==="
