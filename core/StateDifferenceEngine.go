@@ -26,17 +26,21 @@ import (
 type StateChangeType uint8
 
 const (
-	StateChange_CREATE StateChangeType = 0
-	StateChange_READ   StateChangeType = 1 //unused
-	StateChange_UPDATE StateChangeType = 2
-	StateChange_DELETE StateChangeType = 3
+	StateChange_CREATE     StateChangeType = 0
+	StateChange_READ       StateChangeType = 1 //unused
+	StateChange_UPDATE     StateChangeType = 2
+	StateChange_DELETE     StateChangeType = 3
+	StateChange_CFG_READ   StateChangeType = 4 //unused
+	StateChange_CFG_UPDATE StateChangeType = 5
 )
 
 var StateChangeTypeString = map[StateChangeType]string{
-	StateChange_CREATE: "CREATE",
-	StateChange_READ:   "READ",
-	StateChange_UPDATE: "UPDATE",
-	StateChange_DELETE: "DELETE",
+	StateChange_CREATE:     "CREATE",
+	StateChange_READ:       "READ",
+	StateChange_UPDATE:     "UPDATE",
+	StateChange_DELETE:     "DELETE",
+	StateChange_CFG_READ:   "CFG_READ",
+	StateChange_CFG_UPDATE: "CFG_UPDATE",
 }
 
 // A StateChangeEvent is emitted when the StateDifferenceEngine detects a change to either Dsc or Cfg
@@ -175,7 +179,7 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (cfg): %v", e)
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_UPDATE, url, reflect.ValueOf(r)))
+	go n.EmitOne(NewStateChangeEvent(StateChange_CFG_UPDATE, url, reflect.ValueOf(r)))
 	return
 }
 
@@ -470,9 +474,13 @@ func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, 
 	}
 	if e == nil && len(diff) > 0 {
 		var evs []lib.Event
+		utype := StateChange_UPDATE
+		if !dsc {
+			utype = StateChange_CFG_UPDATE
+		}
 		for _, u := range diff {
 			// TODO: should this include the updated value(s)?
-			evs = append(evs, NewStateChangeEvent(StateChange_UPDATE, u, reflect.Value{}))
+			evs = append(evs, NewStateChangeEvent(utype, u, reflect.Value{}))
 		}
 		go n.Emit(evs)
 	}
@@ -513,8 +521,12 @@ func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []l
 		return
 	}
 	var evs []lib.Event
+	utype := StateChange_UPDATE
+	if !dsc {
+		utype = StateChange_CFG_UPDATE
+	}
 	for _, v := range diff {
-		evs = append(evs, NewStateChangeEvent(StateChange_UPDATE, v, reflect.Value{}))
+		evs = append(evs, NewStateChangeEvent(utype, v, reflect.Value{}))
 	}
 	go n.Emit(evs)
 	return

@@ -16,21 +16,44 @@
 #  - u-root's insmod doesn't support compressed modules, so uncompress them first.
 ###
 
-if [ $# -lt 1 ]; then
-        echo "Usage: $0 <arch> [<base_dir>]"
+usage() {
+        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] <arch>"
         echo "  <arch> should be the GOARCH we want to build (e.g. arm64, amd64...)"
+        echo "  <out_file> is the file the image should be written to.  Default is: initramfs.<date>.<img>.cpio.gz"
         echo "  <base_dir> is an option base directory containing file/directory structure"
         echo "             that should be added to the image"
-        exit
+}
+
+opts=$(getopt o:b: $*)
+if [ $? != 0 ]; then
+    usage
+    exit
 fi
+
+set -- $opts
+for i; do
+    case "$i" 
+    in
+        -o)
+            echo "Output file is $2"
+            OUTFILE="$2"
+            shift; shift;;
+        -b)
+            echo "Using base dir $2"
+            BASEDIR="$2"
+            shift; shift;;
+        --)
+            shift; break;;
+    esac
+done
+
+if [ $# -ne 1 ]; then
+    usage
+    exit 1 
+fi 
 
 STARTDIR=$PWD
 ARCH=$1
-
-if [ $# -eq 2 ]; then
-        BASEDIR=$2
-fi
-
 
 if [ -z ${GOPATH+x} ]; then
         echo "GOPATH isn't set, using $HOME/go"
@@ -82,9 +105,12 @@ GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/ini
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
 
-D=$(date +%Y%m%d.%H%M)
-mv -v $TMPDIR/initramfs.cpio.gz $PWD/initramfs.${D}.${ARCH}.cpio.gz
+if [ -z ${OUTFILE+x} ]; then 
+    D=$(date +%Y%m%d.%H%M)
+    OUTFILE="initramfs.${D}.${ARCH}.cpio.gz"
+fi
+mv -v $TMPDIR/initramfs.cpio.gz $PWD/$OUTFILE
 
 rm -rf $TMPDIR
 
-echo "Image built as initramfs.${D}.${ARCH}.cpio.gz"
+echo "Image built as $OUTFILE"

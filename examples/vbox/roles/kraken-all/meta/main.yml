@@ -1,0 +1,6 @@
+---
+dependencies:
+- role: kraken-base
+- role: kraken-build
+- role: kraken-tftpboot
+- role: kraken-build-img
