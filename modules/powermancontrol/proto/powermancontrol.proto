@@ -1,0 +1,18 @@
+/* ipmipower.proto: describes the IpmipowerConfig object
+ *
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Los Alamos National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message PMCConfig {
+    repeated string nodeNames = 1; //The beginning of the node range to act on
+    string name_url = 2;
+    string server_url = 3;
+    string uuid_url = 4;
+}
