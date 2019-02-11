@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
     kraken.vm.network "private_network",
       ip: "192.168.57.10",
       netmask: "255.255.255.0",
-      virtualbox__intnet: "vboxnet1"
+      virtualbox__intnet: "vboxnet99"
     kraken.vm.network "private_network",
       ip: "10.11.12.1",
       netmask: "255.255.255.0",
@@ -22,7 +22,7 @@ Vagrant.configure("2") do |config|
         "modifyvm", :id,
         "--nic1", "nat",
         "--nic2", "hostonly",
-        "--hostonlyadapter2", "vboxnet1",
+        "--hostonlyadapter2", "vboxnet99",
         "--nic3", "intnet",
         "--intnet3", "intnet"
       ]

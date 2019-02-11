@@ -28,7 +28,11 @@ The following need to be installed for this to work:
 
 ## Instructions
 
-Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet1" is configured.  It should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
+Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured. Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an abritrarily high vboxnet number. The example below is for MacOS.
+
+`/Applications/VirtualBox.app/Contents/MacOS/VBoxNetAdpCtl vboxnet99 add`
+
+ vboxnet99 should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`. 
 
 Once the dependencies are installed and the host-only network is setup in VirtualBox, you can deploy a virtual cracking cluster with one command:
 
