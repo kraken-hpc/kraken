@@ -547,5 +547,7 @@ type APIClient interface {
 	QueryNodeMutationEdges(string) (pb.MutationEdgeList, error)
 	QueryNodeMutationPath(string) (pb.MutationPath, error)
 	QueryDeleteAll() ([]Node, error)
+	SmeFreeze() error
+	SmeThaw() error
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }

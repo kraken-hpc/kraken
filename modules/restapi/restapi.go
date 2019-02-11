@@ -484,9 +484,25 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 
 func (r *RestAPI) smeFreeze(w http.ResponseWriter, req *http.Request) {
 	e := r.api.SmeFreeze()
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	} else {
+		w.Write([]byte("sme frozen successfully"))
+	}
 }
 func (r *RestAPI) smeThaw(w http.ResponseWriter, req *http.Request) {
 	e := r.api.SmeThaw()
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	} else {
+		w.Write([]byte("sme thawed successfully"))
+	}
 }
 
 func init() {
