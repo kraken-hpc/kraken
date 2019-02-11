@@ -14,12 +14,12 @@ package restapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
-	gv "github.com/awalterschulze/gographviz"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/gorilla/handlers"
@@ -40,6 +40,11 @@ type RestAPI struct {
 	api    lib.APIClient
 	router *mux.Router
 	srv    *http.Server
+}
+
+type GraphJson struct {
+	Nodes []*cpb.MutationNode `json:"nodes"`
+	Edges []*cpb.MutationEdge `json:"edges"`
 }
 
 func (r *RestAPI) Entry() {
@@ -100,7 +105,12 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/cfg/node/{id}", r.updateNode).Methods("PUT")
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
-	r.router.HandleFunc("/graph/node/{id}/dot", r.genDotString).Methods("GET")
+	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
+	r.router.HandleFunc("/graph/dot", r.readGraphJSON).Methods("GET")
+	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
+	r.router.HandleFunc("/graph/node/{id}/dot", r.readNodeGraphJSON).Methods("GET")
+	r.router.HandleFunc("/sme/freeze", r.smeFreeze).Methods("POST")
+	r.router.HandleFunc("/sme/thaw", r.smeThaw).Methods("POST")
 }
 
 func (r *RestAPI) startServer() {
@@ -176,78 +186,120 @@ func (r *RestAPI) readNode(w http.ResponseWriter, req *http.Request) {
 	w.Write(n.JSON())
 }
 
-func (r *RestAPI) readNodeDot(w http.ResponseWriter, req *http.Request) {
+func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
-	n, e := r.api.QueryRead(params["id"])
-	if e != nil || n == nil {
+
+	nodes, e := r.readNodeMutationNodes(params["id"])
+	if e != nil {
 		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
 		return
 	}
-	g, e := r.api.QueryReadDot(n)
+	edges, e := r.readNodeMutationEdges(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	path, e := r.readNodeMutationPath(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	// Convert edges and nodes slice to maps
+	nodesMap := make(map[string]*cpb.MutationNode)
+	edgesMap := make(map[string]*cpb.MutationEdge)
+	for _, mn := range nodes.MutationNodeList {
+		nodesMap[mn.Id] = mn
+	}
+	for _, me := range edges.MutationEdgeList {
+		edgesMap[me.Id] = me
+	}
+
+	red := "#e74c3c"
+	green := "#89CA78"
+
+	for i, me := range path.Chain {
+		if int64(i) != path.Cur {
+			c := &cpb.EdgeColor{
+				Color:     green,
+				Highlight: green,
+				Inherit:   false,
+			}
+			edgesMap[me.Id].Color = c
+			nodesMap[me.To].Color = green
+			nodesMap[me.From].Color = green
+		} else {
+			c := &cpb.EdgeColor{
+				Color:     red,
+				Highlight: red,
+				Inherit:   false,
+			}
+			edgesMap[me.Id].Color = c
+			nodesMap[me.To].Color = green
+			nodesMap[me.From].Color = green
+		}
+	}
+
+	r.api.Logf(lib.LLDEBUG, "restapi nodes: %v", nodes)
+	r.api.Logf(lib.LLDEBUG, "restapi edges: %v", edges)
+
+	graph := GraphJson{
+		Nodes: nodes.MutationNodeList,
+		Edges: edges.MutationEdgeList,
+	}
+	r.api.Logf(lib.LLDEBUG, "restapi graph: %v", graph)
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write([]byte(g))
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDEBUG, "graph: %s", string(jsonGraph))
+	w.Write([]byte(string(jsonGraph)))
 }
 
-//GenDotString returns a DOT formatted string of the mutation graph
-func (r *RestAPI) genDotString(w http.ResponseWriter, req *http.Request) {
+func (r *RestAPI) readGraphJSON(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
-	params := mux.Vars(req)
-	g := gv.NewGraph()
-	g.SetName("MutGraph")
-	g.SetDir(true) //indicates that the graph is directed
-	r.api.Logf(lib.LLDEBUG, "getting edges")
-	mel, e := r.readMutationEdges()
+
+	nodes, e := r.readMutationNodes()
 	if e != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDEBUG, "edges: %v", mel)
-	mnl, e := r.readNodeMutationNodes(params["id"])
+
+	edges, e := r.readMutationEdges()
 	if e != nil {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDEBUG, "Filtered nodes: %v", mnl)
-	for _, mn := range mnl.MutationNodeList {
-		for _, me := range mn.In {
-			g.AddEdge(me.From, me.To, true, nil)
-		}
-		// Build node label
-		label := ""
-		for _, req := range mn.Reqs {
-			if req.Key == "/PhysState" || req.Key == "/RunState" {
-				label = fmt.Sprintf("%s%s", label, req.Value)
-			}
-		}
-		if label != "" {
-			g.AddNode("MutGraph", mn.Id, map[string]string{"label": label})
-		} else {
-			g.AddNode("MutGraph", mn.Id, nil)
-		}
+
+	r.api.Logf(lib.LLDEBUG, "restapi nodes: %v", nodes)
+	r.api.Logf(lib.LLDEBUG, "restapi edges: %v", edges)
+
+	graph := GraphJson{
+		Nodes: nodes.MutationNodeList,
+		Edges: edges.MutationEdgeList,
 	}
-
-	// for _, me := range mel.MutationEdgeList {
-	// 	if g.IsNode(me.To) == false {
-	// 		var attributes map[string]string
-	// 		attributes = make(map[string]string)
-	// 		g.AddNode("MutGraph", me.To, attributes)
-	// 	}
-
-	// 	if g.IsNode(me.From) == false {
-	// 		var attributes map[string]string
-	// 		attributes = make(map[string]string)
-	// 		g.AddNode("MutGraph", me.From, attributes)
-	// 	}
-
-	// 	var attributes map[string]string
-	// 	g.AddEdge(me.From, me.To, true, attributes)
-	// }
+	r.api.Logf(lib.LLDEBUG, "restapi graph: %v", graph)
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write([]byte(g.String()))
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDEBUG, "graph: %s", string(jsonGraph))
+	w.Write([]byte(string(jsonGraph)))
 }
 
 func (r *RestAPI) readMutationNodes() (mnl cpb.MutationNodeList, e error) {
@@ -428,6 +480,13 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 	b, _ := core.MarshalJSON(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
+}
+
+func (r *RestAPI) smeFreeze(w http.ResponseWriter, req *http.Request) {
+	e := r.api.SmeFreeze()
+}
+func (r *RestAPI) smeThaw(w http.ResponseWriter, req *http.Request) {
+	e := r.api.SmeThaw()
 }
 
 func init() {

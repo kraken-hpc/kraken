@@ -142,16 +142,6 @@ func (q *QueryEngine) ReadDsc(n lib.NodeID) (nc lib.Node, e error) {
 	return v[0].Interface().(lib.Node), e
 }
 
-// ReadDot will get a dot graph from the sme for a node
-func (q *QueryEngine) ReadDot(n lib.Node) (sc string, e error) {
-	query, r := NewQuery(lib.Query_READDOT, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
-	v, e := q.blockingQuery(query, r)
-	if len(v) < 1 || !v[0].IsValid() {
-		return
-	}
-	return v[0].Interface().(string), e
-}
-
 func (q *QueryEngine) ReadMutationNodes(url string) (mc pb.MutationNodeList, e error) {
 	query, r := NewQuery(lib.Query_MUTATIONNODES, lib.QueryState_BOTH, url, []reflect.Value{})
 	v, e := q.blockingQuery(query, r)
@@ -340,6 +330,18 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 	return vs[0], e
 }
 
+func (q *QueryEngine) SmeFreeze() (e error) {
+	query, r := NewQuery(lib.Query_FREEZE, lib.QueryState_BOTH, "", []reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return e
+}
+
+func (q *QueryEngine) SmeThaw() (e error) {
+	query, r := NewQuery(lib.Query_THAW, lib.QueryState_BOTH, "", []reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return e
+}
+
 // TODO: write a better query language
 
 ////////////////////////
@@ -349,10 +351,15 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
 	var s chan<- lib.Query
-	if query.Type() != lib.Query_MUTATIONNODES && query.Type() != lib.Query_MUTATIONEDGES && query.Type() != lib.Query_MUTATIONPATH {
+	switch lib.QueryTypeMap[query.Type()] {
+	case lib.Query_SDE:
 		s = q.sd
-	} else {
+	case lib.Query_SME:
 		s = q.sm
+	default:
+		e := fmt.Errorf("QueryType %v not mapped to a QueryEngineType", query.Type())
+		qr = NewQueryResponse([]reflect.Value{}, e)
+		return qr.Value(), qr.Error()
 	}
 	s <- query
 	qr = <-r

@@ -221,67 +221,51 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
-func MutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
+func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 	for _, mn := range nodes {
 		var nmn pb.MutationNode
 		nmn.Id = fmt.Sprintf("%p", mn)
-		reqsMap := mn.spec.Requires()
-		excsMap := mn.spec.Excludes()
-		for k := range reqsMap {
-			newPair := &pb.Pair{
-				Key:   k,
-				Value: lib.ValueToString(reqsMap[k]),
+		label := ""
+		for reqKey, reqVal := range mn.spec.Requires() {
+			// if reqkey is in mutators
+			if _, ok := sme.mutators[reqKey]; ok {
+				// Add value to label name
+				reqKey = strings.Replace(reqKey, "type.googleapis.com", "", -1)
+				reqKey = strings.Replace(reqKey, "/", "", -1)
+				if label == "" {
+					label = fmt.Sprintf("%s: %s", reqKey, lib.ValueToString(reqVal))
+				} else {
+					label = fmt.Sprintf("%s\\n%s: %s", label, reqKey, lib.ValueToString(reqVal))
+				}
 			}
-			nmn.Reqs = append(nmn.Reqs, newPair)
 		}
-		for k := range excsMap {
-			newPair := &pb.Pair{
-				Key:   k,
-				Value: lib.ValueToString(excsMap[k]),
-			}
-			nmn.Excs = append(nmn.Excs, newPair)
-		}
-		for _, me := range mn.in {
-			newEdge := &pb.MutationEdge{
-				Cost: me.cost,
-				From: fmt.Sprintf("%p", me.from),
-				To:   fmt.Sprintf("%p", me.to),
-			}
-			nmn.In = append(nmn.In, newEdge)
-		}
-		for _, me := range mn.out {
-			newEdge := &pb.MutationEdge{
-				Cost: me.cost,
-				From: fmt.Sprintf("%p", me.from),
-				To:   fmt.Sprintf("%p", me.to),
-			}
-			nmn.Out = append(nmn.Out, newEdge)
-		}
+
+		nmn.Label = label
 		r.MutationNodeList = append(r.MutationNodeList, &nmn)
 	}
 	return
 }
 
-func MutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
+func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 	for _, me := range edges {
 		var nme pb.MutationEdge
-		nme.Cost = me.cost
 		nme.From = fmt.Sprintf("%p", me.from)
 		nme.To = fmt.Sprintf("%p", me.to)
+		nme.Id = fmt.Sprintf("%p", me)
 
 		r.MutationEdgeList = append(r.MutationEdgeList, &nme)
 	}
 	return
 }
 
-func MutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
+func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	if path != nil {
 		r.Cur = int64(path.cur)
 		for _, me := range path.chain {
 			var nme pb.MutationEdge
-			nme.Cost = me.cost
 			nme.From = fmt.Sprintf("%p", me.from)
 			nme.To = fmt.Sprintf("%p", me.to)
+			nme.Id = fmt.Sprintf("%p", me)
 
 			r.Chain = append(r.Chain, &nme)
 		}
@@ -292,7 +276,7 @@ func MutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	return
 }
 
-func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutationNode, e error) {
+func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationNode, e error) {
 	// Get node from path
 	sme.Logf(lib.LLDEBUG, "got to filtered nodes method")
 	mp := sme.active[n.String()]
@@ -364,6 +348,26 @@ func (sme *StateMutationEngine) filterMutationNodesForNode(n NodeID) (r []*mutat
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
+	}
+
+	return
+}
+
+func (sme *StateMutationEngine) filterMutEdgesFromNode(n NodeID) (r []*mutationEdge, e error) {
+	nodes, e := sme.filterMutNodesFromNode(n)
+	filteredEdges := make(map[*mutationEdge]string)
+
+	for _, mn := range nodes {
+		for _, me := range mn.in {
+			filteredEdges[me] = ""
+		}
+		for _, me := range mn.out {
+			filteredEdges[me] = ""
+		}
+	}
+
+	for me := range filteredEdges {
+		r = append(r, me)
 	}
 
 	return
@@ -529,25 +533,18 @@ func (sme *StateMutationEngine) Run() {
 		select {
 		case q := <-sme.qc:
 			switch q.Type() {
-			case lib.Query_READDOT:
-				var v string
-				var e error
-				v = sme.GenDotString()
-				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
-				break
 			case lib.Query_MUTATIONNODES:
 				_, u := lib.NodeURLSplit(q.URL())
 				var e error
 				if u == "" {
-					v := MutationNodesToProto(sme.nodes)
+					v := sme.mutationNodesToProto(sme.nodes)
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
 					sme.Logf(lib.LLDEBUG, "getting filtered nodes")
 					n := NewNodeIDFromURL(q.URL())
-					r, e := sme.filterMutationNodesForNode(*n)
-					v := MutationNodesToProto(r)
+					r, e := sme.filterMutNodesFromNode(*n)
+					v := sme.mutationNodesToProto(r)
 					sme.Logf(lib.LLDEBUG, "filtered nodes: %v", v)
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
@@ -558,19 +555,34 @@ func (sme *StateMutationEngine) Run() {
 				sme.Logf(lib.LLDEBUG, "node: %v url: %v", n, u)
 				var e error
 				if u == "" {
-					v := MutationEdgesToProto(sme.edges)
+					v := mutationEdgesToProto(sme.edges)
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
+					sme.Logf(lib.LLDEBUG, "getting filtered edges")
+					n := NewNodeIDFromURL(q.URL())
+					fme, e := sme.filterMutEdgesFromNode(*n)
+					v := mutationEdgesToProto(fme)
+					sme.Logf(lib.LLDEBUG, "filtered edges: %v", v)
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 
 				}
 				break
 			case lib.Query_MUTATIONPATH:
-				n, _ := lib.NodeURLSplit(q.URL())
+				n := NewNodeIDFromURL(q.URL())
 				var e error
-				v, e := MutationPathToProto(sme.active[n])
+				sme.Logf(lib.LLDEBUG, "looking for this node: %v", n)
+				sme.Logf(lib.LLDEBUG, "all active mutations: %v", sme.active)
+				v, e := mutationPathToProto(sme.active[n.String()])
 				go sme.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				break
+			case lib.Query_FREEZE:
+				sme.Freeze()
+				break
+			case lib.Query_THAW:
+				sme.Thaw()
 				break
 			default:
 				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())

@@ -68,20 +68,6 @@ func (a *APIClient) QueryRead(id string) (r lib.Node, e error) {
 	return
 }
 
-func (a *APIClient) QueryReadDot(n lib.Node) (r string, e error) {
-	q := &pb.Query{
-		Payload: &pb.Query_Node{
-			Node: n.Message().(*pb.Node),
-		},
-	}
-	rv, e := a.oneshot("QueryReadDot", reflect.ValueOf(q))
-	if e != nil {
-		return
-	}
-	r = rv.Interface().(*pb.Query).GetText()
-	return
-}
-
 func (a *APIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryReadDsc", reflect.ValueOf(q))
@@ -343,6 +329,18 @@ func (a *APIClient) LoggerInit(si string) (e error) {
 			}
 		}
 	}()
+	return
+}
+
+func (a *APIClient) SmeFreeze() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("SmeFreeze", reflect.ValueOf(q))
+	return
+}
+
+func (a *APIClient) SmeThaw() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("SmeThaw", reflect.ValueOf(q))
 	return
 }
 

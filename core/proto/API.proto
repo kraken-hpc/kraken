@@ -77,23 +77,23 @@ message MutationPath {
     repeated MutationEdge chain = 2;
 }
 
-message Pair {
-    string key = 1;
-    string value = 2;
+message EdgeColor {
+    string color = 1;
+    string highlight = 2;
+    bool inherit = 3;
 }
 
 message MutationNode {
-    string id = 1;
-    repeated Pair reqs = 2;
-    repeated Pair excs = 3;
-    repeated MutationEdge in = 4;
-    repeated MutationEdge out = 5;
+    string label = 1;
+    string id = 2;
+    string color = 3;
 }
 
 message MutationEdge {
-    uint32 cost = 1;
-    string from = 2;
-    string to = 3;
+    string from = 1;
+    string to = 2;
+    string id = 3;
+    EdgeColor color = 4;
 }
 
 message LogMessage {
@@ -107,7 +107,6 @@ service API {
     // TODO: create API for bulk CRUD operations
     rpc QueryCreate(Query) returns (Query) {}
     rpc QueryRead(Query) returns (Query) {}
-    rpc QueryReadDot(Query) returns (Query) {}
     rpc QueryReadDsc(Query) returns (Query) {}
     rpc QueryUpdate(Query) returns (Query) {}
     rpc QueryUpdateDsc(Query) returns (Query) {}
