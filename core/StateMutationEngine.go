@@ -580,9 +580,15 @@ func (sme *StateMutationEngine) Run() {
 				break
 			case lib.Query_FREEZE:
 				sme.Freeze()
+				var e error
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{}, e), q.ResponseChan())
 				break
 			case lib.Query_THAW:
 				sme.Thaw()
+				var e error
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{}, e), q.ResponseChan())
 				break
 			default:
 				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
