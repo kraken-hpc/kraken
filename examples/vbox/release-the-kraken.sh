@@ -86,6 +86,15 @@ ssh -F ssh-config kraken 'sudo pkill kraken'
 echo RUN: ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 
+
+which open > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "Launching dashboard viewer to: http://192.168.57.10/"
+    open http://192.168.57.10/
+else 
+    echo "Kraken dashboard is running on: http://192.168.57.10/"
+fi
+
 echo "Injecting kraken state/provisioning nodes"
 echo RUN: sh inject-state.sh
 sleep 1
@@ -93,6 +102,6 @@ sh inject-state.sh 2>&1 | tee -a log/inject-state.log
 
 echo
 echo "==="
-echo "=== Done."
+echo "=== Done.  View the dashboard at: http://192.168.57.10/"
 echo "=== Enjoy your Kraken!"
 echo "==="
