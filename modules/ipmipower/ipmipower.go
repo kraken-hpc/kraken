@@ -121,7 +121,7 @@ func (p *Ipmipower) Entry() {
 				break
 			}
 			me := m.Data().(*core.MutationEvent)
-			go p.handleMutation(me)
+			go p.handleMutation(m)
 			break
 		}
 	}
