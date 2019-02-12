@@ -235,7 +235,7 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 				if label == "" {
 					label = fmt.Sprintf("%s: %s", reqKey, lib.ValueToString(reqVal))
 				} else {
-					label = fmt.Sprintf("%s\\n%s: %s", label, reqKey, lib.ValueToString(reqVal))
+					label = fmt.Sprintf("%s\n%s: %s", label, reqKey, lib.ValueToString(reqVal))
 				}
 			}
 		}
