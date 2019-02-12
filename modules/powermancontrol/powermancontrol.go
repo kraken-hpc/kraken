@@ -11,7 +11,7 @@
 
 /*
  * This module will manipulate the PhysState state field.
- * It will be restricted to Platform = vbox.
+ * It will be restricted to Platform = vbox
  */
 
 package powermancontrol
@@ -88,10 +88,11 @@ var excs = map[string]reflect.Value{}
 
 // PMC provides a power on/off interface to the vboxmanage-rest-api interface
 type PMC struct {
-	api   lib.APIClient
-	cfg   *pb.PMCConfig
-	mchan <-chan lib.Event
-	dchan chan<- lib.Event
+	api        lib.APIClient
+	cfg        *pb.PMCConfig
+	mchan      <-chan lib.Event
+	dchan      chan<- lib.Event
+	pollTicker *time.Ticker
 }
 
 /*
@@ -110,10 +111,11 @@ var _ lib.ModuleWithConfig = (*PMC)(nil)
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
-		NodeNames: []string{},
-		ServerUrl: "type.googleapis.com/proto.PowermanControl/ApiServer",
-		NameUrl:   "type.googleapis.com/proto.PowermanControl/Name",
-		UuidUrl:   "type.googleapis.com/proto.PowermanControl/Uuid",
+		NodeNames:       []string{},
+		ServerUrl:       "type.googleapis.com/proto.PowermanControl/ApiServer",
+		NameUrl:         "type.googleapis.com/proto.PowermanControl/Name",
+		UuidUrl:         "type.googleapis.com/proto.PowermanControl/Uuid",
+		PollingInterval: "30s",
 	}
 	return r
 }
@@ -122,6 +124,12 @@ func (p *PMC) NewConfig() proto.Message {
 func (p *PMC) UpdateConfig(cfg proto.Message) (e error) {
 	if pcfg, ok := cfg.(*pb.PMCConfig); ok {
 		p.cfg = pcfg
+		if p.pollTicker != nil {
+			p.pollTicker.Stop()
+			dur, _ := time.ParseDuration(p.cfg.GetPollingInterval())
+			p.pollTicker = time.NewTicker(dur)
+			return
+		}
 	}
 	return fmt.Errorf("invalid config type")
 }
@@ -166,8 +174,14 @@ func (p *PMC) Entry() {
 		},
 	)
 
+	dur, _ := time.ParseDuration(p.cfg.GetPollingInterval())
+	p.pollTicker = time.NewTicker(dur)
+
 	for {
 		select {
+		case <-p.pollTicker.C:
+			go p.discoverAll()
+			break
 		case m := <-p.mchan:
 			if m.Type() != lib.Event_STATE_MUTATION {
 				p.api.Log(lib.LLERROR, "got unexpected non-mutation event")

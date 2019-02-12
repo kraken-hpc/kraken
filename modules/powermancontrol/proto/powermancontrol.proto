@@ -12,7 +12,8 @@ package proto;
 
 message PMCConfig {
     repeated string nodeNames = 1; //The beginning of the node range to act on
-    string name_url = 2;
-    string server_url = 3;
-    string uuid_url = 4;
+    string polling_interval = 2;
+    string name_url = 3;
+    string server_url = 4;
+    string uuid_url = 5;
 }
