@@ -14,20 +14,14 @@ import "Node.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/Empty.proto";
 
-/*
- * TODO: Find a way to encode/decode arbitrary values for the API
- * While this is probably not very efficient, currently we can only
- * CRUD whole nodes through the API.  This will be true until I find
- * a safe & reliable way to encode/decode arbitrary values.
- * I leave the empty ReflectValue type as a reservation.
- */
-
 message Query {
     string URL = 1;
     oneof payload {
         Node node = 2;
-        ReflectValue value = 3;
-        string text = 4;
+        string text = 3;
+        MutationNodeList mutationNodeList = 4;
+        MutationEdgeList mutationEdgeList = 5;
+        MutationPath mutationPath = 6;
     }
 }
 
@@ -70,6 +64,38 @@ message DiscoveryEvent {
 
 message ReflectValue { }
 
+message MutationNodeList {
+    repeated MutationNode MutationNodeList = 1;
+}
+
+message MutationEdgeList {
+    repeated MutationEdge MutationEdgeList = 1;
+}
+
+message MutationPath {
+    int64 cur = 1;
+    repeated MutationEdge chain = 2;
+}
+
+message EdgeColor {
+    string color = 1;
+    string highlight = 2;
+    bool inherit = 3;
+}
+
+message MutationNode {
+    string label = 1;
+    string id = 2;
+    string color = 3;
+}
+
+message MutationEdge {
+    string from = 1;
+    string to = 2;
+    string id = 3;
+    EdgeColor color = 4;
+}
+
 message LogMessage {
     string origin = 1;
     uint32 level = 2;
@@ -81,14 +107,20 @@ service API {
     // TODO: create API for bulk CRUD operations
     rpc QueryCreate(Query) returns (Query) {}
     rpc QueryRead(Query) returns (Query) {}
-    rpc QueryReadDot(Query) returns (Query) {}
     rpc QueryReadDsc(Query) returns (Query) {}
     rpc QueryUpdate(Query) returns (Query) {}
     rpc QueryUpdateDsc(Query) returns (Query) {}
     rpc QueryDelete(Query) returns (Query) {}
     rpc QueryReadAll(google.protobuf.Empty) returns (QueryMulti) {}
     rpc QueryReadAllDsc(google.protobuf.Empty) returns (QueryMulti) {}
+    rpc QueryMutationNodes(google.protobuf.Empty) returns (Query) {}    
+    rpc QueryMutationEdges(google.protobuf.Empty) returns (Query) {}    
+    rpc QueryNodeMutationNodes(Query) returns (Query) {}    
+    rpc QueryNodeMutationEdges(Query) returns (Query) {}    
+    rpc QueryNodeMutationPath(Query) returns (Query) {}    
     rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
+    rpc SmeFreeze(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+    rpc SmeThaw(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
     // Service management
     rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}

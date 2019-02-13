@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"reflect"
 
+	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
 
@@ -32,11 +33,11 @@ type Query struct {
 }
 
 // NewQuery creates an initialized query; this is how all Queries should be created
-func NewQuery(t lib.QueryType, s lib.QueryState, u string, v []reflect.Value) (*Query, chan lib.QueryResponse) {
+func NewQuery(t lib.QueryType, s lib.QueryState, url string, v []reflect.Value) (*Query, chan lib.QueryResponse) {
 	q := &Query{}
 	q.t = t
 	q.s = s
-	q.u = u
+	q.u = url
 	q.v = v
 	q.c = make(chan lib.QueryResponse)
 	return q, q.c
@@ -54,7 +55,7 @@ func (q *Query) URL() string { return q.u }
 // Value returns an array of associated refelct.Value's with this query
 func (q *Query) Value() []reflect.Value { return q.v }
 
-// ResponseChan returns the channel taht a QueryResponse should be sent on
+// ResponseChan returns the channel that a QueryResponse should be sent on
 func (q *Query) ResponseChan() chan<- lib.QueryResponse { return q.c }
 
 //////////////////////////
@@ -141,14 +142,52 @@ func (q *QueryEngine) ReadDsc(n lib.NodeID) (nc lib.Node, e error) {
 	return v[0].Interface().(lib.Node), e
 }
 
-// ReadDot will get a dot graph from the sme for a node
-func (q *QueryEngine) ReadDot(n lib.Node) (sc string, e error) {
-	query, r := NewQuery(lib.Query_READDOT, lib.QueryState_BOTH, "", []reflect.Value{reflect.ValueOf(n)})
+func (q *QueryEngine) ReadMutationNodes(url string) (mc pb.MutationNodeList, e error) {
+	query, r := NewQuery(lib.Query_MUTATIONNODES, lib.QueryState_BOTH, url, []reflect.Value{})
 	v, e := q.blockingQuery(query, r)
 	if len(v) < 1 || !v[0].IsValid() {
 		return
 	}
-	return v[0].Interface().(string), e
+	return v[0].Interface().(pb.MutationNodeList), e
+}
+
+func (q *QueryEngine) ReadMutationEdges(url string) (mc pb.MutationEdgeList, e error) {
+	query, r := NewQuery(lib.Query_MUTATIONEDGES, lib.QueryState_BOTH, url, []reflect.Value{})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().(pb.MutationEdgeList), e
+}
+
+func (q *QueryEngine) ReadNodeMutationNodes(url string) (mc pb.MutationNodeList, e error) {
+	n := NewNodeIDFromURL(url)
+	query, r := NewQuery(lib.Query_MUTATIONNODES, lib.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().(pb.MutationNodeList), e
+}
+
+func (q *QueryEngine) ReadNodeMutationEdges(url string) (mc pb.MutationEdgeList, e error) {
+	n := NewNodeIDFromURL(url)
+	query, r := NewQuery(lib.Query_MUTATIONEDGES, lib.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().(pb.MutationEdgeList), e
+}
+
+func (q *QueryEngine) ReadNodeMutationPath(url string) (mc pb.MutationPath, e error) {
+	n := NewNodeIDFromURL(url)
+	query, r := NewQuery(lib.Query_MUTATIONPATH, lib.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
+	v, e := q.blockingQuery(query, r)
+	if len(v) < 1 || !v[0].IsValid() {
+		return
+	}
+	return v[0].Interface().(pb.MutationPath), e
 }
 
 // Update will update a node in the Engine's Cfg store
@@ -291,6 +330,18 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 	return vs[0], e
 }
 
+func (q *QueryEngine) SmeFreeze() (e error) {
+	query, r := NewQuery(lib.Query_FREEZE, lib.QueryState_BOTH, "", []reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return e
+}
+
+func (q *QueryEngine) SmeThaw() (e error) {
+	query, r := NewQuery(lib.Query_THAW, lib.QueryState_BOTH, "", []reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return e
+}
+
 // TODO: write a better query language
 
 ////////////////////////
@@ -300,10 +351,15 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
 	var s chan<- lib.Query
-	if query.Type() != lib.Query_READDOT {
+	switch lib.QueryTypeMap[query.Type()] {
+	case lib.Query_SDE:
 		s = q.sd
-	} else {
+	case lib.Query_SME:
 		s = q.sm
+	default:
+		e := fmt.Errorf("QueryType %v not mapped to a QueryEngineType", query.Type())
+		qr = NewQueryResponse([]reflect.Value{}, e)
+		return qr.Value(), qr.Error()
 	}
 	s <- query
 	qr = <-r

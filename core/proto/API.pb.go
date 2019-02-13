@@ -48,7 +48,7 @@ func (x ServiceControl_Command) String() string {
 	return proto.EnumName(ServiceControl_Command_name, int32(x))
 }
 func (ServiceControl_Command) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{3, 0}
+	return fileDescriptor_API_d495b8980338116e, []int{3, 0}
 }
 
 type MutationControl_Type int32
@@ -71,15 +71,17 @@ func (x MutationControl_Type) String() string {
 	return proto.EnumName(MutationControl_Type_name, int32(x))
 }
 func (MutationControl_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{4, 0}
+	return fileDescriptor_API_d495b8980338116e, []int{4, 0}
 }
 
 type Query struct {
 	URL string `protobuf:"bytes,1,opt,name=URL,proto3" json:"URL,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//	*Query_Node
-	//	*Query_Value
 	//	*Query_Text
+	//	*Query_MutationNodeList
+	//	*Query_MutationEdgeList
+	//	*Query_MutationPath
 	Payload              isQuery_Payload `protobuf_oneof:"payload"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
@@ -90,7 +92,7 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{0}
+	return fileDescriptor_API_d495b8980338116e, []int{0}
 }
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
@@ -125,19 +127,31 @@ type Query_Node struct {
 	Node *Node `protobuf:"bytes,2,opt,name=node,proto3,oneof"`
 }
 
-type Query_Value struct {
-	Value *ReflectValue `protobuf:"bytes,3,opt,name=value,proto3,oneof"`
+type Query_Text struct {
+	Text string `protobuf:"bytes,3,opt,name=text,proto3,oneof"`
 }
 
-type Query_Text struct {
-	Text string `protobuf:"bytes,4,opt,name=text,proto3,oneof"`
+type Query_MutationNodeList struct {
+	MutationNodeList *MutationNodeList `protobuf:"bytes,4,opt,name=mutationNodeList,proto3,oneof"`
+}
+
+type Query_MutationEdgeList struct {
+	MutationEdgeList *MutationEdgeList `protobuf:"bytes,5,opt,name=mutationEdgeList,proto3,oneof"`
+}
+
+type Query_MutationPath struct {
+	MutationPath *MutationPath `protobuf:"bytes,6,opt,name=mutationPath,proto3,oneof"`
 }
 
 func (*Query_Node) isQuery_Payload() {}
 
-func (*Query_Value) isQuery_Payload() {}
-
 func (*Query_Text) isQuery_Payload() {}
+
+func (*Query_MutationNodeList) isQuery_Payload() {}
+
+func (*Query_MutationEdgeList) isQuery_Payload() {}
+
+func (*Query_MutationPath) isQuery_Payload() {}
 
 func (m *Query) GetPayload() isQuery_Payload {
 	if m != nil {
@@ -153,13 +167,6 @@ func (m *Query) GetNode() *Node {
 	return nil
 }
 
-func (m *Query) GetValue() *ReflectValue {
-	if x, ok := m.GetPayload().(*Query_Value); ok {
-		return x.Value
-	}
-	return nil
-}
-
 func (m *Query) GetText() string {
 	if x, ok := m.GetPayload().(*Query_Text); ok {
 		return x.Text
@@ -167,12 +174,35 @@ func (m *Query) GetText() string {
 	return ""
 }
 
+func (m *Query) GetMutationNodeList() *MutationNodeList {
+	if x, ok := m.GetPayload().(*Query_MutationNodeList); ok {
+		return x.MutationNodeList
+	}
+	return nil
+}
+
+func (m *Query) GetMutationEdgeList() *MutationEdgeList {
+	if x, ok := m.GetPayload().(*Query_MutationEdgeList); ok {
+		return x.MutationEdgeList
+	}
+	return nil
+}
+
+func (m *Query) GetMutationPath() *MutationPath {
+	if x, ok := m.GetPayload().(*Query_MutationPath); ok {
+		return x.MutationPath
+	}
+	return nil
+}
+
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*Query) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _Query_OneofMarshaler, _Query_OneofUnmarshaler, _Query_OneofSizer, []interface{}{
 		(*Query_Node)(nil),
-		(*Query_Value)(nil),
 		(*Query_Text)(nil),
+		(*Query_MutationNodeList)(nil),
+		(*Query_MutationEdgeList)(nil),
+		(*Query_MutationPath)(nil),
 	}
 }
 
@@ -185,14 +215,24 @@ func _Query_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.Node); err != nil {
 			return err
 		}
-	case *Query_Value:
+	case *Query_Text:
 		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Value); err != nil {
+		b.EncodeStringBytes(x.Text)
+	case *Query_MutationNodeList:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MutationNodeList); err != nil {
 			return err
 		}
-	case *Query_Text:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Text)
+	case *Query_MutationEdgeList:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MutationEdgeList); err != nil {
+			return err
+		}
+	case *Query_MutationPath:
+		b.EncodeVarint(6<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.MutationPath); err != nil {
+			return err
+		}
 	case nil:
 	default:
 		return fmt.Errorf("Query.Payload has unexpected type %T", x)
@@ -211,20 +251,36 @@ func _Query_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) 
 		err := b.DecodeMessage(msg)
 		m.Payload = &Query_Node{msg}
 		return true, err
-	case 3: // payload.value
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(ReflectValue)
-		err := b.DecodeMessage(msg)
-		m.Payload = &Query_Value{msg}
-		return true, err
-	case 4: // payload.text
+	case 3: // payload.text
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeStringBytes()
 		m.Payload = &Query_Text{x}
+		return true, err
+	case 4: // payload.mutationNodeList
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MutationNodeList)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Query_MutationNodeList{msg}
+		return true, err
+	case 5: // payload.mutationEdgeList
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MutationEdgeList)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Query_MutationEdgeList{msg}
+		return true, err
+	case 6: // payload.mutationPath
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MutationPath)
+		err := b.DecodeMessage(msg)
+		m.Payload = &Query_MutationPath{msg}
 		return true, err
 	default:
 		return false, nil
@@ -240,15 +296,25 @@ func _Query_OneofSizer(msg proto.Message) (n int) {
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *Query_Value:
-		s := proto.Size(x.Value)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
 	case *Query_Text:
 		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(len(x.Text)))
 		n += len(x.Text)
+	case *Query_MutationNodeList:
+		s := proto.Size(x.MutationNodeList)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Query_MutationEdgeList:
+		s := proto.Size(x.MutationEdgeList)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Query_MutationPath:
+		s := proto.Size(x.MutationPath)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -267,7 +333,7 @@ func (m *QueryMulti) Reset()         { *m = QueryMulti{} }
 func (m *QueryMulti) String() string { return proto.CompactTextString(m) }
 func (*QueryMulti) ProtoMessage()    {}
 func (*QueryMulti) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{1}
+	return fileDescriptor_API_d495b8980338116e, []int{1}
 }
 func (m *QueryMulti) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryMulti.Unmarshal(m, b)
@@ -306,7 +372,7 @@ func (m *ServiceInitRequest) Reset()         { *m = ServiceInitRequest{} }
 func (m *ServiceInitRequest) String() string { return proto.CompactTextString(m) }
 func (*ServiceInitRequest) ProtoMessage()    {}
 func (*ServiceInitRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{2}
+	return fileDescriptor_API_d495b8980338116e, []int{2}
 }
 func (m *ServiceInitRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceInitRequest.Unmarshal(m, b)
@@ -352,7 +418,7 @@ func (m *ServiceControl) Reset()         { *m = ServiceControl{} }
 func (m *ServiceControl) String() string { return proto.CompactTextString(m) }
 func (*ServiceControl) ProtoMessage()    {}
 func (*ServiceControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{3}
+	return fileDescriptor_API_d495b8980338116e, []int{3}
 }
 func (m *ServiceControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceControl.Unmarshal(m, b)
@@ -401,7 +467,7 @@ func (m *MutationControl) Reset()         { *m = MutationControl{} }
 func (m *MutationControl) String() string { return proto.CompactTextString(m) }
 func (*MutationControl) ProtoMessage()    {}
 func (*MutationControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{4}
+	return fileDescriptor_API_d495b8980338116e, []int{4}
 }
 func (m *MutationControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationControl.Unmarshal(m, b)
@@ -469,7 +535,7 @@ func (m *DiscoveryEvent) Reset()         { *m = DiscoveryEvent{} }
 func (m *DiscoveryEvent) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryEvent) ProtoMessage()    {}
 func (*DiscoveryEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{5}
+	return fileDescriptor_API_d495b8980338116e, []int{5}
 }
 func (m *DiscoveryEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryEvent.Unmarshal(m, b)
@@ -520,7 +586,7 @@ func (m *ReflectValue) Reset()         { *m = ReflectValue{} }
 func (m *ReflectValue) String() string { return proto.CompactTextString(m) }
 func (*ReflectValue) ProtoMessage()    {}
 func (*ReflectValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{6}
+	return fileDescriptor_API_d495b8980338116e, []int{6}
 }
 func (m *ReflectValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ReflectValue.Unmarshal(m, b)
@@ -540,6 +606,298 @@ func (m *ReflectValue) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ReflectValue proto.InternalMessageInfo
 
+type MutationNodeList struct {
+	MutationNodeList     []*MutationNode `protobuf:"bytes,1,rep,name=MutationNodeList,proto3" json:"MutationNodeList,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *MutationNodeList) Reset()         { *m = MutationNodeList{} }
+func (m *MutationNodeList) String() string { return proto.CompactTextString(m) }
+func (*MutationNodeList) ProtoMessage()    {}
+func (*MutationNodeList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{7}
+}
+func (m *MutationNodeList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MutationNodeList.Unmarshal(m, b)
+}
+func (m *MutationNodeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MutationNodeList.Marshal(b, m, deterministic)
+}
+func (dst *MutationNodeList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationNodeList.Merge(dst, src)
+}
+func (m *MutationNodeList) XXX_Size() int {
+	return xxx_messageInfo_MutationNodeList.Size(m)
+}
+func (m *MutationNodeList) XXX_DiscardUnknown() {
+	xxx_messageInfo_MutationNodeList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MutationNodeList proto.InternalMessageInfo
+
+func (m *MutationNodeList) GetMutationNodeList() []*MutationNode {
+	if m != nil {
+		return m.MutationNodeList
+	}
+	return nil
+}
+
+type MutationEdgeList struct {
+	MutationEdgeList     []*MutationEdge `protobuf:"bytes,1,rep,name=MutationEdgeList,proto3" json:"MutationEdgeList,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *MutationEdgeList) Reset()         { *m = MutationEdgeList{} }
+func (m *MutationEdgeList) String() string { return proto.CompactTextString(m) }
+func (*MutationEdgeList) ProtoMessage()    {}
+func (*MutationEdgeList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{8}
+}
+func (m *MutationEdgeList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MutationEdgeList.Unmarshal(m, b)
+}
+func (m *MutationEdgeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MutationEdgeList.Marshal(b, m, deterministic)
+}
+func (dst *MutationEdgeList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationEdgeList.Merge(dst, src)
+}
+func (m *MutationEdgeList) XXX_Size() int {
+	return xxx_messageInfo_MutationEdgeList.Size(m)
+}
+func (m *MutationEdgeList) XXX_DiscardUnknown() {
+	xxx_messageInfo_MutationEdgeList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MutationEdgeList proto.InternalMessageInfo
+
+func (m *MutationEdgeList) GetMutationEdgeList() []*MutationEdge {
+	if m != nil {
+		return m.MutationEdgeList
+	}
+	return nil
+}
+
+type MutationPath struct {
+	Cur                  int64           `protobuf:"varint,1,opt,name=cur,proto3" json:"cur,omitempty"`
+	Chain                []*MutationEdge `protobuf:"bytes,2,rep,name=chain,proto3" json:"chain,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *MutationPath) Reset()         { *m = MutationPath{} }
+func (m *MutationPath) String() string { return proto.CompactTextString(m) }
+func (*MutationPath) ProtoMessage()    {}
+func (*MutationPath) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{9}
+}
+func (m *MutationPath) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MutationPath.Unmarshal(m, b)
+}
+func (m *MutationPath) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MutationPath.Marshal(b, m, deterministic)
+}
+func (dst *MutationPath) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationPath.Merge(dst, src)
+}
+func (m *MutationPath) XXX_Size() int {
+	return xxx_messageInfo_MutationPath.Size(m)
+}
+func (m *MutationPath) XXX_DiscardUnknown() {
+	xxx_messageInfo_MutationPath.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MutationPath proto.InternalMessageInfo
+
+func (m *MutationPath) GetCur() int64 {
+	if m != nil {
+		return m.Cur
+	}
+	return 0
+}
+
+func (m *MutationPath) GetChain() []*MutationEdge {
+	if m != nil {
+		return m.Chain
+	}
+	return nil
+}
+
+type EdgeColor struct {
+	Color                string   `protobuf:"bytes,1,opt,name=color,proto3" json:"color,omitempty"`
+	Highlight            string   `protobuf:"bytes,2,opt,name=highlight,proto3" json:"highlight,omitempty"`
+	Inherit              bool     `protobuf:"varint,3,opt,name=inherit,proto3" json:"inherit,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EdgeColor) Reset()         { *m = EdgeColor{} }
+func (m *EdgeColor) String() string { return proto.CompactTextString(m) }
+func (*EdgeColor) ProtoMessage()    {}
+func (*EdgeColor) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{10}
+}
+func (m *EdgeColor) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EdgeColor.Unmarshal(m, b)
+}
+func (m *EdgeColor) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EdgeColor.Marshal(b, m, deterministic)
+}
+func (dst *EdgeColor) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EdgeColor.Merge(dst, src)
+}
+func (m *EdgeColor) XXX_Size() int {
+	return xxx_messageInfo_EdgeColor.Size(m)
+}
+func (m *EdgeColor) XXX_DiscardUnknown() {
+	xxx_messageInfo_EdgeColor.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EdgeColor proto.InternalMessageInfo
+
+func (m *EdgeColor) GetColor() string {
+	if m != nil {
+		return m.Color
+	}
+	return ""
+}
+
+func (m *EdgeColor) GetHighlight() string {
+	if m != nil {
+		return m.Highlight
+	}
+	return ""
+}
+
+func (m *EdgeColor) GetInherit() bool {
+	if m != nil {
+		return m.Inherit
+	}
+	return false
+}
+
+type MutationNode struct {
+	Label                string   `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Id                   string   `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Color                string   `protobuf:"bytes,3,opt,name=color,proto3" json:"color,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *MutationNode) Reset()         { *m = MutationNode{} }
+func (m *MutationNode) String() string { return proto.CompactTextString(m) }
+func (*MutationNode) ProtoMessage()    {}
+func (*MutationNode) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{11}
+}
+func (m *MutationNode) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MutationNode.Unmarshal(m, b)
+}
+func (m *MutationNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MutationNode.Marshal(b, m, deterministic)
+}
+func (dst *MutationNode) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationNode.Merge(dst, src)
+}
+func (m *MutationNode) XXX_Size() int {
+	return xxx_messageInfo_MutationNode.Size(m)
+}
+func (m *MutationNode) XXX_DiscardUnknown() {
+	xxx_messageInfo_MutationNode.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MutationNode proto.InternalMessageInfo
+
+func (m *MutationNode) GetLabel() string {
+	if m != nil {
+		return m.Label
+	}
+	return ""
+}
+
+func (m *MutationNode) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *MutationNode) GetColor() string {
+	if m != nil {
+		return m.Color
+	}
+	return ""
+}
+
+type MutationEdge struct {
+	From                 string     `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	To                   string     `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	Id                   string     `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
+	Color                *EdgeColor `protobuf:"bytes,4,opt,name=color,proto3" json:"color,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *MutationEdge) Reset()         { *m = MutationEdge{} }
+func (m *MutationEdge) String() string { return proto.CompactTextString(m) }
+func (*MutationEdge) ProtoMessage()    {}
+func (*MutationEdge) Descriptor() ([]byte, []int) {
+	return fileDescriptor_API_d495b8980338116e, []int{12}
+}
+func (m *MutationEdge) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MutationEdge.Unmarshal(m, b)
+}
+func (m *MutationEdge) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MutationEdge.Marshal(b, m, deterministic)
+}
+func (dst *MutationEdge) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationEdge.Merge(dst, src)
+}
+func (m *MutationEdge) XXX_Size() int {
+	return xxx_messageInfo_MutationEdge.Size(m)
+}
+func (m *MutationEdge) XXX_DiscardUnknown() {
+	xxx_messageInfo_MutationEdge.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MutationEdge proto.InternalMessageInfo
+
+func (m *MutationEdge) GetFrom() string {
+	if m != nil {
+		return m.From
+	}
+	return ""
+}
+
+func (m *MutationEdge) GetTo() string {
+	if m != nil {
+		return m.To
+	}
+	return ""
+}
+
+func (m *MutationEdge) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *MutationEdge) GetColor() *EdgeColor {
+	if m != nil {
+		return m.Color
+	}
+	return nil
+}
+
 type LogMessage struct {
 	Origin               string   `protobuf:"bytes,1,opt,name=origin,proto3" json:"origin,omitempty"`
 	Level                uint32   `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
@@ -553,7 +911,7 @@ func (m *LogMessage) Reset()         { *m = LogMessage{} }
 func (m *LogMessage) String() string { return proto.CompactTextString(m) }
 func (*LogMessage) ProtoMessage()    {}
 func (*LogMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_389d95aee1e1de49, []int{7}
+	return fileDescriptor_API_d495b8980338116e, []int{13}
 }
 func (m *LogMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LogMessage.Unmarshal(m, b)
@@ -602,6 +960,12 @@ func init() {
 	proto.RegisterType((*MutationControl)(nil), "proto.MutationControl")
 	proto.RegisterType((*DiscoveryEvent)(nil), "proto.DiscoveryEvent")
 	proto.RegisterType((*ReflectValue)(nil), "proto.ReflectValue")
+	proto.RegisterType((*MutationNodeList)(nil), "proto.MutationNodeList")
+	proto.RegisterType((*MutationEdgeList)(nil), "proto.MutationEdgeList")
+	proto.RegisterType((*MutationPath)(nil), "proto.MutationPath")
+	proto.RegisterType((*EdgeColor)(nil), "proto.EdgeColor")
+	proto.RegisterType((*MutationNode)(nil), "proto.MutationNode")
+	proto.RegisterType((*MutationEdge)(nil), "proto.MutationEdge")
 	proto.RegisterType((*LogMessage)(nil), "proto.LogMessage")
 	proto.RegisterEnum("proto.ServiceControl_Command", ServiceControl_Command_name, ServiceControl_Command_value)
 	proto.RegisterEnum("proto.MutationControl_Type", MutationControl_Type_name, MutationControl_Type_value)
@@ -623,14 +987,20 @@ type APIClient interface {
 	// TODO: create API for bulk CRUD operations
 	QueryCreate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryRead(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
-	QueryReadDot(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryReadDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryUpdate(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryUpdateDsc(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryDelete(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryReadAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
 	QueryReadAllDsc(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
+	QueryMutationNodes(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Query, error)
+	QueryMutationEdges(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Query, error)
+	QueryNodeMutationNodes(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryNodeMutationEdges(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
+	QueryNodeMutationPath(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error)
 	QueryDeleteAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error)
+	SmeFreeze(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error)
+	SmeThaw(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error)
 	// Service management
 	ServiceInit(ctx context.Context, in *ServiceInitRequest, opts ...grpc.CallOption) (API_ServiceInitClient, error)
 	// Mutation/Discover management
@@ -661,15 +1031,6 @@ func (c *aPIClient) QueryCreate(ctx context.Context, in *Query, opts ...grpc.Cal
 func (c *aPIClient) QueryRead(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
 	out := new(Query)
 	err := c.cc.Invoke(ctx, "/proto.API/QueryRead", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *aPIClient) QueryReadDot(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
-	out := new(Query)
-	err := c.cc.Invoke(ctx, "/proto.API/QueryReadDot", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -730,9 +1091,72 @@ func (c *aPIClient) QueryReadAllDsc(ctx context.Context, in *empty.Empty, opts .
 	return out, nil
 }
 
+func (c *aPIClient) QueryMutationNodes(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryMutationNodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryMutationEdges(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryMutationEdges", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryNodeMutationNodes(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryNodeMutationNodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryNodeMutationEdges(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryNodeMutationEdges", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) QueryNodeMutationPath(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Query, error) {
+	out := new(Query)
+	err := c.cc.Invoke(ctx, "/proto.API/QueryNodeMutationPath", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *aPIClient) QueryDeleteAll(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*QueryMulti, error) {
 	out := new(QueryMulti)
 	err := c.cc.Invoke(ctx, "/proto.API/QueryDeleteAll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) SmeFreeze(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/proto.API/SmeFreeze", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aPIClient) SmeThaw(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/proto.API/SmeThaw", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -877,14 +1301,20 @@ type APIServer interface {
 	// TODO: create API for bulk CRUD operations
 	QueryCreate(context.Context, *Query) (*Query, error)
 	QueryRead(context.Context, *Query) (*Query, error)
-	QueryReadDot(context.Context, *Query) (*Query, error)
 	QueryReadDsc(context.Context, *Query) (*Query, error)
 	QueryUpdate(context.Context, *Query) (*Query, error)
 	QueryUpdateDsc(context.Context, *Query) (*Query, error)
 	QueryDelete(context.Context, *Query) (*Query, error)
 	QueryReadAll(context.Context, *empty.Empty) (*QueryMulti, error)
 	QueryReadAllDsc(context.Context, *empty.Empty) (*QueryMulti, error)
+	QueryMutationNodes(context.Context, *empty.Empty) (*Query, error)
+	QueryMutationEdges(context.Context, *empty.Empty) (*Query, error)
+	QueryNodeMutationNodes(context.Context, *Query) (*Query, error)
+	QueryNodeMutationEdges(context.Context, *Query) (*Query, error)
+	QueryNodeMutationPath(context.Context, *Query) (*Query, error)
 	QueryDeleteAll(context.Context, *empty.Empty) (*QueryMulti, error)
+	SmeFreeze(context.Context, *empty.Empty) (*empty.Empty, error)
+	SmeThaw(context.Context, *empty.Empty) (*empty.Empty, error)
 	// Service management
 	ServiceInit(*ServiceInitRequest, API_ServiceInitServer) error
 	// Mutation/Discover management
@@ -931,24 +1361,6 @@ func _API_QueryRead_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(APIServer).QueryRead(ctx, req.(*Query))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _API_QueryReadDot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Query)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(APIServer).QueryReadDot(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.API/QueryReadDot",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).QueryReadDot(ctx, req.(*Query))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1061,6 +1473,96 @@ func _API_QueryReadAllDsc_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _API_QueryMutationNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryMutationNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryMutationNodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryMutationNodes(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryMutationEdges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryMutationEdges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryMutationEdges",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryMutationEdges(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryNodeMutationNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryNodeMutationNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryNodeMutationNodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryNodeMutationNodes(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryNodeMutationEdges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryNodeMutationEdges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryNodeMutationEdges",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryNodeMutationEdges(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_QueryNodeMutationPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Query)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).QueryNodeMutationPath(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/QueryNodeMutationPath",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).QueryNodeMutationPath(ctx, req.(*Query))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _API_QueryDeleteAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(empty.Empty)
 	if err := dec(in); err != nil {
@@ -1075,6 +1577,42 @@ func _API_QueryDeleteAll_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(APIServer).QueryDeleteAll(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_SmeFreeze_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).SmeFreeze(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/SmeFreeze",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).SmeFreeze(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _API_SmeThaw_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).SmeThaw(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.API/SmeThaw",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).SmeThaw(ctx, req.(*empty.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1186,10 +1724,6 @@ var _API_serviceDesc = grpc.ServiceDesc{
 			Handler:    _API_QueryRead_Handler,
 		},
 		{
-			MethodName: "QueryReadDot",
-			Handler:    _API_QueryReadDot_Handler,
-		},
-		{
 			MethodName: "QueryReadDsc",
 			Handler:    _API_QueryReadDsc_Handler,
 		},
@@ -1214,8 +1748,36 @@ var _API_serviceDesc = grpc.ServiceDesc{
 			Handler:    _API_QueryReadAllDsc_Handler,
 		},
 		{
+			MethodName: "QueryMutationNodes",
+			Handler:    _API_QueryMutationNodes_Handler,
+		},
+		{
+			MethodName: "QueryMutationEdges",
+			Handler:    _API_QueryMutationEdges_Handler,
+		},
+		{
+			MethodName: "QueryNodeMutationNodes",
+			Handler:    _API_QueryNodeMutationNodes_Handler,
+		},
+		{
+			MethodName: "QueryNodeMutationEdges",
+			Handler:    _API_QueryNodeMutationEdges_Handler,
+		},
+		{
+			MethodName: "QueryNodeMutationPath",
+			Handler:    _API_QueryNodeMutationPath_Handler,
+		},
+		{
 			MethodName: "QueryDeleteAll",
 			Handler:    _API_QueryDeleteAll_Handler,
+		},
+		{
+			MethodName: "SmeFreeze",
+			Handler:    _API_SmeFreeze_Handler,
+		},
+		{
+			MethodName: "SmeThaw",
+			Handler:    _API_SmeThaw_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -1243,53 +1805,70 @@ var _API_serviceDesc = grpc.ServiceDesc{
 	Metadata: "API.proto",
 }
 
-func init() { proto.RegisterFile("API.proto", fileDescriptor_API_389d95aee1e1de49) }
+func init() { proto.RegisterFile("API.proto", fileDescriptor_API_d495b8980338116e) }
 
-var fileDescriptor_API_389d95aee1e1de49 = []byte{
-	// 708 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xef, 0x4e, 0xdb, 0x30,
-	0x10, 0x4f, 0xfa, 0x97, 0x5e, 0x4b, 0xe9, 0x3c, 0x86, 0x4a, 0x11, 0x12, 0xf8, 0xc3, 0x54, 0x04,
-	0x0a, 0x53, 0x37, 0x69, 0x1f, 0xd8, 0x26, 0x95, 0xb6, 0x12, 0x95, 0x28, 0xeb, 0x4c, 0xbb, 0xaf,
-	0x53, 0x48, 0xdc, 0x28, 0x52, 0x1a, 0x97, 0xc4, 0xa9, 0x96, 0x57, 0x98, 0xf6, 0x14, 0x7b, 0x9d,
-	0xbd, 0xd4, 0x64, 0xc7, 0x81, 0x94, 0xc1, 0x3a, 0x3e, 0x25, 0xe7, 0xfb, 0xdd, 0xef, 0xee, 0x67,
-	0xdf, 0x1d, 0x54, 0xba, 0xe3, 0xa1, 0xb1, 0x08, 0x18, 0x67, 0xa8, 0x28, 0x3f, 0x2d, 0xb8, 0x62,
-	0x36, 0x4d, 0x8e, 0x5a, 0xbb, 0x0e, 0x63, 0x8e, 0x47, 0x4f, 0xa5, 0x75, 0x13, 0xcd, 0x4e, 0x4d,
-	0x3f, 0x56, 0xae, 0xbd, 0x87, 0xae, 0xc1, 0x7c, 0xc1, 0x95, 0x13, 0xff, 0xd0, 0xa1, 0xf8, 0x25,
-	0xa2, 0x41, 0x8c, 0x1a, 0x90, 0x9f, 0x92, 0xcb, 0xa6, 0x7e, 0xa0, 0xb7, 0x2b, 0x44, 0xfc, 0xa2,
-	0x43, 0x28, 0xf8, 0xcc, 0xa6, 0xcd, 0xdc, 0x81, 0xde, 0xae, 0x76, 0xaa, 0x49, 0x84, 0x21, 0x92,
-	0x5e, 0x68, 0x44, 0xba, 0xd0, 0x31, 0x14, 0x97, 0xa6, 0x17, 0xd1, 0x66, 0x5e, 0x62, 0x5e, 0x2a,
-	0x0c, 0xa1, 0x33, 0x8f, 0x5a, 0xfc, 0xab, 0x70, 0x5d, 0x68, 0x24, 0xc1, 0xa0, 0x6d, 0x28, 0x70,
-	0xfa, 0x9d, 0x37, 0x0b, 0x22, 0x85, 0xa0, 0x10, 0xd6, 0x79, 0x05, 0xca, 0x0b, 0x33, 0xf6, 0x98,
-	0x69, 0xe3, 0x77, 0x00, 0xb2, 0x96, 0x51, 0xe4, 0x71, 0x17, 0xbd, 0x86, 0xf2, 0x6d, 0x44, 0x03,
-	0x97, 0x86, 0x4d, 0xfd, 0x20, 0xdf, 0xae, 0x76, 0x6a, 0x8a, 0x5d, 0x62, 0x48, 0xea, 0xc4, 0x1f,
-	0x00, 0x5d, 0xd3, 0x60, 0xe9, 0x5a, 0x74, 0xe8, 0xbb, 0x9c, 0xd0, 0xdb, 0x88, 0x86, 0x1c, 0xd5,
-	0x21, 0xe7, 0xda, 0x4a, 0x4d, 0xce, 0xb5, 0xd1, 0x0e, 0x94, 0xe6, 0xcc, 0x8e, 0xbc, 0x44, 0x4e,
-	0x85, 0x28, 0x0b, 0xff, 0xd2, 0xa1, 0xae, 0xc2, 0x7b, 0xcc, 0xe7, 0x01, 0xf3, 0xd0, 0x7b, 0x28,
-	0x5b, 0x6c, 0x3e, 0x37, 0xfd, 0x24, 0xbe, 0xde, 0xd9, 0x57, 0x89, 0x57, 0x71, 0x46, 0x2f, 0x01,
-	0x91, 0x14, 0x8d, 0x4e, 0xa0, 0x64, 0x31, 0x7f, 0xe6, 0x3a, 0xea, 0xca, 0xb6, 0x8d, 0xe4, 0xea,
-	0x8d, 0xf4, 0xea, 0x8d, 0xae, 0x1f, 0x13, 0x85, 0xc1, 0x47, 0x50, 0x56, 0x0c, 0x68, 0x03, 0x0a,
-	0xd7, 0x93, 0xcf, 0xe3, 0x86, 0x86, 0x00, 0x4a, 0xd3, 0x71, 0xbf, 0x3b, 0x19, 0x34, 0x74, 0x71,
-	0x3a, 0xbc, 0x1a, 0x4e, 0x1a, 0x39, 0xfc, 0x5b, 0x87, 0xad, 0x51, 0xc4, 0x4d, 0xee, 0x32, 0x3f,
-	0xad, 0xf2, 0x5e, 0x90, 0x9e, 0x15, 0xa4, 0x84, 0xe7, 0xee, 0x84, 0x9f, 0x42, 0x81, 0xc7, 0x8b,
-	0xe4, 0x85, 0xea, 0x9d, 0x3d, 0x25, 0xe5, 0x01, 0x9b, 0x31, 0x89, 0x17, 0x94, 0x48, 0x20, 0xda,
-	0x87, 0xbc, 0x35, 0x73, 0xe4, 0x2b, 0xad, 0xbe, 0x3a, 0x11, 0xe7, 0xc2, 0x6d, 0x87, 0x56, 0xb3,
-	0xf8, 0x88, 0xdb, 0x0e, 0x2d, 0x7c, 0x08, 0x05, 0xc1, 0x25, 0x84, 0x8c, 0xa6, 0x13, 0x21, 0x44,
-	0x43, 0x9b, 0x50, 0x19, 0x5e, 0x4d, 0x06, 0x84, 0x4c, 0xc7, 0x93, 0x86, 0x8e, 0xa7, 0x50, 0xef,
-	0xbb, 0xa1, 0xc5, 0x96, 0x34, 0x88, 0x07, 0x4b, 0xea, 0xf3, 0x27, 0xb5, 0x34, 0x20, 0x1f, 0x05,
-	0x9e, 0x12, 0x23, 0x7e, 0xd1, 0x2e, 0x6c, 0xc8, 0x66, 0xfa, 0xe6, 0xda, 0x52, 0x51, 0x85, 0x94,
-	0xa5, 0x3d, 0xb4, 0x71, 0x1d, 0x6a, 0xd9, 0xbe, 0xc3, 0x97, 0x00, 0x97, 0xcc, 0x19, 0xd1, 0x30,
-	0x34, 0x1d, 0x2a, 0x52, 0xb0, 0xc0, 0x75, 0x5c, 0x3f, 0x4d, 0x91, 0x58, 0x68, 0x1b, 0x8a, 0x1e,
-	0x5d, 0xd2, 0x24, 0xc9, 0x26, 0x49, 0x0c, 0x91, 0x78, 0x1e, 0x3a, 0x2a, 0x83, 0xf8, 0xed, 0xfc,
-	0x2c, 0x41, 0xbe, 0x3b, 0x1e, 0xa2, 0x63, 0xa8, 0xca, 0xfe, 0xeb, 0x05, 0xd4, 0xe4, 0x14, 0xad,
-	0xf4, 0x64, 0x6b, 0xc5, 0xc2, 0x1a, 0x3a, 0x82, 0x4a, 0xd2, 0xac, 0xd4, 0xb4, 0xd7, 0x40, 0x4f,
-	0xa0, 0x76, 0x07, 0xed, 0x33, 0xfe, 0x1c, 0x74, 0x68, 0xad, 0x41, 0xa7, 0x35, 0x4f, 0x17, 0xf6,
-	0xfa, 0x9a, 0x0d, 0xa8, 0x67, 0xc0, 0xff, 0x4f, 0xde, 0xa7, 0x1e, 0x5d, 0x4b, 0x7e, 0x96, 0xa9,
-	0xbb, 0xeb, 0x79, 0x68, 0xe7, 0xaf, 0x09, 0x91, 0xcb, 0xa9, 0xf5, 0x22, 0x1b, 0x27, 0xd7, 0x01,
-	0xd6, 0xd0, 0x27, 0xd8, 0xca, 0x06, 0x8b, 0xd2, 0x9e, 0x15, 0xff, 0x51, 0x29, 0x4b, 0x2a, 0x7d,
-	0x76, 0xfa, 0x1e, 0x54, 0x33, 0x7b, 0x06, 0xed, 0xae, 0x2e, 0x85, 0xcc, 0xee, 0x69, 0xbd, 0x7a,
-	0x74, 0x5f, 0x60, 0xed, 0x8d, 0x8e, 0x06, 0x50, 0x4b, 0x47, 0x6f, 0x1d, 0xcb, 0xce, 0xe3, 0xa3,
-	0x2a, 0x69, 0xce, 0x61, 0xf3, 0x6e, 0x84, 0x24, 0x4f, 0x9a, 0x72, 0x75, 0xb0, 0x5a, 0x4f, 0x08,
-	0xc4, 0x5a, 0x5b, 0x47, 0x67, 0x72, 0x3e, 0x1c, 0x1a, 0x48, 0x82, 0x54, 0xf2, 0xfd, 0xc8, 0xfc,
-	0x2b, 0xf8, 0xa6, 0x24, 0xcf, 0xde, 0xfe, 0x09, 0x00, 0x00, 0xff, 0xff, 0x22, 0xd4, 0x97, 0x1b,
-	0x96, 0x06, 0x00, 0x00,
+var fileDescriptor_API_d495b8980338116e = []byte{
+	// 984 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x55, 0x5b, 0x6f, 0x1a, 0x47,
+	0x14, 0x66, 0xb9, 0x9a, 0x03, 0x26, 0x74, 0xe2, 0xb8, 0x98, 0x34, 0x92, 0xb3, 0x0f, 0x91, 0xad,
+	0x46, 0xb8, 0xa2, 0x37, 0x55, 0x49, 0x1a, 0x11, 0x4c, 0x65, 0x5a, 0xdb, 0xa5, 0x03, 0x54, 0xea,
+	0x53, 0xb5, 0xde, 0x1d, 0x96, 0xad, 0x96, 0x1d, 0xb2, 0x3b, 0x4b, 0x4b, 0x7f, 0x4e, 0x1f, 0xfa,
+	0x67, 0xfa, 0x9b, 0x2a, 0x55, 0x73, 0x83, 0xe5, 0x66, 0xe2, 0x3e, 0xed, 0x9c, 0xcb, 0xf7, 0xcd,
+	0x39, 0x67, 0xce, 0x9e, 0x03, 0xc5, 0x56, 0xaf, 0xdb, 0x98, 0x86, 0x94, 0x51, 0x94, 0x13, 0x9f,
+	0x3a, 0xdc, 0x52, 0x87, 0x48, 0x55, 0xfd, 0xc4, 0xa5, 0xd4, 0xf5, 0xc9, 0x85, 0x90, 0xee, 0xe2,
+	0xd1, 0x85, 0x15, 0xcc, 0x95, 0xe9, 0xe9, 0xba, 0xa9, 0x33, 0x99, 0x32, 0x65, 0x34, 0xff, 0x4e,
+	0x43, 0xee, 0xa7, 0x98, 0x84, 0x73, 0x54, 0x85, 0xcc, 0x10, 0x5f, 0xd7, 0x8c, 0x53, 0xe3, 0xac,
+	0x88, 0xf9, 0x11, 0x3d, 0x87, 0x6c, 0x40, 0x1d, 0x52, 0x4b, 0x9f, 0x1a, 0x67, 0xa5, 0x66, 0x49,
+	0x22, 0x1a, 0xfc, 0xd2, 0xab, 0x14, 0x16, 0x26, 0x74, 0x04, 0x59, 0x46, 0xfe, 0x60, 0xb5, 0x0c,
+	0x47, 0x71, 0x2d, 0x97, 0x50, 0x07, 0xaa, 0x93, 0x98, 0x59, 0xcc, 0xa3, 0x01, 0xf7, 0xbe, 0xf6,
+	0x22, 0x56, 0xcb, 0x0a, 0x92, 0x8f, 0x15, 0xc9, 0xcd, 0x9a, 0xf9, 0x2a, 0x85, 0x37, 0x20, 0x49,
+	0x9a, 0x8e, 0xe3, 0x4a, 0x9a, 0xdc, 0x56, 0x1a, 0x6d, 0x4e, 0xd2, 0x68, 0x1d, 0xfa, 0x06, 0xca,
+	0x5a, 0xd7, 0xb3, 0xd8, 0xb8, 0x96, 0x17, 0x14, 0x8f, 0xd7, 0x28, 0xb8, 0xe9, 0x2a, 0x85, 0x57,
+	0x5c, 0xdf, 0x15, 0xa1, 0x30, 0xb5, 0xe6, 0x3e, 0xb5, 0x1c, 0xf3, 0x0b, 0x00, 0x51, 0xa7, 0x9b,
+	0xd8, 0x67, 0x1e, 0x7a, 0x01, 0x85, 0xf7, 0x31, 0x09, 0x3d, 0x12, 0xd5, 0x8c, 0xd3, 0xcc, 0x59,
+	0xa9, 0x59, 0x56, 0x74, 0xc2, 0x07, 0x6b, 0xa3, 0xf9, 0x1a, 0x50, 0x9f, 0x84, 0x33, 0xcf, 0x26,
+	0xdd, 0xc0, 0x63, 0x98, 0xbc, 0x8f, 0x49, 0xc4, 0x50, 0x05, 0xd2, 0x9e, 0xa3, 0x2a, 0x9d, 0xf6,
+	0x1c, 0x74, 0x0c, 0xf9, 0x09, 0x75, 0x62, 0x5f, 0x96, 0xba, 0x88, 0x95, 0x64, 0xfe, 0x65, 0x40,
+	0x45, 0xc1, 0xdb, 0x34, 0x60, 0x21, 0xf5, 0xd1, 0xd7, 0x50, 0xb0, 0xe9, 0x64, 0x62, 0x05, 0x12,
+	0x5f, 0x69, 0x3e, 0x53, 0x17, 0xaf, 0xfa, 0x35, 0xda, 0xd2, 0x09, 0x6b, 0x6f, 0xf4, 0x12, 0xf2,
+	0x36, 0x0d, 0x46, 0x9e, 0xab, 0x9e, 0xf3, 0xa8, 0x21, 0xdb, 0xa2, 0xa1, 0xdb, 0xa2, 0xd1, 0x0a,
+	0xe6, 0x58, 0xf9, 0x98, 0xe7, 0x50, 0x50, 0x0c, 0xe8, 0x00, 0xb2, 0xfd, 0xc1, 0x8f, 0xbd, 0x6a,
+	0x0a, 0x01, 0xe4, 0x87, 0xbd, 0xcb, 0xd6, 0xa0, 0x53, 0x35, 0xb8, 0xb6, 0x7b, 0xdb, 0x1d, 0x54,
+	0xd3, 0xe6, 0x3f, 0x06, 0x3c, 0xd2, 0x45, 0xd4, 0x51, 0x2e, 0x13, 0x32, 0x92, 0x09, 0xa9, 0xc4,
+	0xd3, 0x8b, 0xc4, 0x2f, 0x20, 0xcb, 0xe6, 0x53, 0x22, 0xda, 0xa7, 0xd2, 0x7c, 0xba, 0xf6, 0x24,
+	0x3a, 0x97, 0xc1, 0x7c, 0x4a, 0xb0, 0x70, 0x44, 0xcf, 0x20, 0x63, 0x8f, 0x5c, 0xd5, 0x4c, 0xc9,
+	0x8e, 0xc4, 0x5c, 0xcf, 0xcd, 0x4e, 0x64, 0xab, 0x26, 0x59, 0x35, 0x3b, 0x91, 0x6d, 0x3e, 0x87,
+	0x2c, 0xe7, 0xe2, 0x89, 0xdc, 0x0c, 0x07, 0x3c, 0x91, 0x14, 0x3a, 0x84, 0x62, 0xf7, 0x76, 0xd0,
+	0xc1, 0x78, 0xd8, 0x1b, 0x54, 0x0d, 0x73, 0x08, 0x95, 0x4b, 0x2f, 0xb2, 0xe9, 0x8c, 0x84, 0xf3,
+	0xce, 0x8c, 0x04, 0x6c, 0x67, 0x2e, 0x55, 0xc8, 0xc4, 0xa1, 0xaf, 0x92, 0xe1, 0x47, 0x74, 0x02,
+	0x07, 0x33, 0xcb, 0x8f, 0xc9, 0xaf, 0x9e, 0x23, 0x7f, 0x08, 0x5c, 0x10, 0x72, 0xd7, 0x31, 0x2b,
+	0x50, 0xc6, 0x64, 0xe4, 0x13, 0x9b, 0xfd, 0xcc, 0x35, 0x66, 0x1f, 0xaa, 0xeb, 0xbf, 0x00, 0x7a,
+	0xbb, 0xa9, 0x53, 0xcd, 0xf5, 0x78, 0xcb, 0x5f, 0x83, 0x37, 0x9c, 0x93, 0xa4, 0x8b, 0xe6, 0x7f,
+	0xbb, 0xa9, 0xdb, 0x41, 0xca, 0xcd, 0x78, 0xc3, 0xd9, 0xfc, 0x01, 0xca, 0xc9, 0x5f, 0x84, 0xa7,
+	0x6d, 0xc7, 0xa1, 0xa8, 0x45, 0x06, 0xf3, 0x23, 0x3a, 0x87, 0x9c, 0x3d, 0xb6, 0xbc, 0xa0, 0x96,
+	0xde, 0xcd, 0x2b, 0x3d, 0xcc, 0x5f, 0xa0, 0xc8, 0xc5, 0x36, 0xf5, 0x69, 0x88, 0x8e, 0x20, 0x67,
+	0xf3, 0x83, 0xaa, 0xab, 0x14, 0xd0, 0x27, 0x50, 0x1c, 0x7b, 0xee, 0xd8, 0xf7, 0xdc, 0x31, 0x53,
+	0xc5, 0x5d, 0x2a, 0x50, 0x0d, 0x0a, 0x5e, 0x30, 0x26, 0xa1, 0x27, 0x47, 0xce, 0x01, 0xd6, 0xa2,
+	0xf9, 0xfd, 0x32, 0xce, 0x5b, 0x39, 0x99, 0x72, 0xbe, 0x75, 0x47, 0x7c, 0xcd, 0x2e, 0x84, 0x8d,
+	0x06, 0x5c, 0xc4, 0x90, 0x49, 0xc4, 0x60, 0xfe, 0xb6, 0xe4, 0xe2, 0xe1, 0x22, 0x04, 0xd9, 0x51,
+	0x48, 0x27, 0x8a, 0x4a, 0x9c, 0x39, 0x13, 0xa3, 0x9a, 0x89, 0x51, 0xc5, 0x9c, 0x59, 0x30, 0xbf,
+	0xd0, 0xcc, 0xb2, 0x57, 0xab, 0xaa, 0x2a, 0x8b, 0xf4, 0xf5, 0x5d, 0xd7, 0x00, 0xd7, 0xd4, 0xbd,
+	0x21, 0x51, 0x64, 0xb9, 0x84, 0x37, 0x1b, 0x0d, 0x3d, 0xd7, 0x0b, 0x74, 0xb3, 0x49, 0x49, 0x64,
+	0x43, 0x66, 0x44, 0xb6, 0xdb, 0x21, 0x96, 0x02, 0x7f, 0x8b, 0x49, 0xe4, 0xaa, 0x4b, 0xf9, 0xb1,
+	0xf9, 0xef, 0x01, 0x64, 0x5a, 0xbd, 0x2e, 0xfa, 0x14, 0x4a, 0x62, 0x12, 0xb5, 0x43, 0x62, 0x31,
+	0x82, 0x56, 0xa6, 0x53, 0x7d, 0x45, 0x32, 0x53, 0xe8, 0x1c, 0x8a, 0x72, 0x6c, 0x11, 0xcb, 0xd9,
+	0xe3, 0xfa, 0x12, 0xca, 0x0b, 0xd7, 0xcb, 0xc8, 0xde, 0xe3, 0xad, 0xa3, 0x18, 0x4e, 0x9d, 0xfd,
+	0x51, 0x34, 0xa0, 0x92, 0x70, 0xfe, 0x70, 0xf2, 0x4b, 0xe2, 0x93, 0xbd, 0xe4, 0xaf, 0x12, 0x71,
+	0xb7, 0x7c, 0x1f, 0x1d, 0x6f, 0x4c, 0x3f, 0xb1, 0x14, 0xeb, 0x1f, 0x25, 0x71, 0x62, 0xd4, 0x9b,
+	0x29, 0xf4, 0x2d, 0x3c, 0x4a, 0x82, 0x79, 0x68, 0x0f, 0xc2, 0xbf, 0x06, 0xa4, 0xe4, 0x65, 0x7f,
+	0x46, 0x3b, 0x29, 0xd6, 0x43, 0x5f, 0x47, 0xf3, 0x0e, 0xfa, 0x70, 0xf4, 0x57, 0x70, 0x2c, 0x8e,
+	0xfc, 0xce, 0xd5, 0xfb, 0xef, 0x2f, 0xd8, 0x36, 0x9c, 0xbc, 0xf9, 0x7e, 0xdc, 0x97, 0xf0, 0x64,
+	0x03, 0x27, 0xe6, 0xc6, 0xfd, 0xb0, 0x37, 0xea, 0xf1, 0xe5, 0x63, 0x3e, 0xf8, 0x85, 0xde, 0x40,
+	0xb1, 0x3f, 0x21, 0xdf, 0x85, 0x84, 0xfc, 0x49, 0x76, 0x22, 0x77, 0xe8, 0x45, 0x77, 0x14, 0xfa,
+	0x13, 0x32, 0x18, 0x5b, 0xbf, 0xff, 0x0f, 0x70, 0x1b, 0x4a, 0x89, 0x15, 0x8f, 0x4e, 0x56, 0xf7,
+	0x71, 0x62, 0xed, 0xd7, 0x9f, 0x6c, 0x5d, 0xd5, 0x66, 0xea, 0x33, 0x03, 0x75, 0x96, 0x13, 0x67,
+	0x1f, 0xcb, 0xf1, 0xf6, 0x2d, 0x29, 0x68, 0xde, 0xc1, 0xe1, 0x62, 0x7b, 0x09, 0x1e, 0x7d, 0xe5,
+	0xea, 0x4e, 0xdb, 0x9d, 0xcd, 0x99, 0x81, 0x5e, 0x89, 0x81, 0xe4, 0x92, 0x50, 0x10, 0xe8, 0x72,
+	0x2f, 0x67, 0xd4, 0x7d, 0xe0, 0xbb, 0xbc, 0xd0, 0x7d, 0xfe, 0x5f, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x01, 0xb6, 0x66, 0x8e, 0xad, 0x0a, 0x00, 0x00,
 }

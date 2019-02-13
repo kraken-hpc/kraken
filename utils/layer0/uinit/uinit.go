@@ -49,17 +49,17 @@ const (
 func loadModules() (cmds []command, e error) {
 	var f *os.File
 	if _, e = os.Stat(moduleFile); os.IsNotExist(e) {
-		fmt.Printf("%s does not exist, we will not load modules", moduleFile)
+		fmt.Printf("%s does not exist, we will not load modules\n", moduleFile)
 		return
 	}
 	if f, e = os.Open(moduleFile); e != nil {
-		fmt.Printf("failed to open module file, %s: %v", moduleFile, e)
+		fmt.Printf("failed to open module file, %s: %v\n", moduleFile, e)
 		return
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		fmt.Printf("adding module to load list: %s", scanner.Text())
+		fmt.Printf("adding module to load list: %s\n", scanner.Text())
 		cmd := command{
 			Cmd:        insmodCmd,
 			Args:       []string{insmodCmd, scanner.Text()},
@@ -72,7 +72,7 @@ func loadModules() (cmds []command, e error) {
 
 func goExec(cmd *exec.Cmd) {
 	if err := cmd.Run(); err != nil {
-		log.Printf("command %s failed: %s", cmd.Path, err)
+		log.Printf("command %s failed: %s\n", cmd.Path, err)
 	}
 }
 
@@ -148,7 +148,7 @@ func main() {
 			Args:       []string{"/bbin/ip", "link", "set", "eth0", "up"},
 		},
 		command{
-			Cmd:        "/bin/dssh",
+			Cmd:        "/bbin/sshd",
 			Background: true,
 		},
 		command{

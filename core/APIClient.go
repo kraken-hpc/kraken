@@ -68,20 +68,6 @@ func (a *APIClient) QueryRead(id string) (r lib.Node, e error) {
 	return
 }
 
-func (a *APIClient) QueryReadDot(n lib.Node) (r string, e error) {
-	q := &pb.Query{
-		Payload: &pb.Query_Node{
-			Node: n.Message().(*pb.Node),
-		},
-	}
-	rv, e := a.oneshot("QueryReadDot", reflect.ValueOf(q))
-	if e != nil {
-		return
-	}
-	r = rv.Interface().(*pb.Query).GetText()
-	return
-}
-
 func (a *APIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryReadDsc", reflect.ValueOf(q))
@@ -153,6 +139,56 @@ func (a *APIClient) QueryReadAllDsc() (r []lib.Node, e error) {
 	for _, q := range mquery.Queries {
 		r = append(r, NewNodeFromMessage(q.GetNode()))
 	}
+	return
+}
+
+func (a *APIClient) QueryMutationNodes() (r pb.MutationNodeList, e error) {
+	q := &empty.Empty{}
+	rv, e := a.oneshot("QueryMutationNodes", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationNodeList()
+	return
+}
+
+func (a *APIClient) QueryMutationEdges() (r pb.MutationEdgeList, e error) {
+	q := &empty.Empty{}
+	rv, e := a.oneshot("QueryMutationEdges", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationEdgeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationNodes(id string) (r pb.MutationNodeList, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/nodes")}
+	rv, e := a.oneshot("QueryNodeMutationNodes", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationNodeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationEdges(id string) (r pb.MutationEdgeList, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/edges")}
+	rv, e := a.oneshot("QueryNodeMutationEdges", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationEdgeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationPath(id string) (r pb.MutationPath, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/path")}
+	rv, e := a.oneshot("QueryNodeMutationPath", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationPath()
 	return
 }
 
@@ -293,6 +329,18 @@ func (a *APIClient) LoggerInit(si string) (e error) {
 			}
 		}
 	}()
+	return
+}
+
+func (a *APIClient) SmeFreeze() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("SmeFreeze", reflect.ValueOf(q))
+	return
+}
+
+func (a *APIClient) SmeThaw() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("SmeThaw", reflect.ValueOf(q))
 	return
 }
 

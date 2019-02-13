@@ -1,0 +1,6 @@
+.vagrant
+*.retry
+**/.DS_Store
+**/.vscode
+log/*.log
+ssh-config
