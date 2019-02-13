@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -226,18 +227,25 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 		var nmn pb.MutationNode
 		nmn.Id = fmt.Sprintf("%p", mn)
 		label := ""
-		for reqKey, reqVal := range mn.spec.Requires() {
-			// if reqkey is in mutators
+
+		var reqKeys []string
+		for k := range mn.spec.Requires() {
+			reqKeys = append(reqKeys, k)
+		}
+		sort.Strings(reqKeys)
+
+		for _, reqKey := range reqKeys {
 			if _, ok := sme.mutators[reqKey]; ok {
 				// Add value to label name
-				reqKey = strings.Replace(reqKey, "type.googleapis.com", "", -1)
-				reqKey = strings.Replace(reqKey, "/", "", -1)
+				trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
+				trimKey = strings.Replace(trimKey, "/", "", -1)
 				if label == "" {
-					label = fmt.Sprintf("%s: %s", reqKey, lib.ValueToString(reqVal))
+					label = fmt.Sprintf("%s: %s", trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
 				} else {
-					label = fmt.Sprintf("%s\n%s: %s", label, reqKey, lib.ValueToString(reqVal))
+					label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
 				}
 			}
+
 		}
 
 		nmn.Label = label
