@@ -332,18 +332,6 @@ func (a *APIClient) LoggerInit(si string) (e error) {
 	return
 }
 
-func (a *APIClient) SmeFreeze() (e error) {
-	q := &empty.Empty{}
-	_, e = a.oneshot("SmeFreeze", reflect.ValueOf(q))
-	return
-}
-
-func (a *APIClient) SmeThaw() (e error) {
-	q := &empty.Empty{}
-	_, e = a.oneshot("SmeThaw", reflect.ValueOf(q))
-	return
-}
-
 // use reflection to call API methods by name and encapsulate
 // all of the one-time connection symantics
 // this is convoluted, but makes everything else DRYer

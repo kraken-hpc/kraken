@@ -330,18 +330,6 @@ func (q *QueryEngine) SetValueDsc(url string, v reflect.Value) (rv reflect.Value
 	return vs[0], e
 }
 
-func (q *QueryEngine) SmeFreeze() (e error) {
-	query, r := NewQuery(lib.Query_FREEZE, lib.QueryState_BOTH, "", []reflect.Value{})
-	_, e = q.blockingQuery(query, r)
-	return e
-}
-
-func (q *QueryEngine) SmeThaw() (e error) {
-	query, r := NewQuery(lib.Query_THAW, lib.QueryState_BOTH, "", []reflect.Value{})
-	_, e = q.blockingQuery(query, r)
-	return e
-}
-
 // TODO: write a better query language
 
 ////////////////////////
@@ -351,15 +339,17 @@ func (q *QueryEngine) SmeThaw() (e error) {
 func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse) ([]reflect.Value, error) {
 	var qr lib.QueryResponse
 	var s chan<- lib.Query
-	switch lib.QueryTypeMap[query.Type()] {
+	t, ok := lib.QueryTypeMap[query.Type()]
+	if !ok {
+		return nil, fmt.Errorf("invalid query type: %s", query.Type())
+	}
+	switch t {
 	case lib.Query_SDE:
 		s = q.sd
 	case lib.Query_SME:
 		s = q.sm
 	default:
-		e := fmt.Errorf("QueryType %v not mapped to a QueryEngineType", query.Type())
-		qr = NewQueryResponse([]reflect.Value{}, e)
-		return qr.Value(), qr.Error()
+		return nil, fmt.Errorf("QueryType %v not mapped to a QueryEngineType", query.Type())
 	}
 	s <- query
 	qr = <-r

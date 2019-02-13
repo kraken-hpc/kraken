@@ -106,11 +106,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
-	r.router.HandleFunc("/graph/dot", r.readGraphJSON).Methods("GET")
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
-	r.router.HandleFunc("/graph/node/{id}/dot", r.readNodeGraphJSON).Methods("GET")
-	r.router.HandleFunc("/sme/freeze", r.smeFreeze).Methods("POST")
-	r.router.HandleFunc("/sme/thaw", r.smeThaw).Methods("POST")
 }
 
 func (r *RestAPI) startServer() {
@@ -190,22 +186,22 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
 
-	nodes, e := r.readNodeMutationNodes(params["id"])
+	nodes, e := r.api.QueryNodeMutationNodes(params["id"])
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
-	edges, e := r.readNodeMutationEdges(params["id"])
+	edges, e := r.api.QueryNodeMutationEdges(params["id"])
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
 
-	path, e := r.readNodeMutationPath(params["id"])
+	path, e := r.api.QueryNodeMutationPath(params["id"])
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
@@ -245,86 +241,52 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	r.api.Logf(lib.LLDEBUG, "restapi nodes: %v", nodes)
-	r.api.Logf(lib.LLDEBUG, "restapi edges: %v", edges)
-
 	graph := GraphJson{
 		Nodes: nodes.MutationNodeList,
 		Edges: edges.MutationEdgeList,
 	}
-	r.api.Logf(lib.LLDEBUG, "restapi graph: %v", graph)
-
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	jsonGraph, e := json.Marshal(graph)
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDEBUG, "graph: %s", string(jsonGraph))
+	r.api.Logf(lib.LLDDDEBUG, "Node filtered graph: %v", string(jsonGraph))
 	w.Write([]byte(string(jsonGraph)))
 }
 
 func (r *RestAPI) readGraphJSON(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
-	nodes, e := r.readMutationNodes()
+	nodes, e := r.api.QueryMutationNodes()
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
 
-	edges, e := r.readMutationEdges()
+	edges, e := r.api.QueryMutationEdges()
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
-
-	r.api.Logf(lib.LLDEBUG, "restapi nodes: %v", nodes)
-	r.api.Logf(lib.LLDEBUG, "restapi edges: %v", edges)
 
 	graph := GraphJson{
 		Nodes: nodes.MutationNodeList,
 		Edges: edges.MutationEdgeList,
 	}
-	r.api.Logf(lib.LLDEBUG, "restapi graph: %v", graph)
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	jsonGraph, e := json.Marshal(graph)
 	if e != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDEBUG, "graph: %s", string(jsonGraph))
+	r.api.Logf(lib.LLDDDEBUG, "Graph: %v", string(jsonGraph))
 	w.Write([]byte(string(jsonGraph)))
-}
-
-func (r *RestAPI) readMutationNodes() (mnl cpb.MutationNodeList, e error) {
-	mnl, e = r.api.QueryMutationNodes()
-	return
-}
-
-func (r *RestAPI) readMutationEdges() (mel cpb.MutationEdgeList, e error) {
-	mel, e = r.api.QueryMutationEdges()
-	return
-}
-
-func (r *RestAPI) readNodeMutationNodes(id string) (mnl cpb.MutationNodeList, e error) {
-	mnl, e = r.api.QueryNodeMutationNodes(id)
-	return
-}
-
-func (r *RestAPI) readNodeMutationEdges(id string) (mel cpb.MutationEdgeList, e error) {
-	mel, e = r.api.QueryNodeMutationEdges(id)
-	return
-}
-
-func (r *RestAPI) readNodeMutationPath(id string) (mp cpb.MutationPath, e error) {
-	mp, e = r.api.QueryNodeMutationPath(id)
-	return
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
@@ -480,27 +442,6 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 	b, _ := core.MarshalJSON(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
-}
-
-func (r *RestAPI) smeFreeze(w http.ResponseWriter, req *http.Request) {
-	e := r.api.SmeFreeze()
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if e != nil {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(e.Error()))
-		return
-	}
-	w.Write([]byte("sme frozen successfully"))
-}
-func (r *RestAPI) smeThaw(w http.ResponseWriter, req *http.Request) {
-	e := r.api.SmeThaw()
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if e != nil {
-		w.WriteHeader(http.StatusConflict)
-		w.Write([]byte(e.Error()))
-		return
-	}
-	w.Write([]byte("sme thawed successfully"))
 }
 
 func init() {

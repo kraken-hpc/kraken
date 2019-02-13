@@ -279,18 +279,6 @@ func (s *APIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *p
 	return
 }
 
-func (s *APIServer) SmeFreeze(ctx context.Context, in *empty.Empty) (out *empty.Empty, e error) {
-	out = &empty.Empty{}
-	e = s.query.SmeFreeze()
-	return
-}
-
-func (s *APIServer) SmeThaw(ctx context.Context, in *empty.Empty) (out *empty.Empty, e error) {
-	out = &empty.Empty{}
-	e = s.query.SmeThaw()
-	return
-}
-
 /*
  * Service management
  */

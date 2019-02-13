@@ -10,7 +10,6 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -266,6 +265,8 @@ func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 }
 
 func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
+	path.mutex.Lock()
+	defer path.mutex.Unlock()
 	if path != nil {
 		r.Cur = int64(path.cur)
 		for _, me := range path.chain {
@@ -285,32 +286,24 @@ func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 
 func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationNode, e error) {
 	// Get node from path
-	sme.Logf(lib.LLDEBUG, "got to filtered nodes method")
 	mp := sme.active[n.String()]
 	if mp != nil {
-		jmp, _ := json.Marshal(mp)
-		sme.Logf(lib.LLDEBUG, string(jmp))
 		node := mp.end
-		plat, e := node.GetValue("/Platform")
-		sme.Logf(lib.LLDEBUG, "plat: %v err: %v", plat, e)
 
+		// Combine discoverables and mutators into discoverables map
 		discoverables := make(map[string]string)
-
 		for _, moduleMap := range Registry.Discoverables {
 			for key := range moduleMap {
 				discoverables[key] = ""
 			}
 		}
-
 		for key := range sme.mutators {
 			discoverables[key] = ""
 		}
 
 		filteredNodes := make(map[*mutationNode]string)
 
-		sme.Logf(lib.LLDEBUG, "discoverables: %v", discoverables)
 		for _, mn := range sme.nodes {
-			sme.Logf(lib.LLDEBUG, "node reqs: %v", mn.spec.Requires())
 			filteredNodes[mn] = ""
 			for reqKey, reqVal := range mn.spec.Requires() {
 				// if reqkey is not in discoverables
@@ -319,39 +312,31 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 					if nodeVal, err := node.GetValue(reqKey); err == nil {
 						// if it doesn't match, remove mn from final nodes
 						if nodeVal.String() != reqVal.String() {
-							sme.Logf(lib.LLDDDEBUG, "removing %v from final nodes because req %v doesn't match", mn, reqKey)
-							sme.Logf(lib.LLDDDEBUG, "%v vs %v", nodeVal.String(), reqVal.String())
 							delete(filteredNodes, mn)
-						} else {
-							sme.Logf(lib.LLDDDEBUG, "%v matches %v. It can stay", nodeVal.String(), reqVal.String())
 						}
 					}
-				} else {
-					sme.Logf(lib.LLDDDEBUG, "req %v is a discoverable...", reqKey)
 				}
 			}
 
 			for excKey, excVal := range mn.spec.Excludes() {
 				// if excKey is in discoverables, move on
 				if _, ok := discoverables[excKey]; ok {
-					sme.Logf(lib.LLDDDEBUG, "exc %v is a discoverable. breaking.", excKey)
 					break
 				}
 				// if physical node has the exckey as a value, check if it does match
 				if nodeVal, err := node.GetValue(excKey); err == nil {
 					// if it doesn't match, remove mn from final nodes
 					if nodeVal == excVal {
-						sme.Logf(lib.LLDDDEBUG, "removing %v from final nodes because exc %v does match", mn, excKey)
 						delete(filteredNodes, mn)
 					}
 				}
 			}
 		}
-		sme.Logf(lib.LLDDDEBUG, "final mn: %v", filteredNodes)
 
 		for mn := range filteredNodes {
 			r = append(r, mn)
 		}
+		sme.Logf(DDDEBUG, "Final filtered nodes from SME: %v", r)
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
@@ -458,62 +443,45 @@ func (sme *StateMutationEngine) Run() {
 			case lib.Query_MUTATIONNODES:
 				_, u := lib.NodeURLSplit(q.URL())
 				var e error
+				// If url is empty then assume we want all mutation nodes
 				if u == "" {
 					v := sme.mutationNodesToProto(sme.nodes)
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
-					sme.Logf(lib.LLDEBUG, "getting filtered nodes")
 					n := NewNodeIDFromURL(q.URL())
-					r, e := sme.filterMutNodesFromNode(*n)
-					v := sme.mutationNodesToProto(r)
-					sme.Logf(lib.LLDEBUG, "filtered nodes: %v", v)
+					fmn, e := sme.filterMutNodesFromNode(*n)
+					mnl := sme.mutationNodesToProto(fmn)
 					go sme.sendQueryResponse(NewQueryResponse(
-						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+						[]reflect.Value{reflect.ValueOf(mnl)}, e), q.ResponseChan())
 				}
 				break
 			case lib.Query_MUTATIONEDGES:
-				n, u := lib.NodeURLSplit(q.URL())
-				sme.Logf(lib.LLDEBUG, "node: %v url: %v", n, u)
+				_, u := lib.NodeURLSplit(q.URL())
 				var e error
+				// If url is empty then assume we want all mutation edges
 				if u == "" {
 					v := mutationEdgesToProto(sme.edges)
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
-					sme.Logf(lib.LLDEBUG, "getting filtered edges")
 					n := NewNodeIDFromURL(q.URL())
 					fme, e := sme.filterMutEdgesFromNode(*n)
-					v := mutationEdgesToProto(fme)
-					sme.Logf(lib.LLDEBUG, "filtered edges: %v", v)
+					mel := mutationEdgesToProto(fme)
 					go sme.sendQueryResponse(NewQueryResponse(
-						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
-
+						[]reflect.Value{reflect.ValueOf(mel)}, e), q.ResponseChan())
 				}
 				break
 			case lib.Query_MUTATIONPATH:
 				n := NewNodeIDFromURL(q.URL())
-				var e error
-				sme.Logf(lib.LLDEBUG, "looking for this node: %v", n)
-				sme.Logf(lib.LLDEBUG, "all active mutations: %v", sme.active)
-				v, e := mutationPathToProto(sme.active[n.String()])
+				sme.activeMutex.Lock()
+				mp, e := mutationPathToProto(sme.active[n.String()])
+				sme.activeMutex.Unlock()
 				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
-				break
-			case lib.Query_FREEZE:
-				sme.Freeze()
-				var e error
-				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{}, e), q.ResponseChan())
-				break
-			case lib.Query_THAW:
-				sme.Thaw()
-				var e error
-				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{}, e), q.ResponseChan())
+					[]reflect.Value{reflect.ValueOf(mp)}, e), q.ResponseChan())
 				break
 			default:
-				sme.Logf(lib.LLDEBUG, "unsupported query type: %d", q.Type())
+				sme.Logf(DEBUG, "unsupported query type: %d", q.Type())
 			}
 			break
 		case v := <-sme.echan:
@@ -524,7 +492,7 @@ func (sme *StateMutationEngine) Run() {
 			}
 			break
 		case <-debugchan:
-			sme.Logf(lib.LLDDEBUG, "There are %d active mutations.", len(sme.active))
+			sme.Logf(DDEBUG, "There are %d active mutations.", len(sme.active))
 			break
 		}
 	}

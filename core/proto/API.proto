@@ -62,8 +62,6 @@ message DiscoveryEvent {
     string value_id = 3;
 }
 
-message ReflectValue { }
-
 message MutationNodeList {
     repeated MutationNode MutationNodeList = 1;
 }
@@ -77,12 +75,6 @@ message MutationPath {
     repeated MutationEdge chain = 2;
 }
 
-message EdgeColor {
-    string color = 1;
-    string highlight = 2;
-    bool inherit = 3;
-}
-
 message MutationNode {
     string label = 1;
     string id = 2;
@@ -94,6 +86,13 @@ message MutationEdge {
     string to = 2;
     string id = 3;
     EdgeColor color = 4;
+}
+
+// This is only nessessary for the json mutation edge color to output in the correct format for the dashboard
+message EdgeColor {
+    string color = 1;
+    string highlight = 2;
+    bool inherit = 3;
 }
 
 message LogMessage {
@@ -119,8 +118,6 @@ service API {
     rpc QueryNodeMutationEdges(Query) returns (Query) {}    
     rpc QueryNodeMutationPath(Query) returns (Query) {}    
     rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
-    rpc SmeFreeze(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-    rpc SmeThaw(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 
     // Service management
     rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}

@@ -287,8 +287,6 @@ const (
 	Query_MUTATIONNODES
 	Query_MUTATIONEDGES
 	Query_MUTATIONPATH
-	Query_FREEZE
-	Query_THAW
 )
 
 var QueryTypeMap = map[QueryType]QueryEngineType{
@@ -304,8 +302,6 @@ var QueryTypeMap = map[QueryType]QueryEngineType{
 	Query_MUTATIONNODES: Query_SME,
 	Query_MUTATIONEDGES: Query_SME,
 	Query_MUTATIONPATH:  Query_SME,
-	Query_FREEZE:        Query_SME,
-	Query_THAW:          Query_SME,
 }
 
 type QueryState uint8
@@ -547,7 +543,5 @@ type APIClient interface {
 	QueryNodeMutationEdges(string) (pb.MutationEdgeList, error)
 	QueryNodeMutationPath(string) (pb.MutationPath, error)
 	QueryDeleteAll() ([]Node, error)
-	SmeFreeze() error
-	SmeThaw() error
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }
