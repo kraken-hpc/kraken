@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	gv "github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -379,91 +378,6 @@ func (sme *StateMutationEngine) filterMutEdgesFromNode(n NodeID) (r []*mutationE
 	}
 
 	return
-}
-
-//GenDotString returns a DOT formatted string of the mutation graph
-func (sme *StateMutationEngine) GenDotString() string {
-	g := gv.NewGraph()
-	g.SetName("MutGraph")
-	g.SetDir(true) //indicates that the graph is directed
-	for _, e := range sme.edges {
-		if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
-		}
-
-		if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
-			var attributes map[string]string
-			attributes = make(map[string]string)
-			g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
-		}
-
-		var attributes map[string]string
-		g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
-	}
-	return g.String()
-}
-
-// GetDotGraph returns the dot graph
-func (sme *StateMutationEngine) GetDotGraph(n lib.Node) (r string, e error) {
-	graphAst, _ := gv.ParseString(`graph G {}`)
-	graph := gv.NewGraph()
-	if err := gv.Analyse(graphAst, graph); err != nil {
-		return "", err
-	}
-
-	platform, _ := n.GetValue("/Platform")
-	arch, _ := n.GetValue("/Arch")
-
-	platformString := lib.ValueToString(platform)
-	archString := lib.ValueToString(arch)
-
-	var nodes []string
-
-	// Add nodes to graph
-	for _, m := range sme.nodes {
-		label := ""
-		rm := m.spec.Requires()
-		if lib.ValueToString(rm["/Platform"]) == platformString && lib.ValueToString(rm["/Arch"]) == archString {
-			if rm["/PhysState"].IsValid() {
-				label += lib.ValueToString(rm["/PhysState"])
-			}
-			if rm["/RunState"].IsValid() {
-				label += lib.ValueToString(rm["/RunState"])
-			}
-			if rm["type.googleapis.com/proto.RPi3/Pxe"].IsValid() {
-				label += lib.ValueToString(rm["type.googleapis.com/proto.RPi3/Pxe"])
-			}
-		} else if !rm["/Platform"].IsValid() && !rm["/Platform"].IsValid() {
-			if rm["/PhysState"].IsValid() {
-				label += lib.ValueToString(rm["/PhysState"])
-			}
-		}
-		label = strings.Replace(label, ",", "", -1)
-		label = strings.Replace(label, " ", "", -1)
-		if label == "" {
-			graph.AddNode("G", fmt.Sprintf("%p", m), nil)
-		} else {
-			graph.AddNode("G", fmt.Sprintf("%p", m), map[string]string{"label": label})
-		}
-		nodes = append(nodes, fmt.Sprintf("%p", m))
-	}
-
-	// Add edges to graph
-	for _, m := range sme.edges {
-		from := fmt.Sprintf("%p", m.from)
-		to := fmt.Sprintf("%p", m.to)
-
-		for _, n := range nodes {
-			if from == n {
-				graph.AddEdge(from, to, true, nil)
-			}
-		}
-	}
-
-	output := graph.String()
-	return output, nil
 }
 
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.
