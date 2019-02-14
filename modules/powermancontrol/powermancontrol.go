@@ -17,14 +17,14 @@
 package powermancontrol
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
-	"strings"
+	"strconv"
 	"time"
-
-	"os/exec"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -34,7 +34,13 @@ import (
 	pb "github.com/hpc/kraken/modules/powermancontrol/proto"
 )
 
-const PlatformString string = "powerman"
+const (
+	PMCBase        string = "/powermancontrol"
+	PMCOn          string = PMCBase + "/poweroff"
+	PMCOff         string = PMCBase + "/poweron"
+	PMCStat        string = PMCBase + "nodeStatus"
+	PlatformString string = "powerman"
+)
 
 // ppmut helps us succinctly define our mutations
 type ppmut struct {
@@ -111,7 +117,6 @@ var _ lib.ModuleWithConfig = (*PMC)(nil)
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
-		NodeNames:       []string{},
 		ServerUrl:       "type.googleapis.com/proto.PowermanControl/ApiServer",
 		NameUrl:         "type.googleapis.com/proto.PowermanControl/Name",
 		UuidUrl:         "type.googleapis.com/proto.PowermanControl/Uuid",
@@ -217,7 +222,7 @@ func (p *PMC) handleMutation(m lib.Event) {
 	// extract the mutating node's name and server
 	vs := me.NodeCfg.GetValues([]string{p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
 	if len(vs) != 2 {
-		p.api.Logf(lib.LLERROR, "could not get NID and/or VBM Server for node: %s", me.NodeCfg.ID().String())
+		p.api.Logf(lib.LLERROR, "could not get NID and/or PMC Server for node: %s", me.NodeCfg.ID().String())
 		return
 	}
 	name := vs[p.cfg.GetNameUrl()].String()
@@ -228,6 +233,7 @@ func (p *PMC) handleMutation(m lib.Event) {
 	case core.MutationEvent_MUTATE:
 		switch me.Mutation[1] {
 		case "UKtoOFF": // this just forces discovery
+			go p.nodeDiscover(srv, name, me.NodeCfg.ID())
 			break
 		case "OFFtoON":
 			go p.nodeOn(srv, name, me.NodeCfg.ID())
@@ -251,79 +257,86 @@ func (p *PMC) handleMutation(m lib.Event) {
 }
 
 func (p *PMC) nodeDiscover(srvName, name string, id lib.NodeID) {
-	nameIn := false
-	for _, n := range p.cfg.NodeNames {
-		if n == name {
-			nameIn = true
-			break
-		}
+	srv, ok := p.cfg.Servers[srvName]
+	if !ok {
+		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		return
 	}
+	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 
-	if nameIn == false {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown node: %s", name)
+	url := "http://" + addr + PMCStat + "/" + name
+	resp, e := http.Get(url)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		return
 	}
-	discCmd := exec.Command("powerman", "-Q", name)
-
-	var stdout bytes.Buffer
-	discCmd.Stdout = &stdout
-
-	err := discCmd.Run()
-	if err != nil {
-		p.api.Logf(lib.LLDEBUG, "Error running the nodeDiscover command: %s", err)
+	body, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
 		return
 	}
 
-	discOut := strings.Split(stdout.String(), "\n")
-	if len(discOut) != 3 {
-		p.api.Logf(lib.LLDEBUG, "Unexpected length for stdout in nodeDiscover: %d", len(discOut))
+	var rs struct {
+		State string
+	}
+
+	e = json.Unmarshal(body, &rs)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
-
-	var ps string
-	if strings.Contains(discOut[0], name) {
-		ps = "POWER_ON"
-	} else if strings.Contains(discOut[1], name) {
-		ps = "POWER_OFF"
-	} else if strings.Contains(discOut[2], name) {
-		ps = "PHYS_UNKNOWN"
-	} else {
-		p.api.Logf(lib.LLERROR, "Node not found in powerman discovery: %s", name)
-	}
-
-	url := lib.NodeURLJoin(id.String(), "/PhysState")
+	url = lib.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			Module:  p.Name(),
 			URL:     url,
-			ValueID: ps,
+			ValueID: rs.State,
 		},
 	)
 	p.dchan <- v
 }
 
 func (p *PMC) nodeOn(srvName, name string, id lib.NodeID) {
-	nameIn := false
-	for _, n := range p.cfg.NodeNames {
-		if n == name {
-			nameIn = true
-			break
+	srv, ok := p.cfg.Servers[srvName]
+	if !ok {
+		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		return
+	}
+	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
+
+	url := "http://" + addr + PMCOn + "/" + name + "?type=headless"
+	resp, e := http.Get(url)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		return
+	}
+	body, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
+		return
+	}
+
+	var rs struct {
+		Shell struct {
+			Command   string
+			Directory string
+			ExitCode  int
+			Output    string
 		}
 	}
 
-	if nameIn == false {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown node: %s", name)
-	}
-
-	onCmd := exec.Command("powerman", "-1", name)
-	err := onCmd.Run()
-	if err != nil {
-		p.api.Logf(lib.LLERROR, "nodeOn command for node %s failed! with error:%s", name, err.Error())
+	e = json.Unmarshal(body, &rs)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
-	p.api.Logf(lib.LLDEBUG, "nodeOn command for node %s succeeded!", name)
-	url := lib.NodeURLJoin(id.String(), "/PhysState")
+	if rs.Shell.ExitCode != 0 {
+		p.api.Logf(lib.LLERROR, "powermancontrol command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
+		return
+	}
+	url = lib.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -337,26 +350,44 @@ func (p *PMC) nodeOn(srvName, name string, id lib.NodeID) {
 }
 
 func (p *PMC) nodeOff(srvName, name string, id lib.NodeID) {
-	nameIn := false
-	for _, n := range p.cfg.NodeNames {
-		if n == name {
-			nameIn = true
-			break
+	srv, ok := p.cfg.Servers[srvName]
+	if !ok {
+		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		return
+	}
+	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
+
+	url := "http://" + addr + PMCOff + "/" + name + "/poweroff"
+	resp, e := http.Get(url)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		return
+	}
+	body, e := ioutil.ReadAll(resp.Body)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
+		return
+	}
+
+	var rs struct {
+		Shell struct {
+			Command   string
+			Directory string
+			ExitCode  int
+			Output    string
 		}
 	}
 
-	if nameIn == false {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown node: %s", name)
-	}
-
-	onCmd := exec.Command("powerman", "-0", name)
-	err := onCmd.Run()
-	if err != nil {
-		p.api.Logf(lib.LLERROR, "nodeOff command for node %s failed! with error:%s", name, err.Error())
+	e = json.Unmarshal(body, &rs)
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
-	p.api.Logf(lib.LLDEBUG, "nodeOff command for node %s succeeded!", name)
-	url := lib.NodeURLJoin(id.String(), "/PhysState")
+	if rs.Shell.ExitCode != 0 {
+		p.api.Logf(lib.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
+		return
+	}
+	url = lib.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
