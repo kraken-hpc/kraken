@@ -107,6 +107,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
+	r.router.HandleFunc("/chain/node/{id}", r.readNodeChain).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -287,6 +288,56 @@ func (r *RestAPI) readGraphJSON(w http.ResponseWriter, req *http.Request) {
 	}
 	r.api.Logf(lib.LLDDDEBUG, "Graph: %v", string(jsonGraph))
 	w.Write([]byte(string(jsonGraph)))
+}
+
+func (r *RestAPI) readNodeChain(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	params := mux.Vars(req)
+
+	nodes, e := r.api.QueryNodeMutationNodes(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	edges, e := r.api.QueryNodeMutationEdges(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	path, e := r.api.QueryNodeMutationPath(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	// Convert edges and nodes slice to maps
+	nodesMap := make(map[string]*cpb.MutationNode)
+	edgesMap := make(map[string]*cpb.MutationEdge)
+	for _, mn := range nodes.MutationNodeList {
+		nodesMap[mn.Id] = mn
+	}
+	for _, me := range edges.MutationEdgeList {
+		edgesMap[me.Id] = me
+	}
+
+	for _, me := range path.Chain {
+		edgesMap[me.Id].To = nodesMap[me.To].Label
+		edgesMap[me.Id].From = nodesMap[me.From].Label
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	edgeList, e := json.Marshal(edges.MutationEdgeList)
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDDDEBUG, "Mutation Chain: %v", string(edgeList))
+	w.Write([]byte(string(edgeList)))
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
