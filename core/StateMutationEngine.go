@@ -297,9 +297,9 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 	// Get node from path
 	sme.activeMutex.Lock()
 	mp := sme.active[n.String()]
-	mp.mutex.Lock()
 	sme.activeMutex.Unlock()
 	if mp != nil {
+		mp.mutex.Lock()
 		node := mp.end
 		mp.mutex.Unlock()
 
@@ -355,7 +355,6 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
-		mp.mutex.Unlock()
 	}
 
 	return
