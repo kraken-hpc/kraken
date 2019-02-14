@@ -1,8 +1,7 @@
-.vscode
+**/.vscode
 /build
 tmp
 munge.key
 ssh_host_*key*
-kraken-build
-**/.DS_STORE
+**/.DS_Store
 /kraken-build
