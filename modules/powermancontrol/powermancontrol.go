@@ -114,6 +114,7 @@ func (p *PMC) Name() string { return "github.com/hpc/kraken/modules/powermancont
  */
 var _ lib.ModuleWithConfig = (*PMC)(nil)
 
+// Finish this function?
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
@@ -232,7 +233,7 @@ func (p *PMC) handleMutation(m lib.Event) {
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
 		switch me.Mutation[1] {
-		case "UKtoOFF": // this just forces discovery
+		case "UKtoOFF": // this just forces discover
 			go p.nodeDiscover(srv, name, me.NodeCfg.ID())
 			break
 		case "OFFtoON":

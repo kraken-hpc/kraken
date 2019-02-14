@@ -98,6 +98,7 @@ For ease of documentation, it will be assumed that the module being worked on is
   - `errorMessage` is of type `fmt string`
 
 # How do I add my module to the run list?
-- `modules.go` is responsible for loading all of the modules to be used with Kraken at the time of start 
-- Add your module to the list in `module.go` and restart Kraken
+- Kraken must be rebuilt each time you would like to modify the module run list
+- Kraken modules are added to the run list through a config file. A Kraken binary is then built using this config file.
+- The following command builds Kraken using `config_file` for its configuration: `go run kraken-build.go -config config/config_file`. If the target you are building to already exists you may use the `-force` flag to force a rebuild.
 - dynamic module loading will likely be added as a feature in the future

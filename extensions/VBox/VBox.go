@@ -1,4 +1,4 @@
-/* rpi3.go: extension adds special fields for Bitscope/Raspberry Pi 3B(+) management
+/* VBox.go: extension adds special fields for Virtual Box management
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
