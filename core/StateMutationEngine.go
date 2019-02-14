@@ -220,6 +220,8 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
+// Converts a slice of sme mutation nodes to a protobuf MutationNodeList
+// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 	for _, mn := range nodes {
 		var nmn pb.MutationNode
@@ -233,6 +235,7 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 		sort.Strings(reqKeys)
 
 		for _, reqKey := range reqKeys {
+			sme.graphMutex.RLock()
 			if _, ok := sme.mutators[reqKey]; ok {
 				// Add value to label name
 				trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
@@ -243,6 +246,7 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 					label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
 				}
 			}
+			sme.graphMutex.RUnlock()
 
 		}
 
@@ -252,6 +256,7 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 	return
 }
 
+// Converts a slice of sme mutation edges to a protobuf MutationEdgeList
 func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 	for _, me := range edges {
 		var nme pb.MutationEdge
@@ -264,6 +269,8 @@ func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 	return
 }
 
+// Converts an sme mutation path to a protobuf MutationPath
+// LOCKS: path.mutex
 func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	path.mutex.Lock()
 	defer path.mutex.Unlock()
@@ -284,11 +291,17 @@ func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	return
 }
 
+// Returns the mutation nodes that have correlating reqs and execs for a given nodeID
+// LOCKS: activeMutex; path.mutex
 func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationNode, e error) {
 	// Get node from path
+	sme.activeMutex.Lock()
 	mp := sme.active[n.String()]
+	mp.mutex.Lock()
+	sme.activeMutex.Unlock()
 	if mp != nil {
 		node := mp.end
+		mp.mutex.Unlock()
 
 		// Combine discoverables and mutators into discoverables map
 		discoverables := make(map[string]string)
@@ -297,9 +310,11 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 				discoverables[key] = ""
 			}
 		}
+		sme.graphMutex.RLock()
 		for key := range sme.mutators {
 			discoverables[key] = ""
 		}
+		sme.graphMutex.RUnlock()
 
 		filteredNodes := make(map[*mutationNode]string)
 
@@ -340,11 +355,14 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 
 	} else {
 		e = fmt.Errorf("Can't get node info because mutation path is nil")
+		mp.mutex.Unlock()
 	}
 
 	return
 }
 
+// Returns the mutation edges that match the filtered nodes from filterMutNodesFromNode
+// LOCKS: activeMutex via filterMutNodesFromNode; path.mutex via filterMutNodesFromNode
 func (sme *StateMutationEngine) filterMutEdgesFromNode(n NodeID) (r []*mutationEdge, e error) {
 	nodes, e := sme.filterMutNodesFromNode(n)
 	filteredEdges := make(map[*mutationEdge]string)
@@ -445,13 +463,17 @@ func (sme *StateMutationEngine) Run() {
 				var e error
 				// If url is empty then assume we want all mutation nodes
 				if u == "" {
+					sme.graphMutex.RLock()
 					v := sme.mutationNodesToProto(sme.nodes)
+					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
 					n := NewNodeIDFromURL(q.URL())
+					sme.graphMutex.RLock()
 					fmn, e := sme.filterMutNodesFromNode(*n)
 					mnl := sme.mutationNodesToProto(fmn)
+					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(mnl)}, e), q.ResponseChan())
 				}
@@ -461,13 +483,17 @@ func (sme *StateMutationEngine) Run() {
 				var e error
 				// If url is empty then assume we want all mutation edges
 				if u == "" {
+					sme.graphMutex.RLock()
 					v := mutationEdgesToProto(sme.edges)
+					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
 					n := NewNodeIDFromURL(q.URL())
+					sme.graphMutex.RLock()
 					fme, e := sme.filterMutEdgesFromNode(*n)
 					mel := mutationEdgesToProto(fme)
+					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(mel)}, e), q.ResponseChan())
 				}
@@ -475,10 +501,11 @@ func (sme *StateMutationEngine) Run() {
 			case lib.Query_MUTATIONPATH:
 				n := NewNodeIDFromURL(q.URL())
 				sme.activeMutex.Lock()
-				mp, e := mutationPathToProto(sme.active[n.String()])
+				mp := sme.active[n.String()]
 				sme.activeMutex.Unlock()
+				pmp, e := mutationPathToProto(mp)
 				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{reflect.ValueOf(mp)}, e), q.ResponseChan())
+					[]reflect.Value{reflect.ValueOf(pmp)}, e), q.ResponseChan())
 				break
 			default:
 				sme.Logf(DEBUG, "unsupported query type: %d", q.Type())
