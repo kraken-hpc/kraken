@@ -88,11 +88,11 @@ type StateDifferenceEngine struct {
 }
 
 // NewStateDifferenceEngine initializes a new StateDifferenceEngine object given a Context
-func NewStateDifferenceEngine(ctx Context) *StateDifferenceEngine {
+func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEngine {
 	n := &StateDifferenceEngine{}
 	n.dsc = NewState()
 	n.cfg = NewState()
-	n.qc = make(chan lib.Query)
+	n.qc = qc
 	n.em = NewEventEmitter(lib.Event_STATE_CHANGE)
 	n.schan = ctx.SubChan
 	n.log = &ctx.Logger

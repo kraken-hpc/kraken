@@ -195,6 +195,73 @@ func (s *APIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *
 	return
 }
 
+func (s *APIServer) QueryMutationNodes(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	var mnlout pb.MutationNodeList
+	url := "/graph/nodes"
+	out = &pb.Query{}
+	mnlout, e = s.query.ReadMutationNodes(url)
+	out.URL = url
+	if mnlout.MutationNodeList != nil {
+		out.Payload = &pb.Query_MutationNodeList{
+			MutationNodeList: &mnlout,
+		}
+	}
+	return
+}
+
+func (s *APIServer) QueryMutationEdges(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	var melout pb.MutationEdgeList
+	url := "/graph/nodes"
+	out = &pb.Query{}
+	melout, e = s.query.ReadMutationEdges(url)
+	out.URL = "/graph/nodes"
+	if melout.MutationEdgeList != nil {
+		out.Payload = &pb.Query_MutationEdgeList{
+			MutationEdgeList: &melout,
+		}
+	}
+	return
+}
+
+func (s *APIServer) QueryNodeMutationNodes(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+	var mnlout pb.MutationNodeList
+	out = &pb.Query{}
+	mnlout, e = s.query.ReadNodeMutationNodes(in.URL)
+	out.URL = in.URL
+	if mnlout.MutationNodeList != nil {
+		out.Payload = &pb.Query_MutationNodeList{
+			MutationNodeList: &mnlout,
+		}
+	}
+	return
+}
+
+func (s *APIServer) QueryNodeMutationEdges(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+	var melout pb.MutationEdgeList
+	out = &pb.Query{}
+	melout, e = s.query.ReadNodeMutationEdges(in.URL)
+	out.URL = in.URL
+	if melout.MutationEdgeList != nil {
+		out.Payload = &pb.Query_MutationEdgeList{
+			MutationEdgeList: &melout,
+		}
+	}
+	return
+}
+
+func (s *APIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+	var mpout pb.MutationPath
+	out = &pb.Query{}
+	mpout, e = s.query.ReadNodeMutationPath(in.URL)
+	out.URL = in.URL
+	if mpout.Chain != nil {
+		out.Payload = &pb.Query_MutationPath{
+			MutationPath: &mpout,
+		}
+	}
+	return
+}
+
 func (s *APIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
 	var nout []lib.Node
 	out = &pb.QueryMulti{}

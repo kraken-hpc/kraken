@@ -12,6 +12,8 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,6 +98,7 @@ type StateMutationEngine struct {
 	nodes       []*mutationNode // so we can search for matches
 	edges       []*mutationEdge
 	em          *EventEmitter
+	qc          chan lib.Query
 	schan       chan<- lib.EventListener // subscription channel
 	echan       chan lib.Event
 	selist      *EventListener
@@ -110,7 +113,7 @@ type StateMutationEngine struct {
 }
 
 // NewStateMutationEngine creates an initialized StateMutationEngine
-func NewStateMutationEngine(ctx Context) *StateMutationEngine {
+func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine {
 	sme := &StateMutationEngine{
 		muts:        []lib.StateMutation{},
 		mutResolver: make(map[lib.StateMutation][2]string),
@@ -123,6 +126,7 @@ func NewStateMutationEngine(ctx Context) *StateMutationEngine {
 		nodes:       []*mutationNode{},
 		edges:       []*mutationEdge{},
 		em:          NewEventEmitter(lib.Event_STATE_MUTATION),
+		qc:          qc,
 		run:         false,
 		echan:       make(chan lib.Event),
 		query:       &ctx.Query,
@@ -216,6 +220,168 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
+// Converts a slice of sme mutation nodes to a protobuf MutationNodeList
+// LOCKS: graphMutex (R)
+func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
+	for _, mn := range nodes {
+		var nmn pb.MutationNode
+		nmn.Id = fmt.Sprintf("%p", mn)
+		label := ""
+
+		var reqKeys []string
+		for k := range mn.spec.Requires() {
+			reqKeys = append(reqKeys, k)
+		}
+		sort.Strings(reqKeys)
+
+		for _, reqKey := range reqKeys {
+			sme.graphMutex.RLock()
+			if _, ok := sme.mutators[reqKey]; ok {
+				// Add value to label name
+				trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
+				trimKey = strings.Replace(trimKey, "/", "", -1)
+				if label == "" {
+					label = fmt.Sprintf("%s: %s", trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
+				} else {
+					label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
+				}
+			}
+			sme.graphMutex.RUnlock()
+
+		}
+
+		nmn.Label = label
+		r.MutationNodeList = append(r.MutationNodeList, &nmn)
+	}
+	return
+}
+
+// Converts a slice of sme mutation edges to a protobuf MutationEdgeList
+func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
+	for _, me := range edges {
+		var nme pb.MutationEdge
+		nme.From = fmt.Sprintf("%p", me.from)
+		nme.To = fmt.Sprintf("%p", me.to)
+		nme.Id = fmt.Sprintf("%p", me)
+
+		r.MutationEdgeList = append(r.MutationEdgeList, &nme)
+	}
+	return
+}
+
+// Converts an sme mutation path to a protobuf MutationPath
+// LOCKS: path.mutex
+func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
+	path.mutex.Lock()
+	defer path.mutex.Unlock()
+	if path != nil {
+		r.Cur = int64(path.cur)
+		for _, me := range path.chain {
+			var nme pb.MutationEdge
+			nme.From = fmt.Sprintf("%p", me.from)
+			nme.To = fmt.Sprintf("%p", me.to)
+			nme.Id = fmt.Sprintf("%p", me)
+
+			r.Chain = append(r.Chain, &nme)
+		}
+	} else {
+		e = fmt.Errorf("Mutation path is nil")
+	}
+
+	return
+}
+
+// Returns the mutation nodes that have correlating reqs and execs for a given nodeID
+// LOCKS: activeMutex; path.mutex
+func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationNode, e error) {
+	// Get node from path
+	sme.activeMutex.Lock()
+	mp := sme.active[n.String()]
+	sme.activeMutex.Unlock()
+	if mp != nil {
+		mp.mutex.Lock()
+		node := mp.end
+		mp.mutex.Unlock()
+
+		// Combine discoverables and mutators into discoverables map
+		discoverables := make(map[string]string)
+		for _, moduleMap := range Registry.Discoverables {
+			for key := range moduleMap {
+				discoverables[key] = ""
+			}
+		}
+		sme.graphMutex.RLock()
+		for key := range sme.mutators {
+			discoverables[key] = ""
+		}
+		sme.graphMutex.RUnlock()
+
+		filteredNodes := make(map[*mutationNode]string)
+
+		for _, mn := range sme.nodes {
+			filteredNodes[mn] = ""
+			for reqKey, reqVal := range mn.spec.Requires() {
+				// if reqkey is not in discoverables
+				if _, ok := discoverables[reqKey]; !ok {
+					// if physical node has the reqkey as a value, check if it doesn't match
+					if nodeVal, err := node.GetValue(reqKey); err == nil {
+						// if it doesn't match, remove mn from final nodes
+						if nodeVal.String() != reqVal.String() {
+							delete(filteredNodes, mn)
+						}
+					}
+				}
+			}
+
+			for excKey, excVal := range mn.spec.Excludes() {
+				// if excKey is in discoverables, move on
+				if _, ok := discoverables[excKey]; ok {
+					break
+				}
+				// if physical node has the exckey as a value, check if it does match
+				if nodeVal, err := node.GetValue(excKey); err == nil {
+					// if it doesn't match, remove mn from final nodes
+					if nodeVal == excVal {
+						delete(filteredNodes, mn)
+					}
+				}
+			}
+		}
+
+		for mn := range filteredNodes {
+			r = append(r, mn)
+		}
+		sme.Logf(DDDEBUG, "Final filtered nodes from SME: %v", r)
+
+	} else {
+		e = fmt.Errorf("Can't get node info because mutation path is nil")
+	}
+
+	return
+}
+
+// Returns the mutation edges that match the filtered nodes from filterMutNodesFromNode
+// LOCKS: activeMutex via filterMutNodesFromNode; path.mutex via filterMutNodesFromNode
+func (sme *StateMutationEngine) filterMutEdgesFromNode(n NodeID) (r []*mutationEdge, e error) {
+	nodes, e := sme.filterMutNodesFromNode(n)
+	filteredEdges := make(map[*mutationEdge]string)
+
+	for _, mn := range nodes {
+		for _, me := range mn.in {
+			filteredEdges[me] = ""
+		}
+		for _, me := range mn.out {
+			filteredEdges[me] = ""
+		}
+	}
+
+	for me := range filteredEdges {
+		r = append(r, me)
+	}
+
+	return
+}
+
 // PathExists returns a boolean indicating whether or not a path exists in the graph between two nodes.
 // If the path doesn't exist, it also returns the error.
 // LOCKS: graphMutex (R) via findPath
@@ -225,6 +391,16 @@ func (sme *StateMutationEngine) PathExists(start lib.Node, end lib.Node) (r bool
 		r = true
 	}
 	return
+}
+
+// goroutine
+func (sme *StateMutationEngine) sendQueryResponse(qr lib.QueryResponse, r chan<- lib.QueryResponse) {
+	r <- qr
+}
+
+// QueryChan returns a chanel that Queries can be sent on
+func (sme *StateMutationEngine) QueryChan() chan<- lib.Query {
+	return sme.qc
 }
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
@@ -279,6 +455,61 @@ func (sme *StateMutationEngine) Run() {
 
 	for {
 		select {
+		case q := <-sme.qc:
+			switch q.Type() {
+			case lib.Query_MUTATIONNODES:
+				_, u := lib.NodeURLSplit(q.URL())
+				var e error
+				// If url is empty then assume we want all mutation nodes
+				if u == "" {
+					sme.graphMutex.RLock()
+					v := sme.mutationNodesToProto(sme.nodes)
+					sme.graphMutex.RUnlock()
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				} else {
+					n := NewNodeIDFromURL(q.URL())
+					sme.graphMutex.RLock()
+					fmn, e := sme.filterMutNodesFromNode(*n)
+					mnl := sme.mutationNodesToProto(fmn)
+					sme.graphMutex.RUnlock()
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(mnl)}, e), q.ResponseChan())
+				}
+				break
+			case lib.Query_MUTATIONEDGES:
+				_, u := lib.NodeURLSplit(q.URL())
+				var e error
+				// If url is empty then assume we want all mutation edges
+				if u == "" {
+					sme.graphMutex.RLock()
+					v := mutationEdgesToProto(sme.edges)
+					sme.graphMutex.RUnlock()
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
+				} else {
+					n := NewNodeIDFromURL(q.URL())
+					sme.graphMutex.RLock()
+					fme, e := sme.filterMutEdgesFromNode(*n)
+					mel := mutationEdgesToProto(fme)
+					sme.graphMutex.RUnlock()
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{reflect.ValueOf(mel)}, e), q.ResponseChan())
+				}
+				break
+			case lib.Query_MUTATIONPATH:
+				n := NewNodeIDFromURL(q.URL())
+				sme.activeMutex.Lock()
+				mp := sme.active[n.String()]
+				sme.activeMutex.Unlock()
+				pmp, e := mutationPathToProto(mp)
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{reflect.ValueOf(pmp)}, e), q.ResponseChan())
+				break
+			default:
+				sme.Logf(DEBUG, "unsupported query type: %d", q.Type())
+			}
+			break
 		case v := <-sme.echan:
 			// FIXME: event processing can be expensive;
 			// we should make them concurrent with a queue

@@ -14,6 +14,7 @@ package restapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -39,6 +40,11 @@ type RestAPI struct {
 	api    lib.APIClient
 	router *mux.Router
 	srv    *http.Server
+}
+
+type GraphJson struct {
+	Nodes []*cpb.MutationNode `json:"nodes"`
+	Edges []*cpb.MutationEdge `json:"edges"`
 }
 
 func (r *RestAPI) Entry() {
@@ -99,6 +105,8 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/cfg/node/{id}", r.updateNode).Methods("PUT")
 	r.router.HandleFunc("/dsc/node", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
+	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
+	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -172,6 +180,113 @@ func (r *RestAPI) readNode(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(n.JSON())
+}
+
+func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	params := mux.Vars(req)
+
+	nodes, e := r.api.QueryNodeMutationNodes(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	edges, e := r.api.QueryNodeMutationEdges(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	path, e := r.api.QueryNodeMutationPath(params["id"])
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	// Convert edges and nodes slice to maps
+	nodesMap := make(map[string]*cpb.MutationNode)
+	edgesMap := make(map[string]*cpb.MutationEdge)
+	for _, mn := range nodes.MutationNodeList {
+		nodesMap[mn.Id] = mn
+	}
+	for _, me := range edges.MutationEdgeList {
+		edgesMap[me.Id] = me
+	}
+
+	red := "#e74c3c"
+	green := "#89CA78"
+
+	for i, me := range path.Chain {
+		if int64(i) != path.Cur {
+			c := &cpb.EdgeColor{
+				Color:     green,
+				Highlight: green,
+				Inherit:   false,
+			}
+			edgesMap[me.Id].Color = c
+			nodesMap[me.To].Color = green
+			nodesMap[me.From].Color = green
+		} else {
+			c := &cpb.EdgeColor{
+				Color:     red,
+				Highlight: red,
+				Inherit:   false,
+			}
+			edgesMap[me.Id].Color = c
+			nodesMap[me.To].Color = green
+			nodesMap[me.From].Color = green
+		}
+	}
+
+	graph := GraphJson{
+		Nodes: nodes.MutationNodeList,
+		Edges: edges.MutationEdgeList,
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDDDEBUG, "Node filtered graph: %v", string(jsonGraph))
+	w.Write([]byte(string(jsonGraph)))
+}
+
+func (r *RestAPI) readGraphJSON(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	nodes, e := r.api.QueryMutationNodes()
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	edges, e := r.api.QueryMutationEdges()
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	graph := GraphJson{
+		Nodes: nodes.MutationNodeList,
+		Edges: edges.MutationEdgeList,
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	r.api.Logf(lib.LLDDDEBUG, "Graph: %v", string(jsonGraph))
+	w.Write([]byte(string(jsonGraph)))
 }
 
 func (r *RestAPI) readNodeDsc(w http.ResponseWriter, req *http.Request) {
