@@ -1,71 +1,82 @@
 #!/bin/bash
 
+# Exit on any non-zero exit code
+set -o errexit
+
+# Exit on any unset variable
+set -o nounset
+
+# Pipeline's return status is the value of the last (rightmost) command
+# to exit with a non-zero status, or zero if all commands exit successfully.
+set -o pipefail
+
 KRAKEN_URL="github.com/hpc/kraken"
+VBOXNET="vboxnet99"
+VBOXNET_IP="192.168.57.1"
+KRAKEN_IP="192.168.57.10"
 
 echo "==="
 echo "=== Building a kraken vagrant/virtualbox cluster..."
 echo "==="
 
-GO=$(which go)
-if [ $? -ne 0 ]; then
+if ! GO=$(command -v go); then
     echo "could not find go, is golang installed?"
     exit 1
 fi
 echo "Using go at: $GO"
  
-VB=$(which vboxmanage)
-if [ $? -ne 0 ]; then
+if ! VB=$(command -v vboxmanage); then
     echo "could not find vboxmanage, is virtualbox installed?"
     exit 1
 fi
 echo "Using vboxmanage at: $VB"
 
-VG=$(which vagrant)
-if [ $? -ne 0 ]; then
+if ! VG=$(command -v vagrant); then
     echo "could not find vagrant, is it installed?"
     exit 1
 fi
 echo "Using vagrant at: $VG"
 
-AN=$(which ansible)
-if [ $? -ne 0 ]; then
+if ! AN=$(command -v ansible); then
     echo "could not find ansible, is it installed?"
     exit 1
 fi
 echo "Using ansible at: $AN"
 
-if [ -z ${GOPATH+x} ]; then
-    GOPATH=$HOME/go
-fi
+GOPATH="${GOPATH:-"$HOME/go"}"
+
 echo "Using GOPATH: $GOPATH"
 
 echo "Checking vbox hostonly network settings..."
 
-${VB} list hostonlyifs | grep -E '^Name.*vboxnet99' > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "you don't have a vboxnet99, see vbox network setup instructions"
+if ! ${VB} list hostonlyifs | grep -q -E "^Name.*${VBOXNET}"; then
+    echo "you don't have a ${VBOXNET}, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet99 is present"
+echo "   ${VBOXNET} is present"
 
-${VB} list hostonlyifs | grep -A3 -E '^Name.*vboxnet99' | grep 192.168.57.1 > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "vboxnet99 is not on 192.168.57.1, see vbox network setup instructions"
+if ! ${VB} list hostonlyifs | grep -A3 -E "^Name.*${VBOXNET}" | grep -q -w "${VBOXNET_IP}"; then
+    echo "${VBOXNET} is not on ${VBOXNET_IP}, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet99 is on 192.168.57.1"
+echo "   ${VBOXNET} interface is configured with ${VBOXNET_IP}"
 
-${VB} list hostonlyifs | grep -A2 -E '^Name.*vboxnet99' | grep -E '^DHCP.*Disabled' > /dev/null 2>&1
-if [ $? -ne 0 ]; then
-    echo "vboxnet99 does not have DHCP disable, see vbox network setup instructions"
+if ! (ifconfig "${VBOXNET}" 2>/dev/null || ip addr show "${VBOXNET}" 2>/dev/null) | grep -q -w "${VBOXNET_IP}"; then
+    echo "${VBOXNET} interface is not set to ${VBOXNET_IP}, see vbox network setup instructions"
     exit 1
 fi
-echo "   vboxnet99 DHCP is disabled"
+echo "   ${VBOXNET} interface has IP ${VBOXNET_IP}"
+
+if ! ${VB} list hostonlyifs | grep -A2 -E "^Name.*${VBOXNET}" | grep -q -E '^DHCP.*Disabled'; then
+    echo "${VBOXNET} does not have DHCP disable, see vbox network setup instructions"
+    exit 1
+fi
+echo "   ${VBOXNET} DHCP is disabled"
 echo "hostonly network settings OK."
 
 echo "Creating and provisioning the master (this may take a while)..."
-echo RUN: ${VG} up kraken
-${VG} up kraken 2>&1 | tee -a log/vagrant-up-kraken.log
+echo RUN: "${VG}" up kraken
+"${VG}" up kraken 2>&1 | tee -a log/vagrant-up-kraken.log
 
 echo "Creating the compute nodes"
 echo RUN: sh create-nodes.sh
@@ -73,35 +84,32 @@ sh create-nodes.sh 2>&1 | tee -a log/create-nodes.log
 
 echo "(RE)Starting vboxapi, log file in log/vboxapi.log"
 echo RUN: pkill vboxapi
-pkill vboxapi
-echo RUN: nohup go run $GOPATH/src/$KRAKEN_URL/utils/vboxapi/vboxapi.go -v -ip 192.168.57.1
-nohup go run $GOPATH/src/$KRAKEN_URL/utils/vboxapi/vboxapi.go -v -ip 192.168.57.1 > log/vboxapi.log &
-
+pkill vboxapi || true
+echo RUN: nohup go run "${GOPATH}/src/${KRAKEN_URL}/utils/vboxapi/vboxapi.go" -v -ip "${VBOXNET_IP}"
+nohup go run "${GOPATH}/src/${KRAKEN_URL}/utils/vboxapi/vboxapi.go" -v -ip "${VBOXNET_IP}" > log/vboxapi.log &
 
 echo "(RE)Starting kraken on the 'kraken'"
-echo RUN: ${VG} ssh-config kraken > ssh-config
-${VG} ssh-config kraken > ssh-config
+echo RUN: "${VG}" ssh-config kraken > ssh-config
+"${VG}" ssh-config kraken > ssh-config
 echo RUN: ssh -F ssh-config kraken 'sudo pkill kraken'
-ssh -F ssh-config kraken 'sudo pkill kraken'
+ssh -F ssh-config kraken 'sudo pkill kraken' || true
 echo RUN: ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
 
-
-which open > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo "Launching dashboard viewer to: http://192.168.57.10/"
-    open http://192.168.57.10/
+if command -v open > /dev/null; then
+    echo "Launching dashboard viewer to: http://${KRAKEN_IP}/"
+    open "http://${KRAKEN_IP}/"
 else 
-    echo "Kraken dashboard is running on: http://192.168.57.10/"
+    echo "Kraken dashboard is running on: http://${KRAKEN_IP}/"
 fi
 
 echo "Injecting kraken state/provisioning nodes"
 echo RUN: sh inject-state.sh
 sleep 1
-sh inject-state.sh 2>&1 | tee -a log/inject-state.log
+sh inject-state.sh "${KRAKEN_IP}" 2>&1 | tee -a log/inject-state.log
 
 echo
 echo "==="
-echo "=== Done.  View the dashboard at: http://192.168.57.10/"
+echo "=== Done.  View the dashboard at: http://${KRAKEN_IP}/"
 echo "=== Enjoy your Kraken!"
 echo "==="
