@@ -125,7 +125,7 @@ func main() {
 	var cmdList = []command{
 		// give the system 2 seconds to come to its senses
 		// shouldn't be necessary, but seems to help
-		command{
+		{
 			Cmd:        "/bbin/sleep",
 			Background: false,
 			Args:       []string{"/bbin/sleep", "2"},
@@ -137,26 +137,26 @@ func main() {
 			Args:       []string{"/bbin/dhclient", "eth0"},
 		},
 		*/
-		command{
+		{
 			Cmd:        "/bbin/ip",
 			Background: false,
 			Args:       []string{"/bbin/ip", "addr", "add", myIP + "/" + myNet, "dev", "eth0"},
 		},
-		command{
+		{
 			Cmd:        "/bbin/ip",
 			Background: false,
 			Args:       []string{"/bbin/ip", "link", "set", "eth0", "up"},
 		},
-		command{
+		{
 			Cmd:        "/bbin/sshd",
 			Background: true,
 		},
-		command{
+		{
 			Cmd:        "/bin/kraken",
 			Background: true,
 			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID},
 		},
-		command{
+		{
 			Cmd:        "/bbin/elvish",
 			Background: false,
 		},
