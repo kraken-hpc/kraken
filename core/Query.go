@@ -341,7 +341,7 @@ func (q *QueryEngine) blockingQuery(query lib.Query, r <-chan lib.QueryResponse)
 	var s chan<- lib.Query
 	t, ok := lib.QueryTypeMap[query.Type()]
 	if !ok {
-		return nil, fmt.Errorf("invalid query type: %s", query.Type())
+		return nil, fmt.Errorf("invalid query type: %v", query.Type())
 	}
 	switch t {
 	case lib.Query_SDE:
