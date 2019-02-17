@@ -29,31 +29,7 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  (1..4).each do |kr_idx|
-    config.vm.define "kr#{kr_idx}", autostart: (kr_idx>0 ? false : true) do |kr|
-      kr.vm.boot_timeout = 1 # we expect these to fail, make it quick
-      kr.vm.box = "centos/7"
-      kr.vm.hostname = "kr#{kr_idx}"
-      kr.vm.provider "virtualbox" do |v|
-        v.name = "kr#{kr_idx}"
-        v.memory = 512
-        v.cpus = 1
-        v.linked_clone = true
-        v.customize [
-          'modifyvm', :id,
-          '--nic1', 'intnet',
-          '--intnet1', 'intnet',
-          '--macaddress1', "AABBCC00110#{kr_idx}",
-          '--boot1', 'net',
-          '--boot2', 'none',
-          '--boot3', 'none',
-          '--boot4', 'none'
-        ]
-      end
-    end
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "kraken.yml"
   end
-
-config.vm.provision :ansible do |ansible|
-  ansible.playbook = "kraken.yml"
-end
 end

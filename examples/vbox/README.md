@@ -1,26 +1,26 @@
-Table of Contents
-=================
+# Kraken Vagrant/Virtualbox Example
 
-   * [Kraken vagrant/virtualbox example](#kraken-vagrantvirtualbox-example)
-      * [Dependencies](#dependencies)
-      * [Instructions](#instructions)
-      * [How it works](#how-it-works)
-      * [Helper scripts](#helper-scripts)
-      * [How to use your own fork/branch](#how-to-use-your-own-forkbranch)
-      * [Using custom kraken-build args](#using-custom-kraken-build-args)
-      * [How to add things to the image](#how-to-add-things-to-the-image)
-         * [Adding a kernel module](#adding-a-kernel-module)
-   * [<em>Now: $ go get kraken!</em>](#now--go-get-kraken)
+## Table of Contents
 
-# Kraken vagrant/virtualbox example
+- [Kraken vagrant/virtualbox example](#kraken-vagrantvirtualbox-example)
+  - [Dependencies](#dependencies)
+  - [Instructions](#instructions)
+  - [How it works](#how-it-works)
+  - [Helper scripts](#helper-scripts)
+  - [How to use your own fork/branch](#how-to-use-your-own-forkbranch)
+  - [Using custom kraken-build args](#using-custom-kraken-build-args)
+  - [How to add things to the image](#how-to-add-things-to-the-image)
+    - [Adding a kernel module](#adding-a-kernel-module)
+- [*Now: $ go get kraken!*](#now--go-get-kraken)
 
-The contents of this directory can be used to generate a VirtualBox virtual kraken cluster using Vagrant and Ansible.  It has been tested on a Mac, but should work on Linux as well.
+The contents of this directory can be used to generate a VirtualBox virtual Kraken cluster using Vagrant and Ansible.  It has been tested on a Mac, but should work on Linux as well.
 
 It will build a cluster with a master and four nodes.  The nodes run a minimal [u-root](https://github.com/u-root-/u-root) image.
 
 ## Dependencies
 
 The following need to be installed for this to work:
+
 - [Go](https://golang.org/) - "The Go Programming Language"
 - [VirtualBox](https://virtulabox.org) - "VirtualBox is a powerful x86 and AMD64/Intel64 virtualization product for enterprise as well as home use."
 - [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) - "Support for USB 2.0 and USB 3.0 devices, VirtualBox RDP, disk encryption, NVMe and PXE boot for Intel cards."  We need this for PXE boot capabilities.
@@ -33,24 +33,32 @@ If you have not set a `$GOPATH` variable set it to where you want source code to
 Clone the repository into the following directory: `$GOPATH/src/github.com/hpc/`.
 
 To setup the environment:
-```bash 
+
+```bash
 $ export GOPATH=$HOME/go
 $ go get github.com/hpc/kraken
 $ cd $GOPATH/src/github.com/hpc/kraken/examples/vbox
-``` 
-Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured. Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an abritrarily high vboxnet number. The example below is for MacOS.
+```
 
-`/Applications/VirtualBox.app/Contents/MacOS/VBoxNetAdpCtl vboxnet99 add`
+Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured. Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an arbitrarily high vboxnet number. The example below is for MacOS.
 
- vboxnet99 should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`. 
+```bash
+$ /Applications/VirtualBox.app/Contents/MacOS/VBoxNetAdpCtl vboxnet99 add
+$ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.255.0
+$ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
+```
+
+vboxnet99 should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
 
 Once the dependencies are installed and the host-only network is setup in VirtualBox, you can deploy a virtual cracking cluster with one command:
 
-`$ sh release-the-kraken.sh`
+```bash
+$ sh release-the-kraken.sh
+```
 
 Note: this does *not* require root/sudo.  
 
-This script will perform all of the nessesary steps to build a virtual kraken cluster.  It will take about 3-5 minutes to complete.
+This script will perform all of the necessary steps to build a virtual kraken cluster.  It will take about 3-5 minutes to complete.
 
 ## How it works
 
@@ -63,7 +71,7 @@ The `release-the-kraken.sh` script performs the following steps to bring up a vi
    3. build the kraken binaries;
    4. setup the directory/files needed for pxeboot;
    5. create the "layer0" image that the nodes will boot.
-3. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediatelly shuts these off as we don't want them on yet.
+3. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediately shuts these off as we don't want them on yet.
 4. Starts the (included) `vboxapi.go`, which provides a ReST API for VirtualBox VM power control.  This allows Kraken to control the power state of the VMs.
 5. Starts `kraken` on the "kraken" (master) node.
 6. Loads the state information for the nodes.
@@ -94,13 +102,13 @@ There are a number of helper scripts in this directory.  Here's what they do:
    2. destroying `kraken` VM
    3. destroying node VMs `kr[1-4]`
 - `destroy-nodes.sh` - this destroys nodes `kr[1-4]`.  It takes no arguments.
-- `inject-state.sh` - this injects state information into the running kraken to get things going.  It takes no arguments.
+- `inject-state.sh` - this injects state information into the running kraken to get things going.  It takes the Kraken IP and port as arguments. These default to 192.168.57.1 and 3141 if not specified.
 - `release-the-kraken.sh` - this does a total bring-up of the example environment (as described above).  It takes no arguments.  This is (*should be*) safe to call more than once; you an call it multiple times to re-start kraken.
 - `shutdown.sh` - this shuts down a running kraken environment by: 1) shutting down `kraken` on "kraken"; 2) shutting down the `vboxapi`. You re-start kraken by re-running `release-the-kraken.sh`.
 
 ## How to use your own fork/branch
 
-For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master". 
+For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master".
 
 ## Using custom kraken-build args
 
