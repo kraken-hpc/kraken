@@ -61,27 +61,27 @@ type ppmut struct {
 // our mutation definitions
 // also we discover anything we can migrate to
 var muts = map[string]ppmut{
-	"UKtoOFF": ppmut{
+	"UKtoOFF": {
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "5s",
 	},
-	"OFFtoON": ppmut{
+	"OFFtoON": {
 		f:       cpb.Node_POWER_OFF,
 		t:       cpb.Node_POWER_ON,
 		timeout: "5s",
 	},
-	"ONtoOFF": ppmut{
+	"ONtoOFF": {
 		f:       cpb.Node_POWER_ON,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "5s",
 	},
-	"HANGtoOFF": ppmut{
+	"HANGtoOFF": {
 		f:       cpb.Node_PHYS_HANG,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "10s", // we need a longer timeout, because we let it sit cold for a few seconds
 	},
-	"UKtoHANG": ppmut{ // this one should never happen; just making sure HANG gets connected in our graph
+	"UKtoHANG": { // this one should never happen; just making sure HANG gets connected in our graph
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_PHYS_HANG,
 		timeout: "0s",
@@ -129,7 +129,7 @@ var _ lib.ModuleWithConfig = (*PiPower)(nil)
 func (*PiPower) NewConfig() proto.Message {
 	r := &pb.PiPowerConfig{
 		Servers: map[string]*pb.PiPowerServer{
-			"c0": &pb.PiPowerServer{
+			"c0": {
 				Name: "c0",
 				Ip:   "127.0.0.1",
 				Port: 8000,
@@ -392,7 +392,7 @@ func init() {
 		dur, _ := time.ParseDuration(muts[m].timeout)
 		mutations[m] = core.NewStateMutation(
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(muts[m].f),
 					reflect.ValueOf(muts[m].t),
 				},

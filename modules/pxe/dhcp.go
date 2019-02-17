@@ -248,12 +248,12 @@ func (px *PXE) newDHCPPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 
 	// these two options should be set for any packet
 	o := []layers.DHCPOption{
-		layers.DHCPOption{
+		{
 			Type:   layers.DHCPOptMessageType,
 			Length: 1,
 			Data:   []byte{byte(msgType)},
 		},
-		layers.DHCPOption{
+		{
 			Type:   layers.DHCPOptServerID,
 			Length: 4,
 			Data:   px.selfIP.To4(),

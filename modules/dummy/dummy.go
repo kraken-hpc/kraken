@@ -34,16 +34,16 @@ var _ lib.ModuleWithDiscovery = (*Dummy)(nil)
 var _ lib.ModuleWithMutations = (*Dummy)(nil)
 
 var muts = map[string][2]string{
-	"dumFail":   [2]string{"", "fail"},     // we need some in arrow to our failure mode or it won't get built into the graph
-	"dumFto0":   [2]string{"fail", "dum0"}, // On fail we reset to dum0
-	"dumDiscUK": [2]string{"", "dum0"},
-	"dum0to1":   [2]string{"dum0", "dum1"},
-	"dum1to0":   [2]string{"dum1", "dum0"},
-	"dum1to1a":  [2]string{"dum1", "dum1a"},
-	"dum1to1b":  [2]string{"dum1", "dum1b"},
-	"dum1ato1":  [2]string{"dum1a", "dum1"},
-	"dum1ato1b": [2]string{"dum1a", "dum1b"},
-	"dum1bto0":  [2]string{"dum1b", "dum0"},
+	"dumFail":   {"", "fail"},     // we need some in arrow to our failure mode or it won't get built into the graph
+	"dumFto0":   {"fail", "dum0"}, // On fail we reset to dum0
+	"dumDiscUK": {"", "dum0"},
+	"dum0to1":   {"dum0", "dum1"},
+	"dum1to0":   {"dum1", "dum0"},
+	"dum1to1a":  {"dum1", "dum1a"},
+	"dum1to1b":  {"dum1", "dum1b"},
+	"dum1ato1":  {"dum1a", "dum1"},
+	"dum1ato1b": {"dum1a", "dum1b"},
+	"dum1bto0":  {"dum1b", "dum0"},
 }
 
 var timeouts = map[string]int{
@@ -229,7 +229,7 @@ func init() {
 		pdsc[v[1]] = reflect.ValueOf(v[1])
 		mutations[k] = core.NewStateMutation(
 			map[string][2]reflect.Value{
-				"/Platform": [2]reflect.Value{
+				"/Platform": {
 					reflect.ValueOf(v[0]),
 					reflect.ValueOf(v[1]),
 				},
