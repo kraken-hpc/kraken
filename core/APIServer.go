@@ -307,7 +307,6 @@ func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_Servic
 			Config:  ctl.Config,
 		})
 	}
-	return
 }
 
 /*

@@ -44,10 +44,10 @@ const (
 
 // vbmResponse is the VBM response structure
 type vbmResponse struct {
-	Err    int32    `json:e,omitempty`
-	ErrMsg string   `json:err_msg,omitempty`
-	Off    []uint32 `json:off,omitempty`
-	On     []uint32 `json:on,omitempty`
+	Err    int32    `json:"e,omitempty"`
+	ErrMsg string   `json:"err_msg,omitempty"`
+	Off    []uint32 `json:"off,omitempty"`
+	On     []uint32 `json:"on,omitempty"`
 }
 
 // ppmut helps us succinctly define our mutations
