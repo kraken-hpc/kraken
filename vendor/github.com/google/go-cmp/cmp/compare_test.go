@@ -51,7 +51,8 @@ func TestDiff(t *testing.T) {
 
 	for _, tt := range tests {
 		tt := tt
-		tRunParallel(t, tt.label, func(t *testing.T) {
+		t.Run(tt.label, func(t *testing.T) {
+			t.Parallel()
 			var gotDiff, gotPanic string
 			func() {
 				defer func() {
@@ -142,7 +143,7 @@ func comparerTests() []test {
 		label:     label,
 		x:         1,
 		y:         1,
-		opts:      []cmp.Option{cmp.Transformer("", func(x interface{}) interface{} { return x })},
+		opts:      []cmp.Option{cmp.Transformer("λ", func(x interface{}) interface{} { return x })},
 		wantPanic: "cannot use an unfiltered option",
 	}, {
 		label: label,
@@ -150,7 +151,7 @@ func comparerTests() []test {
 		y:     1,
 		opts: []cmp.Option{
 			cmp.Comparer(func(x, y int) bool { return true }),
-			cmp.Transformer("", func(x int) float64 { return float64(x) }),
+			cmp.Transformer("λ", func(x int) float64 { return float64(x) }),
 		},
 		wantPanic: "ambiguous set of applicable options",
 	}, {
@@ -162,7 +163,7 @@ func comparerTests() []test {
 				return len(p) > 0 && p[len(p)-1].Type().Kind() == reflect.Int
 			}, cmp.Options{cmp.Ignore(), cmp.Ignore(), cmp.Ignore()}),
 			cmp.Comparer(func(x, y int) bool { return true }),
-			cmp.Transformer("", func(x int) float64 { return float64(x) }),
+			cmp.Transformer("λ", func(x int) float64 { return float64(x) }),
 		},
 	}, {
 		label:     label,
@@ -392,7 +393,7 @@ root:
 		x:     make([]string, 1000),
 		y:     make([]string, 1000),
 		opts: []cmp.Option{
-			cmp.Transformer("", func(x string) int {
+			cmp.Transformer("λ", func(x string) int {
 				return rand.Int()
 			}),
 		},
@@ -404,7 +405,7 @@ root:
 		x:     make([]int, 10),
 		y:     make([]int, 10),
 		opts: []cmp.Option{
-			cmp.Transformer("", func(x int) float64 {
+			cmp.Transformer("λ", func(x int) float64 {
 				return math.NaN()
 			}),
 		},
@@ -440,7 +441,7 @@ root:
 		x:     struct{ I Iface2 }{},
 		y:     struct{ I Iface2 }{},
 		opts: []cmp.Option{
-			cmp.Transformer("", func(v Iface1) bool {
+			cmp.Transformer("λ", func(v Iface1) bool {
 				return v == nil
 			}),
 		},
@@ -464,6 +465,10 @@ root[0]["hr"]:
 root[1]["hr"]:
 	-: int(63)
 	+: float64(63)`,
+	}, {
+		label: label,
+		x:     struct{ _ string }{},
+		y:     struct{ _ string }{},
 	}}
 }
 
@@ -492,9 +497,9 @@ func transformerTests() []test {
 		x:     uint8(0),
 		y:     uint8(1),
 		opts: []cmp.Option{
-			cmp.Transformer("", func(in uint8) uint16 { return uint16(in) }),
-			cmp.Transformer("", func(in uint16) uint32 { return uint32(in) }),
-			cmp.Transformer("", func(in uint32) uint64 { return uint64(in) }),
+			cmp.Transformer("λ", func(in uint8) uint16 { return uint16(in) }),
+			cmp.Transformer("λ", func(in uint16) uint32 { return uint32(in) }),
+			cmp.Transformer("λ", func(in uint32) uint64 { return uint64(in) }),
 		},
 		wantDiff: `
 λ(λ(λ({uint8}))):
@@ -505,8 +510,8 @@ func transformerTests() []test {
 		x:     0,
 		y:     1,
 		opts: []cmp.Option{
-			cmp.Transformer("", func(in int) int { return in / 2 }),
-			cmp.Transformer("", func(in int) int { return in }),
+			cmp.Transformer("λ", func(in int) int { return in / 2 }),
+			cmp.Transformer("λ", func(in int) int { return in }),
 		},
 		wantPanic: "ambiguous set of applicable options",
 	}, {
@@ -516,11 +521,11 @@ func transformerTests() []test {
 		opts: []cmp.Option{
 			cmp.FilterValues(
 				func(x, y int) bool { return x+y >= 0 },
-				cmp.Transformer("", func(in int) int64 { return int64(in / 2) }),
+				cmp.Transformer("λ", func(in int) int64 { return int64(in / 2) }),
 			),
 			cmp.FilterValues(
 				func(x, y int) bool { return x+y < 0 },
-				cmp.Transformer("", func(in int) int64 { return int64(in) }),
+				cmp.Transformer("λ", func(in int) int64 { return int64(in) }),
 			),
 		},
 		wantDiff: `
@@ -535,7 +540,7 @@ func transformerTests() []test {
 		x:     0,
 		y:     1,
 		opts: []cmp.Option{
-			cmp.Transformer("", func(in int) interface{} {
+			cmp.Transformer("λ", func(in int) interface{} {
 				if in == 0 {
 					return "string"
 				}
@@ -1811,7 +1816,7 @@ func project3Tests() []test {
 
 	ignoreLocker := cmpopts.IgnoreInterfaces(struct{ sync.Locker }{})
 
-	transformProtos := cmp.Transformer("", func(x pb.Dirt) *pb.Dirt {
+	transformProtos := cmp.Transformer("λ", func(x pb.Dirt) *pb.Dirt {
 		return &x
 	})
 
@@ -1898,7 +1903,7 @@ func project4Tests() []test {
 		ts.Poison{},
 	)
 
-	transformProtos := cmp.Transformer("", func(x pb.Restrictions) *pb.Restrictions {
+	transformProtos := cmp.Transformer("λ", func(x pb.Restrictions) *pb.Restrictions {
 		return &x
 	})
 
@@ -1980,22 +1985,4 @@ func project4Tests() []test {
 	-: &teststructs.Poison{poisonType: testprotos.PoisonType(2), manufacturer: "acme2"}
 	+: <non-existent>`,
 	}}
-}
-
-// TODO: Delete this hack when we drop Go1.6 support.
-func tRunParallel(t *testing.T, name string, f func(t *testing.T)) {
-	type runner interface {
-		Run(string, func(t *testing.T)) bool
-	}
-	var ti interface{} = t
-	if r, ok := ti.(runner); ok {
-		r.Run(name, func(t *testing.T) {
-			t.Parallel()
-			f(t)
-		})
-	} else {
-		// Cannot run sub-tests in parallel in Go1.6.
-		t.Logf("Test: %s", name)
-		f(t)
-	}
 }

@@ -499,6 +499,7 @@ func init() {
 		drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 	discovers["/PhysState"] = drstate
+	discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
 	discovers["/RunState"] = map[string]reflect.Value{
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
