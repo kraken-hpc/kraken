@@ -13,7 +13,7 @@ set -o pipefail
 for n in kr{1..4}; do
     if vboxmanage list vms | grep -q $n; then
         echo powering off $n
-        vboxmanage controlvm $n poweroff
+        vboxmanage controlvm $n poweroff || true
         echo destroying $n
         vboxmanage unregistervm $n --delete
     else
