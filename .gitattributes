@@ -1,0 +1,4 @@
+* text=auto
+vendor/** linguist-vendored
+*.tpl linguist-language=golang
+*.pb.go linguist-generated=true
