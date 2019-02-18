@@ -10,12 +10,15 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
 	"go/build"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,6 +26,8 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 )
+
+const KrModStr string = "module github.com/hpc/kraken"
 
 // globals (set by flags)
 var (
@@ -149,6 +154,33 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 	e = cmd.Run()
 	return
 }
+
+func getModDir() (d string, e error) {
+	// first, are we sitting in the Krakend dir?
+	pwd, _ := os.Getwd()
+	var f *os.File
+	if f, e = os.Open(path.Join(pwd, "go.mod")); e == nil {
+		defer f.Close()
+		rd := bufio.NewReader(f)
+		var line []byte
+		if line, _, e = rd.ReadLine(); e == nil {
+			if string(line) == KrModStr {
+				d = pwd
+				return
+			}
+		}
+	}
+
+	// couldn't open go.mod; obviously not in pwd, try for GOPATh
+	var p *build.Package
+	if p, e = build.Default.Import("github.com/hpc/kraken", "", build.FindOnly); e == nil {
+		d = p.Dir
+		return
+	}
+	e = fmt.Errorf("couldn't find craken in either PWD or GOPATH")
+	return
+}
+
 func main() {
 	var e error
 	flag.Parse()
@@ -173,11 +205,10 @@ func main() {
 		}
 	}
 
-	p, e := build.Default.Import("github.com/hpc/kraken", "", build.FindOnly)
+	krakenDir, e := getModDir()
 	if e != nil {
-		log.Fatalf("couldn't find kraken package: %v", e)
+		log.Fatalf("error getting current module directory: %v", e)
 	}
-	krakenDir := p.Dir
 	log.Printf("using kraken at: %s", krakenDir)
 
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?

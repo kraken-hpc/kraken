@@ -47,6 +47,15 @@ GOPATH="${GOPATH:-"$HOME/go"}"
 
 echo "Using GOPATH: $GOPATH"
 
+VBOXAPI="$(dirname $(dirname $PWD))/utils/vboxapi/vboxapi.go"
+
+if [ ! -f  $VBOXAPI ]; then
+    echo "Could not find vboxapi.go"
+    exit 1
+fi
+
+echo "Using vboxapi: $VBOXAPI"
+
 echo "Checking vbox hostonly network settings..."
 
 if ! ${VB} list hostonlyifs | grep -q -E "^Name.*${VBOXNET}"; then
@@ -85,8 +94,8 @@ sh create-nodes.sh 2>&1 | tee -a log/create-nodes.log
 echo "(RE)Starting vboxapi, log file in log/vboxapi.log"
 echo RUN: pkill vboxapi
 pkill vboxapi || true
-echo RUN: nohup go run "${GOPATH}/src/${KRAKEN_URL}/utils/vboxapi/vboxapi.go" -v -ip "${VBOXNET_IP}"
-nohup go run "${GOPATH}/src/${KRAKEN_URL}/utils/vboxapi/vboxapi.go" -v -ip "${VBOXNET_IP}" > log/vboxapi.log &
+echo RUN: nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}"
+nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}" > log/vboxapi.log &
 
 echo "(RE)Starting kraken on the 'kraken'"
 echo RUN: "${VG}" ssh-config kraken > ssh-config
