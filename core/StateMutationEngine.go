@@ -49,44 +49,19 @@ func (me *MutationEvent) String() string {
 	return fmt.Sprintf("(%s) %s : %s -> %s", MutationEventString[me.Type], me.NodeCfg.ID().String(), me.Mutation[0], me.Mutation[1])
 }
 
-//MutationEdge is used in constructing the graph (MutationPath)
-type MutationEdge struct {
+//mutationEdge is used in constructing the graph (mutationPath)
+type mutationEdge struct {
 	cost uint32
 	mut  lib.StateMutation
-	from *MutationNode
-	to   *MutationNode
+	from *mutationNode
+	to   *mutationNode
 }
 
-//Cost accessor for MutationEdge
-func (me *MutationEdge) Cost() uint32 {
-	return me.cost
-}
-
-//Mut accessor for MutationEdge
-func (me *MutationEdge) Mut() lib.StateMutation {
-	return me.mut
-}
-
-//From accessor for MutationEdge
-func (me *MutationEdge) From() *MutationNode {
-	return me.from
-}
-
-//To accessor for MutationEdge
-func (me *MutationEdge) To() *MutationNode {
-	return me.to
-}
-
-//MutationNode is used in constructing the graph (MutationPath)
-type MutationNode struct {
+//mutationNode is used in constructing the graph (mutationPath)
+type mutationNode struct {
 	spec lib.StateSpec // spec with aggregated require/excludes
-	in   []*MutationEdge
-	out  []*MutationEdge
-}
-
-//Spec accessor for MutationNode
-func (mn *MutationNode) Spec() lib.StateSpec {
-	return mn.spec
+	in   []*mutationEdge
+	out  []*mutationEdge
 }
 
 type mutationPath struct {
@@ -131,7 +106,7 @@ type StateMutationEngine struct {
 	echan       chan lib.Event
 	selist      *EventListener
 	run         bool                     // are we running?
-	active      map[string]*MutationPath // active mutations
+	active      map[string]*mutationPath // active mutations
 	activeMutex *sync.Mutex              // active needs some synchronization, or we can get in bad places
 	query       *QueryEngine
 	log         lib.Logger
@@ -145,7 +120,7 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 	sme := &StateMutationEngine{
 		muts:        []lib.StateMutation{},
 		mutResolver: make(map[lib.StateMutation][2]string),
-		active:      make(map[string]*MutationPath),
+		active:      make(map[string]*mutationPath),
 		activeMutex: &sync.Mutex{},
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
@@ -169,17 +144,17 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 }
 
 //Nodes accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Nodes() []*MutationNode {
+func (sme *StateMutationEngine) Nodes() []*mutationNode {
 	return sme.nodes
 }
 
 //Edges accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Edges() []*MutationEdge {
+func (sme *StateMutationEngine) Edges() []*mutationEdge {
 	return sme.edges
 }
 
 //Active accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Active() map[string]*MutationPath {
+func (sme *StateMutationEngine) Active() map[string]*mutationPath {
 	return sme.active
 }
 
@@ -371,7 +346,7 @@ func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 	return
 }
 
-// Converts an sme mutation path to a protobuf MutationPath
+// Converts an sme mutation path to a protobuf mutationPath
 // LOCKS: path.mutex
 func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	path.mutex.Lock()
@@ -696,7 +671,7 @@ func (sme *StateMutationEngine) collectURLs() {
 	}
 }
 
-func (sme *StateMutationEngine) remapToNode(root *MutationNode, to *MutationNode) {
+func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode) {
 	realNode := to
 	inEdge := root.in[0]
 	inEdge.to = realNode
@@ -710,7 +685,7 @@ func (sme *StateMutationEngine) remapToNode(root *MutationNode, to *MutationNode
 // currently only used in onUpdate
 func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, seenMut map[int]*mutationNode, chain []*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
 	nodes = append(nodes, root)
-	edges = []*MutationEdge{}
+	edges = []*mutationEdge{}
 
 	// There are two thing that can make a node equal:
 	// 1) we have seen this exact node spec...
@@ -718,7 +693,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 		if sp.Equal(root.spec) {
 			// we've seen an identical spec already
 			sme.remapToNode(root, n)
-			return []*MutationNode{}, []*MutationEdge{}
+			return []*mutationNode{}, []*mutationEdge{}
 		}
 	}
 
@@ -729,22 +704,22 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 				// Ok, I've seen this mutation -> I'm not actually a new node
 				// Which node am I? -> seen[i]
 				sme.remapToNode(root, n)
-				return []*MutationNode{}, []*MutationEdge{}
+				return []*mutationNode{}, []*mutationEdge{}
 			}
-			nme := &MutationEdge{
+			nme := &mutationEdge{
 				cost: 1,
 				mut:  m,
 				from: root,
 			}
-			nn := &MutationNode{
+			nn := &mutationNode{
 				spec: root.spec.SpecMergeMust(m.After()),
-				in:   []*MutationEdge{nme},
-				out:  []*MutationEdge{},
+				in:   []*mutationEdge{nme},
+				out:  []*mutationEdge{},
 			}
 			nme.to = nn
 			root.out = append(root.out, nme)
 			//ineffient, but every chain needs its own copy of seenMut
-			newseenMut := make(map[int]*MutationNode)
+			newseenMut := make(map[int]*mutationNode)
 			for k := range seenMut {
 				newseenMut[k] = seenMut[k]
 			}
@@ -765,8 +740,8 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 func (sme *StateMutationEngine) clearGraph() {
 	sme.mutators = make(map[string]uint32)
 	sme.requires = make(map[string]uint32)
-	sme.graph.in = []*MutationEdge{}
-	sme.graph.out = []*MutationEdge{}
+	sme.graph.in = []*mutationEdge{}
+	sme.graph.out = []*mutationEdge{}
 	sme.graph.spec = sme.root
 }
 
@@ -779,7 +754,7 @@ func (sme *StateMutationEngine) onUpdate() {
 	sme.graphMutex.Lock()
 	sme.clearGraph()
 	sme.collectURLs()
-	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*MutationNode), make(map[int]*MutationNode), []*MutationNode{})
+	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode), []*mutationNode{})
 	sme.Logf(DEBUG, "Built graph [ Mutations: %d Mutation URLs: %d Requires URLs: %d Graph Nodes: %d Graph Edges: %d ]",
 		len(sme.muts), len(sme.mutators), len(sme.requires), len(sme.nodes), len(sme.edges))
 	sme.graphMutex.Unlock()
@@ -833,9 +808,9 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 		return
 	}
 
-	dist := make(map[*MutationNode]uint32)
-	prev := make(map[*MutationNode]*MutationEdge)
-	queue := make(map[*MutationNode]*MutationNode)
+	dist := make(map[*mutationNode]uint32)
+	prev := make(map[*mutationNode]*mutationEdge)
+	queue := make(map[*mutationNode]*mutationNode)
 
 	for _, n := range sme.nodes {
 		dist[n] = ^uint32(0) - 1 // max uint32 - 1, a total hack
@@ -847,7 +822,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 
 	for len(queue) > 0 {
 		min := ^uint32(0)
-		var idx *MutationNode
+		var idx *mutationNode
 		for k, v := range queue {
 			if dist[v] < min {
 				min = dist[v]
@@ -858,10 +833,10 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 
 		if isEnd(u) {
 			// found it!
-			var chain []*MutationEdge
+			var chain []*mutationEdge
 			i := u
 			for prev[i] != nil {
-				chain = append([]*MutationEdge{prev[i]}, chain...)
+				chain = append([]*mutationEdge{prev[i]}, chain...)
 				i = prev[i].from
 			}
 			path := &mutationPath{
