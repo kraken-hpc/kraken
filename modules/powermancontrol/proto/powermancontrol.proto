@@ -15,7 +15,6 @@ message PMCConfig {
     string polling_interval = 2;
     string name_url = 3;
     string server_url = 4;
-    string uuid_url = 5;
 }
 
 message PMCServer {
