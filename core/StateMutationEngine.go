@@ -17,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	// gv "github.com/awalterschulze/gographviz"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -143,21 +142,6 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 	return sme
 }
 
-//Nodes accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Nodes() []*mutationNode {
-	return sme.nodes
-}
-
-//Edges accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Edges() []*mutationEdge {
-	return sme.edges
-}
-
-//Active accessor for NewStateMutationEngine
-func (sme *StateMutationEngine) Active() map[string]*mutationPath {
-	return sme.active
-}
-
 // RegisterMutation injects new mutations into the SME. muts[i] should match callback[i]
 // We take a list so that we only call onUpdate once
 // LOCKS: graphMutex (RW)
@@ -194,65 +178,6 @@ func (sme *StateMutationEngine) dumpMutMap(m map[string][2]reflect.Value) (s str
 	}
 	return
 }
-
-// //GenDotString returns a DOT formatted string of the mutation graph
-// func (sme *StateMutationEngine) GenDotString(req map[string]reflect.Value, exc map[string]reflect.Value) string {
-// 	g := gv.NewGraph()
-// 	g.SetName("MutGraph")
-// 	g.SetDir(true) //indicates that the graph is directed
-
-// 	for _, e := range sme.edges {
-// 		match := true
-// 		for k, v := range req {
-// 			if ev, ok := e.mut.Requires()[k]; ok {
-// 				if ev.Interface() != v.Interface() {
-// 					match = false
-// 					break
-// 				}
-// 			} else {
-// 				match = false
-// 				break
-// 			}
-// 		}
-// 		if match {
-// 			for k, v := range exc {
-// 				if ev, ok := e.mut.Excludes()[k]; ok {
-// 					if ev.Interface() == v.Interface() {
-// 						match = false
-// 						break
-// 					}
-// 				} else {
-// 					match = false
-// 					break
-// 				}
-// 			}
-// 		}
-
-// 		if match {
-// 			if g.IsNode(fmt.Sprintf("%p", e.to)) == false {
-// 				var attributes map[string]string
-// 				attributes = make(map[string]string)
-// 				g.AddNode("MutGraph", fmt.Sprintf("%p", e.to), attributes)
-// 			}
-
-// 			if g.IsNode(fmt.Sprintf("%p", e.from)) == false {
-// 				var attributes map[string]string
-// 				attributes = make(map[string]string)
-// 				g.AddNode("MutGraph", fmt.Sprintf("%p", e.from), attributes)
-// 			}
-
-// 			var attributes map[string]string
-// 			g.AddEdge(fmt.Sprintf("%p", e.from), fmt.Sprintf("%p", e.to), true, attributes)
-// 		}
-// 		// for key, value := range e.mut.Requires() {
-// 		// 	fmt.Println("Requires| ", "Key:", key, "Value:", value)
-// 		// }
-// 		// for key, value := range e.mut.Excludes() {
-// 		// 	fmt.Println("Exclude| ", "Key:", key, "Value:", value)
-// 		// }
-// 	}
-// 	return g.String()
-// }
 
 // DumpGraph FIXME: REMOVE -- for debugging
 // LOCKS: graphMutex (R)
@@ -346,7 +271,7 @@ func mutationEdgesToProto(edges []*mutationEdge) (r pb.MutationEdgeList) {
 	return
 }
 
-// Converts an sme mutation path to a protobuf mutationPath
+// Converts an sme mutation path to a protobuf MutationPath
 // LOCKS: path.mutex
 func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	path.mutex.Lock()
@@ -495,7 +420,6 @@ func (sme *StateMutationEngine) Run() {
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
 		sme.DumpGraph() // Use this to debug your graph
-		// fmt.Printf("%s \n", sme.GenDotString(map[string]reflect.Value{}, map[string]reflect.Value{}))
 	}
 
 	// create a listener for state change events we care about
