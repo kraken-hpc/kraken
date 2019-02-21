@@ -1,0 +1,28 @@
+---
+- name: Install nginx
+  become: yes
+  package:
+    name: nginx
+    state: present
+
+- name: Configure nginx
+  become: yes
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Synchronize dashboard
+  become: yes
+  synchronize:
+    src: dashboard/
+    dest: /usr/share/nginx/html
+
+- name: Enable nginx
+  become: yes
+  service:
+    name: nginx
+    enabled: yes
+    state: started

@@ -10,23 +10,35 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"fmt"
 	"go/build"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"text/template"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
+const KrModStr string = "module github.com/hpc/kraken"
+
 // globals (set by flags)
-var cfgFile, buildDir *string
-var noCleanup, force, verbose *bool
+var (
+	cfgFile   = flag.String("config", "config/kraken.yaml", "specify the build configuration YAML file")
+	buildDir  = flag.String("dir", "build", "specify directory to put built binaries in")
+	noCleanup = flag.Bool("noclean", false, "don't cleanup temp dir after build")
+	force     = flag.Bool("force", false, "force will overwrite existing build targets")
+	verbose   = flag.Bool("v", false, "verbose will print extra information about the build process")
+	race      = flag.Bool("race", false, "build with -race, warning: enables CGO")
+	pprof     = flag.Bool("pprof", false, "build with pprof support")
+)
 
 // config
 var cfg *Config
@@ -39,6 +51,7 @@ type Target struct {
 
 // Config yaml file structure
 type Config struct {
+	Pprof      bool
 	Targets    map[string]Target
 	Extensions []string
 	Modules    []string
@@ -114,7 +127,10 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 		defer f.Close()
 	}
 
-	args := []string{"build", "main.go"}
+	args := []string{"build", "-o", "main"}
+	if *race {
+		args = append(args, "-race")
+	}
 	args = append(args, fromTemplates...)
 	cmd := exec.Command("go", args...)
 	if verbose {
@@ -123,7 +139,11 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 	cmd.Dir = dir
 
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "CGO_ENABLED=0")
+	if *race {
+		cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
+	} else {
+		cmd.Env = append(cmd.Env, "CGO_ENABLED=0")
+	}
 	cmd.Env = append(cmd.Env, "GOOS="+t.Os)
 	cmd.Env = append(cmd.Env, "GOARCH="+t.Arch)
 	cmd.Env = append(cmd.Env, "GOPATH="+build.Default.GOPATH)
@@ -134,13 +154,35 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 	e = cmd.Run()
 	return
 }
+
+func getModDir() (d string, e error) {
+	// first, are we sitting in the Krakend dir?
+	pwd, _ := os.Getwd()
+	var f *os.File
+	if f, e = os.Open(path.Join(pwd, "go.mod")); e == nil {
+		defer f.Close()
+		rd := bufio.NewReader(f)
+		var line []byte
+		if line, _, e = rd.ReadLine(); e == nil {
+			if string(line) == KrModStr {
+				d = pwd
+				return
+			}
+		}
+	}
+
+	// couldn't open go.mod; obviously not in pwd, try for GOPATh
+	var p *build.Package
+	if p, e = build.Default.Import("github.com/hpc/kraken", "", build.FindOnly); e == nil {
+		d = p.Dir
+		return
+	}
+	e = fmt.Errorf("couldn't find craken in either PWD or GOPATH")
+	return
+}
+
 func main() {
 	var e error
-	cfgFile = flag.String("config", "config/kraken.yaml", "specify the build configuration YAML file")
-	buildDir = flag.String("dir", "build", "specify directory to put built binaries in")
-	noCleanup = flag.Bool("noclean", false, "don't cleanup temp dir after build")
-	force = flag.Bool("force", false, "force will overwrite existing build targets")
-	verbose = flag.Bool("v", false, "verbose will print extra information about the build process")
 	flag.Parse()
 
 	// read config
@@ -152,6 +194,9 @@ func main() {
 	if e = yaml.Unmarshal(cfgBytes, cfg); e != nil {
 		log.Fatalf("could not read config: %v", e)
 	}
+	if *pprof {
+		cfg.Pprof = true
+	}
 
 	// create build dir
 	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
@@ -160,11 +205,10 @@ func main() {
 		}
 	}
 
-	p, e := build.Default.Import("github.com/hpc/kraken", "", build.FindOnly)
+	krakenDir, e := getModDir()
 	if e != nil {
-		log.Fatalf("couldn't find kraken package: %v", e)
+		log.Fatalf("error getting current module directory: %v", e)
 	}
-	krakenDir := p.Dir
 	log.Printf("using kraken at: %s", krakenDir)
 
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?
@@ -172,9 +216,6 @@ func main() {
 
 	// setup build environment
 	log.Println("setting up build environment")
-
-	// hardlink kraken.go to tmpDir
-	os.Link(filepath.Join(krakenDir, "kraken/main.go"), filepath.Join(tmpDir, "main.go"))
 
 	// build templates
 	var fromTemplates []string

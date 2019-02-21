@@ -80,8 +80,10 @@ func (sm *ServiceManager) Service(id string) (si lib.ServiceInstance) {
 func (sm *ServiceManager) RunService(id string) (e error) {
 	if s, ok := sm.srv[id]; ok {
 		if s.State() != lib.Service_RUN {
-			return sm.start(s)
-			s.SetState(lib.Service_RUN)
+			if e = sm.start(s); e == nil {
+				s.SetState(lib.Service_RUN)
+			}
+			return
 		}
 		return fmt.Errorf("service is in state, %d, cannot start", s.State())
 	}
@@ -155,7 +157,6 @@ func (sm *ServiceManager) SyncNode(n lib.Node) map[string]lib.ServiceState {
 		} else {
 			e := sm.AddServiceByModule(srv.ID(), srv.Module(), srv.Config())
 			if e != nil {
-				fmt.Printf("%v\n", e, Registry.Modules)
 				return r
 			}
 			if ss := sm.syncState(sm.srv[srv.ID()], srv.State()); ss != lib.Service_UNKNOWN {

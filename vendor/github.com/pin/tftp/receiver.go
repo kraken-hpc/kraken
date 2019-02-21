@@ -24,7 +24,6 @@ type IncomingTransfer interface {
 }
 
 func (r *receiver) RemoteAddr() net.UDPAddr { return *r.addr }
-func (r *receiver) LocalIP() net.IP         { return r.localIP }
 
 func (r *receiver) Size() (n int64, ok bool) {
 	if r.opts != nil {
@@ -43,7 +42,6 @@ type receiver struct {
 	send     []byte
 	receive  []byte
 	addr     *net.UDPAddr
-	localIP  net.IP
 	tid      int
 	conn     *net.UDPConn
 	block    uint16
@@ -80,6 +78,7 @@ func (r *receiver) WriteTo(w io.Writer) (n int64, err error) {
 			if r.l < len(r.receive) {
 				if r.autoTerm {
 					r.terminate()
+					r.conn.Close()
 				}
 				return n, nil
 			}
@@ -202,10 +201,6 @@ func (r *receiver) receiveDatagram(l int) (int, *net.UDPAddr, error) {
 }
 
 func (r *receiver) terminate() error {
-	if r.conn == nil {
-		return nil
-	}
-	defer r.conn.Close()
 	binary.BigEndian.PutUint16(r.send[2:4], r.block)
 	if r.dally {
 		for i := 0; i < 3; i++ {

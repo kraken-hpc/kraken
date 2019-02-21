@@ -37,6 +37,8 @@ type Context struct {
 	SSE      ContextSSE
 	SME      ContextSME
 	RPC      ContextRPC
+	sdqChan  chan lib.Query
+	smqChan  chan lib.Query
 }
 
 type ContextSSE struct {
@@ -142,6 +144,18 @@ func (k *Kraken) Bootstrap() {
 		}
 	}
 
+	extString := ""
+	for e := range Registry.Extensions {
+		extString += fmt.Sprintf("\n\t%s", e)
+	}
+	k.Logf(INFO, "this kraken is built with extensions: %s", extString)
+
+	modString := ""
+	for m := range Registry.Modules {
+		modString += fmt.Sprintf("\n\t%s", m)
+	}
+	k.Logf(INFO, "this kraken is built with modules: %s", modString)
+
 	// Create service instances
 	k.Log(INFO, "bootstrapping core services")
 
@@ -160,14 +174,17 @@ func (k *Kraken) Bootstrap() {
 	k.Logf(INFO, "RPC is listening on %s:%s:%d", k.Ctx.RPC.Network, k.Ctx.RPC.Addr, k.Ctx.RPC.Port)
 	k.Logf(INFO, "RPC is listening on socket %s", k.Ctx.RPC.Path)
 
+	k.Ctx.sdqChan = make(chan lib.Query)
+	k.Ctx.smqChan = make(chan lib.Query)
+
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
-	k.Sde = NewStateDifferenceEngine(k.Ctx)
+	k.Sde = NewStateDifferenceEngine(k.Ctx, k.Ctx.sdqChan)
 	k.Ctx.Services = NewServiceManager("unix:" + k.Ctx.RPC.Path)
-	k.Ctx.Query = *NewQueryEngine(k.Sde.QueryChan())
+	k.Ctx.Query = *NewQueryEngine(k.Ctx.sdqChan, k.Ctx.smqChan)
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
-	k.Sme = NewStateMutationEngine(k.Ctx)
+	k.Sme = NewStateMutationEngine(k.Ctx, k.Ctx.smqChan)
 	k.Api = NewAPIServer(k.Ctx)
 
 	k.Sde.Subscribe("SDE", k.Ede.EventChan())

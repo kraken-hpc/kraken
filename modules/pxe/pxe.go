@@ -48,13 +48,13 @@ type pxmut struct {
 }
 
 var muts = map[string]pxmut{
-	"NONEtoWAIT": pxmut{
+	"NONEtoWAIT": {
 		f:       pxepb.PXE_NONE,
 		t:       pxepb.PXE_WAIT,
 		reqs:    reqs,
 		timeout: "10s",
 	},
-	"INITtoCOMP": pxmut{
+	"INITtoCOMP": {
 		f: pxepb.PXE_INIT,
 		t: pxepb.PXE_COMP,
 		reqs: map[string]reflect.Value{
@@ -337,7 +337,7 @@ func init() {
 		dur, _ := time.ParseDuration(muts[m].timeout)
 		mutations[m] = core.NewStateMutation(
 			map[string][2]reflect.Value{
-				PXEStateURL: [2]reflect.Value{
+				PXEStateURL: {
 					reflect.ValueOf(muts[m].f),
 					reflect.ValueOf(muts[m].t),
 				},
@@ -353,11 +353,11 @@ func init() {
 
 	mutations["WAITtoINIT"] = core.NewStateMutation(
 		map[string][2]reflect.Value{
-			PXEStateURL: [2]reflect.Value{
+			PXEStateURL: {
 				reflect.ValueOf(pxepb.PXE_WAIT),
 				reflect.ValueOf(pxepb.PXE_INIT),
 			},
-			"/RunState": [2]reflect.Value{
+			"/RunState": {
 				reflect.ValueOf(cpb.Node_UNKNOWN),
 				reflect.ValueOf(cpb.Node_INIT),
 			},

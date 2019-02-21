@@ -44,10 +44,10 @@ const (
 
 // vbmResponse is the VBM response structure
 type vbmResponse struct {
-	Err    int32    `json:e,omitempty`
-	ErrMsg string   `json:err_msg,omitempty`
-	Off    []uint32 `json:off,omitempty`
-	On     []uint32 `json:on,omitempty`
+	Err    int32    `json:"e,omitempty"`
+	ErrMsg string   `json:"err_msg,omitempty"`
+	Off    []uint32 `json:"off,omitempty"`
+	On     []uint32 `json:"on,omitempty"`
 }
 
 // ppmut helps us succinctly define our mutations
@@ -61,27 +61,27 @@ type ppmut struct {
 // our mutation definitions
 // also we discover anything we can migrate to
 var muts = map[string]ppmut{
-	"UKtoOFF": ppmut{
+	"UKtoOFF": {
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "10s",
 	},
-	"OFFtoON": ppmut{
+	"OFFtoON": {
 		f:       cpb.Node_POWER_OFF,
 		t:       cpb.Node_POWER_ON,
 		timeout: "10s",
 	},
-	"ONtoOFF": ppmut{
+	"ONtoOFF": {
 		f:       cpb.Node_POWER_ON,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "10s",
 	},
-	"HANGtoOFF": ppmut{
+	"HANGtoOFF": {
 		f:       cpb.Node_PHYS_HANG,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "20s", // we need a longer timeout, because we let it sit cold for a few seconds
 	},
-	"UKtoHANG": ppmut{ // this one should never happen; just making sure HANG gets connected in our graph
+	"UKtoHANG": { // this one should never happen; just making sure HANG gets connected in our graph
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_PHYS_HANG,
 		timeout: "0s",
@@ -129,7 +129,7 @@ func (*VBM) NewConfig() proto.Message {
 		NameUrl:   "type.googleapis.com/proto.VBox/Name",
 		UuidUrl:   "type.googleapis.com/proto.VBox/Uuid",
 		Servers: map[string]*pb.VBMServer{
-			"vbm": &pb.VBMServer{
+			"vbm": {
 				Name: "vbm",
 				Ip:   "localhost",
 				Port: 8269,
@@ -485,7 +485,7 @@ func init() {
 		dur, _ := time.ParseDuration(muts[m].timeout)
 		mutations[m] = core.NewStateMutation(
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(muts[m].f),
 					reflect.ValueOf(muts[m].t),
 				},
@@ -499,6 +499,7 @@ func init() {
 		drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 	discovers["/PhysState"] = drstate
+	discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
 	discovers["/RunState"] = map[string]reflect.Value{
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
