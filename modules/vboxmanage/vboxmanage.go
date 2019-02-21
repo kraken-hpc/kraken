@@ -274,11 +274,11 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 
 	url := "http://" + addr + VBMStat + "/" + name
 	resp, e := http.Get(url)
-	defer resp.Body.Close()
 	if e != nil {
 		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
@@ -335,11 +335,11 @@ func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
 
 	url := "http://" + addr + VBMOn + "/" + name + "?type=headless"
 	resp, e := http.Get(url)
-	defer resp.Body.Close()
 	if e != nil {
 		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
@@ -399,11 +399,11 @@ func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
 
 	url := "http://" + addr + VBMOff + "/" + name + "/poweroff"
 	resp, e := http.Get(url)
-	defer resp.Body.Close()
 	if e != nil {
 		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
