@@ -13,8 +13,8 @@ package core
 import (
 	"reflect"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/hpc/kraken/lib"
+	uuid "github.com/satori/go.uuid"
 )
 
 ///////////////////

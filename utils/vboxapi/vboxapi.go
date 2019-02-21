@@ -34,10 +34,10 @@ var listenPort *uint
 var verbose *bool
 
 type vbmResponse struct {
-	Err    int32    `json:e,omitempty`
-	ErrMsg string   `json:err_msg,omitempty`
-	Off    []uint32 `json:off,omitempty`
-	On     []uint32 `json:on,omitempty`
+	Err    int32    `json:"e,omitempty"`
+	ErrMsg string   `json:"err_msg,omitempty"`
+	Off    []uint32 `json:"off,omitempty"`
+	On     []uint32 `json:"on,omitempty"`
 }
 
 func main() {

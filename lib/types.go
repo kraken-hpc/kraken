@@ -264,6 +264,13 @@ const (
  * Engine query language
  */
 
+type QueryEngineType uint8
+
+const (
+	Query_SDE QueryEngineType = iota
+	Query_SME
+)
+
 type QueryType uint8
 
 const (
@@ -277,7 +284,25 @@ const (
 	Query_GETVALUE
 	Query_SETVALUE
 	Query_RESPONSE
+	Query_MUTATIONNODES
+	Query_MUTATIONEDGES
+	Query_MUTATIONPATH
 )
+
+var QueryTypeMap = map[QueryType]QueryEngineType{
+	Query_CREATE:        Query_SDE,
+	Query_READ:          Query_SDE,
+	Query_UPDATE:        Query_SDE,
+	Query_DELETE:        Query_SDE,
+	Query_READALL:       Query_SDE,
+	Query_DELETEALL:     Query_SDE,
+	Query_GETVALUE:      Query_SDE,
+	Query_SETVALUE:      Query_SDE,
+	Query_RESPONSE:      Query_SDE,
+	Query_MUTATIONNODES: Query_SME,
+	Query_MUTATIONEDGES: Query_SME,
+	Query_MUTATIONPATH:  Query_SME,
+}
 
 type QueryState uint8
 
@@ -513,6 +538,11 @@ type APIClient interface {
 	QueryDelete(string) (Node, error)
 	QueryReadAll() ([]Node, error)
 	QueryReadAllDsc() ([]Node, error)
+	QueryMutationNodes() (pb.MutationNodeList, error)
+	QueryMutationEdges() (pb.MutationEdgeList, error)
+	QueryNodeMutationNodes(string) (pb.MutationNodeList, error)
+	QueryNodeMutationEdges(string) (pb.MutationEdgeList, error)
+	QueryNodeMutationPath(string) (pb.MutationPath, error)
 	QueryDeleteAll() ([]Node, error)
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }

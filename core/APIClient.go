@@ -142,6 +142,56 @@ func (a *APIClient) QueryReadAllDsc() (r []lib.Node, e error) {
 	return
 }
 
+func (a *APIClient) QueryMutationNodes() (r pb.MutationNodeList, e error) {
+	q := &empty.Empty{}
+	rv, e := a.oneshot("QueryMutationNodes", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationNodeList()
+	return
+}
+
+func (a *APIClient) QueryMutationEdges() (r pb.MutationEdgeList, e error) {
+	q := &empty.Empty{}
+	rv, e := a.oneshot("QueryMutationEdges", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationEdgeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationNodes(id string) (r pb.MutationNodeList, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/nodes")}
+	rv, e := a.oneshot("QueryNodeMutationNodes", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationNodeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationEdges(id string) (r pb.MutationEdgeList, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/edges")}
+	rv, e := a.oneshot("QueryNodeMutationEdges", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationEdgeList()
+	return
+}
+
+func (a *APIClient) QueryNodeMutationPath(id string) (r pb.MutationPath, e error) {
+	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/path")}
+	rv, e := a.oneshot("QueryNodeMutationPath", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = *rv.Interface().(*pb.Query).GetMutationPath()
+	return
+}
+
 func (a *APIClient) QueryDeleteAll() (r []lib.Node, e error) {
 	q := &empty.Empty{}
 	rvs, e := a.oneshot("QueryDeleteAll", reflect.ValueOf(q))

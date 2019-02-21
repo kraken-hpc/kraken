@@ -6,9 +6,6 @@ import (
 	"net"
 	"sync"
 	"time"
-
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
 )
 
 // NewServer creates TFTP server. It requires two functions to handle
@@ -23,17 +20,6 @@ func NewServer(readHandler func(filename string, rf io.ReaderFrom) error,
 		timeout:      defaultTimeout,
 		retries:      defaultRetries,
 	}
-}
-
-// RequestPacketInfo provides a method of getting the local IP address
-// that is handling a UDP request.  It relies for its accuracy on the
-// OS providing methods to inspect the underlying UDP and IP packets
-// directly.
-type RequestPacketInfo interface {
-	// LocalAddr returns the IP address we are servicing the request on.
-	// If it is unable to determine what address that is, the returned
-	// net.IP will be nil.
-	LocalIP() net.IP
 }
 
 type Server struct {
@@ -86,105 +72,29 @@ func (s *Server) ListenAndServe(addr string) error {
 	if err != nil {
 		return err
 	}
-	return s.Serve(conn)
+	s.Serve(conn)
+	return nil
 }
 
 // Serve starts server provided already opened UDP connecton. It is
 // useful for the case when you want to run server in separate goroutine
 // but still want to be able to handle any errors opening connection.
 // Serve returns when Shutdown is called or connection is closed.
-func (s *Server) Serve(conn *net.UDPConn) error {
-	defer conn.Close()
-	laddr := conn.LocalAddr()
-	host, _, err := net.SplitHostPort(laddr.String())
-	if err != nil {
-		return err
-	}
+func (s *Server) Serve(conn *net.UDPConn) {
 	s.conn = conn
-	// Having seperate control paths for IP4 and IP6 is annoying,
-	// but necessary at this point.
-	addr := net.ParseIP(host)
-	if addr == nil {
-		return fmt.Errorf("Failed to determine IP class of listening address")
-	}
-	var conn4 *ipv4.PacketConn
-	var conn6 *ipv6.PacketConn
-	if addr.To4() != nil {
-		conn4 = ipv4.NewPacketConn(conn)
-		if err := conn4.SetControlMessage(ipv4.FlagDst, true); err != nil {
-			conn4 = nil
-		}
-	} else {
-		conn6 = ipv6.NewPacketConn(conn)
-		if err := conn6.SetControlMessage(ipv6.FlagDst, true); err != nil {
-			conn6 = nil
-		}
-	}
-
 	s.quit = make(chan chan struct{})
 	for {
 		select {
 		case q := <-s.quit:
 			q <- struct{}{}
-			return nil
+			return
 		default:
-			var err error
-			if conn4 != nil {
-				err = s.processRequest4(conn4)
-			} else if conn6 != nil {
-				err = s.processRequest6(conn6)
-			} else {
-				err = s.processRequest()
-			}
+			err := s.processRequest(s.conn)
 			if err != nil {
 				// TODO: add logging handler
 			}
 		}
 	}
-}
-
-// Yes, I don't really like having seperate IPv4 and IPv6 variants,
-// bit we are relying on the low-level packet control channel info to
-// get a reliable source address, and those have different types and
-// the struct itself is not easily interface-ized or embedded.
-//
-// If control is nil for whatever reason (either things not being
-// implemented on a target OS or whatever other reason), localIP
-// (and hence LocalIP()) will return a nil IP address.
-func (s *Server) processRequest4(conn4 *ipv4.PacketConn) error {
-	buf := make([]byte, datagramLength)
-	cnt, control, srcAddr, err := conn4.ReadFrom(buf)
-	if err != nil {
-		return fmt.Errorf("reading UDP: %v", err)
-	}
-	var localAddr net.IP
-	if control != nil {
-		localAddr = control.Dst
-	}
-	return s.handlePacket(localAddr, srcAddr.(*net.UDPAddr), buf, cnt)
-}
-
-func (s *Server) processRequest6(conn6 *ipv6.PacketConn) error {
-	buf := make([]byte, datagramLength)
-	cnt, control, srcAddr, err := conn6.ReadFrom(buf)
-	if err != nil {
-		return fmt.Errorf("reading UDP: %v", err)
-	}
-	var localAddr net.IP
-	if control != nil {
-		localAddr = control.Dst
-	}
-	return s.handlePacket(localAddr, srcAddr.(*net.UDPAddr), buf, cnt)
-}
-
-// Fallback if we had problems opening a ipv4/6 control channel
-func (s *Server) processRequest() error {
-	buf := make([]byte, datagramLength)
-	cnt, srcAddr, err := s.conn.ReadFromUDP(buf)
-	if err != nil {
-		return fmt.Errorf("reading UDP: %v", err)
-	}
-	return s.handlePacket(nil, srcAddr, buf, cnt)
 }
 
 // Shutdown make server stop listening for new requests, allows
@@ -197,7 +107,13 @@ func (s *Server) Shutdown() {
 	s.wg.Wait()
 }
 
-func (s *Server) handlePacket(localAddr net.IP, remoteAddr *net.UDPAddr, buffer []byte, n int) error {
+func (s *Server) processRequest(conn *net.UDPConn) error {
+	var buffer []byte
+	buffer = make([]byte, datagramLength)
+	n, remoteAddr, err := conn.ReadFromUDP(buffer)
+	if err != nil {
+		return fmt.Errorf("reading UDP: %v", err)
+	}
 	p, err := parsePacket(buffer[:n])
 	if err != nil {
 		return err
@@ -224,7 +140,6 @@ func (s *Server) handlePacket(localAddr net.IP, remoteAddr *net.UDPAddr, buffer 
 			timeout: s.timeout,
 			retries: s.retries,
 			addr:    remoteAddr,
-			localIP: localAddr,
 			mode:    mode,
 			opts:    opts,
 		}
@@ -236,6 +151,7 @@ func (s *Server) handlePacket(localAddr net.IP, remoteAddr *net.UDPAddr, buffer 
 					wt.abort(err)
 				} else {
 					wt.terminate()
+					wt.conn.Close()
 				}
 			} else {
 				wt.abort(fmt.Errorf("server does not support write requests"))
@@ -261,7 +177,6 @@ func (s *Server) handlePacket(localAddr net.IP, remoteAddr *net.UDPAddr, buffer 
 			timeout: s.timeout,
 			retries: s.retries,
 			addr:    remoteAddr,
-			localIP: localAddr,
 			mode:    mode,
 			opts:    opts,
 		}

@@ -33,7 +33,6 @@ type OutgoingTransfer interface {
 type sender struct {
 	conn    *net.UDPConn
 	addr    *net.UDPAddr
-	localIP net.IP
 	tid     int
 	send    []byte
 	receive []byte
@@ -46,7 +45,6 @@ type sender struct {
 }
 
 func (s *sender) RemoteAddr() net.UDPAddr { return *s.addr }
-func (s *sender) LocalIP() net.IP         { return s.localIP }
 
 func (s *sender) SetSize(n int64) {
 	if s.opts != nil {

@@ -1,0 +1,11 @@
+---
+- hosts: kraken
+  vars:
+    kr_repo: https://github.com/hpc/kraken.git
+    kr_repo_version: "master"
+    kr_build_args: "-v -force"
+  roles:
+    - common
+    - kraken-all
+    - kraken-dashboard
+#    - extras

@@ -1,0 +1,12 @@
+---
+- name: disables firewalld
+  become: yes
+  service:
+    name: firewalld
+    enabled: no
+    state: stopped
+
+- name: disables selinux
+  become: yes
+  selinux:
+    state: disabled

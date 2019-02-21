@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	uuid "github.com/satori/go.uuid"
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
+	uuid "github.com/satori/go.uuid"
 )
 
 // fixture builds out a semi-realistic set of mutations
@@ -16,7 +16,7 @@ func fixtureMuts() []lib.StateMutation {
 	return []lib.StateMutation{
 		NewStateMutation( // IPMI discover initial
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_PHYS_UNKNOWN),
 					reflect.ValueOf(pb.Node_POWER_OFF),
 				},
@@ -29,7 +29,7 @@ func fixtureMuts() []lib.StateMutation {
 		),
 		NewStateMutation( // IPMI power on
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_POWER_OFF),
 					reflect.ValueOf(pb.Node_POWER_ON),
 				},
@@ -42,7 +42,7 @@ func fixtureMuts() []lib.StateMutation {
 		),
 		NewStateMutation( // IPMI power off
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_POWER_ON),
 					reflect.ValueOf(pb.Node_POWER_OFF),
 				},
@@ -55,7 +55,7 @@ func fixtureMuts() []lib.StateMutation {
 		),
 		NewStateMutation( // Redfish discover initial
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_PHYS_UNKNOWN),
 					reflect.ValueOf(pb.Node_POWER_OFF),
 				},
@@ -68,7 +68,7 @@ func fixtureMuts() []lib.StateMutation {
 		),
 		NewStateMutation( // Redfish power on
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_POWER_OFF),
 					reflect.ValueOf(pb.Node_POWER_ON),
 				},
@@ -81,7 +81,7 @@ func fixtureMuts() []lib.StateMutation {
 		),
 		NewStateMutation( // Redfish power off, sync exclude
 			map[string][2]reflect.Value{
-				"/PhysState": [2]reflect.Value{
+				"/PhysState": {
 					reflect.ValueOf(pb.Node_POWER_ON),
 					reflect.ValueOf(pb.Node_POWER_OFF),
 				},
