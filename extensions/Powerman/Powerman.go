@@ -7,7 +7,7 @@
 * See LICENSE file for details.
  */
 
-package vbox
+package powerman
 
 import (
 	"github.com/golang/protobuf/proto"
@@ -19,9 +19,9 @@ import (
 
 //go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/Powerman.proto
 
-/////////////////
-// VBox Object /
-///////////////
+/////////////////////
+// Powerman Object /
+///////////////////
 
 var _ lib.Extension = Powerman{}
 
@@ -37,5 +37,5 @@ func (r Powerman) Name() string {
 }
 
 func init() {
-	core.Registry.RegisterExtension(VBox{})
+	core.Registry.RegisterExtension(Powerman{})
 }

@@ -38,7 +38,7 @@ const (
 	PMCBase        string = "/powermancontrol"
 	PMCOn          string = PMCBase + "/poweroff"
 	PMCOff         string = PMCBase + "/poweron"
-	PMCStat        string = PMCBase + "nodeStatus"
+	PMCStat        string = PMCBase + "/nodeStatus"
 	PlatformString string = "powerman"
 )
 
@@ -92,7 +92,7 @@ var excs = map[string]reflect.Value{}
 // PMC Object /
 //////////////////
 
-// PMC provides a power on/off interface to the vboxmanage-rest-api interface
+// PMC provides a power on/off interface to powerman
 type PMC struct {
 	api        lib.APIClient
 	cfg        *pb.PMCConfig
@@ -114,13 +114,12 @@ func (p *PMC) Name() string { return "github.com/hpc/kraken/modules/powermancont
  */
 var _ lib.ModuleWithConfig = (*PMC)(nil)
 
-// Finish this function?
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
-		ServerUrl:       "type.googleapis.com/proto.PowermanControl/ApiServer",
-		NameUrl:         "type.googleapis.com/proto.PowermanControl/Name",
-		UuidUrl:         "type.googleapis.com/proto.PowermanControl/Uuid",
+		ServerUrl:       "type.googleapis.com/proto.Powerman/ApiServer",
+		NameUrl:         "type.googleapis.com/proto.Powerman/Name",
+		UuidUrl:         "type.googleapis.com/proto.Powerman/Uuid",
 		PollingInterval: "30s",
 	}
 	return r
@@ -415,7 +414,7 @@ func (p *PMC) discoverAll() {
 	for _, n := range ns {
 		vs := n.GetValues([]string{"/Platform", p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
 		if len(vs) != 3 {
-			p.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete VBM info", n.ID().String())
+			p.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete PMC info", n.ID().String())
 			continue
 		}
 		if vs["/Platform"].String() != PlatformString { // Note: this may need to be more flexible in the future
@@ -427,7 +426,7 @@ func (p *PMC) discoverAll() {
 		bySrv[srv] = append(bySrv[srv], name)
 	}
 
-	// This is not very efficient, but we assume that this module won't be used for huge amounts of vms
+	// This is not very efficient, but we assume that this module won't be used for huge amounts of nodes
 	for s, ns := range bySrv {
 		for _, n := range ns {
 			p.nodeDiscover(s, n, idmap[n])
