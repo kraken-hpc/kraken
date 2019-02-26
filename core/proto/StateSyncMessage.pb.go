@@ -3,9 +3,11 @@
 
 package proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -37,16 +39,17 @@ func (m *StateSyncMessage) Reset()         { *m = StateSyncMessage{} }
 func (m *StateSyncMessage) String() string { return proto.CompactTextString(m) }
 func (*StateSyncMessage) ProtoMessage()    {}
 func (*StateSyncMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{0}
+	return fileDescriptor_fd2b8306cd75556d, []int{0}
 }
+
 func (m *StateSyncMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StateSyncMessage.Unmarshal(m, b)
 }
 func (m *StateSyncMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_StateSyncMessage.Marshal(b, m, deterministic)
 }
-func (dst *StateSyncMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StateSyncMessage.Merge(dst, src)
+func (m *StateSyncMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StateSyncMessage.Merge(m, src)
 }
 func (m *StateSyncMessage) XXX_Size() int {
 	return xxx_messageInfo_StateSyncMessage.Size(m)
@@ -89,16 +92,17 @@ func (m *PhoneHomeRequest) Reset()         { *m = PhoneHomeRequest{} }
 func (m *PhoneHomeRequest) String() string { return proto.CompactTextString(m) }
 func (*PhoneHomeRequest) ProtoMessage()    {}
 func (*PhoneHomeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{1}
+	return fileDescriptor_fd2b8306cd75556d, []int{1}
 }
+
 func (m *PhoneHomeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PhoneHomeRequest.Unmarshal(m, b)
 }
 func (m *PhoneHomeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PhoneHomeRequest.Marshal(b, m, deterministic)
 }
-func (dst *PhoneHomeRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PhoneHomeRequest.Merge(dst, src)
+func (m *PhoneHomeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PhoneHomeRequest.Merge(m, src)
 }
 func (m *PhoneHomeRequest) XXX_Size() int {
 	return xxx_messageInfo_PhoneHomeRequest.Size(m)
@@ -130,16 +134,17 @@ func (m *PhoneHomeReply) Reset()         { *m = PhoneHomeReply{} }
 func (m *PhoneHomeReply) String() string { return proto.CompactTextString(m) }
 func (*PhoneHomeReply) ProtoMessage()    {}
 func (*PhoneHomeReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{2}
+	return fileDescriptor_fd2b8306cd75556d, []int{2}
 }
+
 func (m *PhoneHomeReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PhoneHomeReply.Unmarshal(m, b)
 }
 func (m *PhoneHomeReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_PhoneHomeReply.Marshal(b, m, deterministic)
 }
-func (dst *PhoneHomeReply) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_PhoneHomeReply.Merge(dst, src)
+func (m *PhoneHomeReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PhoneHomeReply.Merge(m, src)
 }
 func (m *PhoneHomeReply) XXX_Size() int {
 	return xxx_messageInfo_PhoneHomeReply.Size(m)
@@ -256,11 +261,9 @@ var _StateSync_serviceDesc = grpc.ServiceDesc{
 	Metadata: "StateSyncMessage.proto",
 }
 
-func init() {
-	proto.RegisterFile("StateSyncMessage.proto", fileDescriptor_StateSyncMessage_ef9f44bb84d20e95)
-}
+func init() { proto.RegisterFile("StateSyncMessage.proto", fileDescriptor_fd2b8306cd75556d) }
 
-var fileDescriptor_StateSyncMessage_ef9f44bb84d20e95 = []byte{
+var fileDescriptor_fd2b8306cd75556d = []byte{
 	// 217 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x0b, 0x2e, 0x49, 0x2c,
 	0x49, 0x0d, 0xae, 0xcc, 0x4b, 0xf6, 0x4d, 0x2d, 0x2e, 0x4e, 0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca,

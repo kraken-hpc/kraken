@@ -3,9 +3,11 @@
 
 package proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -30,16 +32,17 @@ func (m *IPv4) Reset()         { *m = IPv4{} }
 func (m *IPv4) String() string { return proto.CompactTextString(m) }
 func (*IPv4) ProtoMessage()    {}
 func (*IPv4) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{0}
+	return fileDescriptor_ecab7372ca821162, []int{0}
 }
+
 func (m *IPv4) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IPv4.Unmarshal(m, b)
 }
 func (m *IPv4) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IPv4.Marshal(b, m, deterministic)
 }
-func (dst *IPv4) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IPv4.Merge(dst, src)
+func (m *IPv4) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IPv4.Merge(m, src)
 }
 func (m *IPv4) XXX_Size() int {
 	return xxx_messageInfo_IPv4.Size(m)
@@ -78,16 +81,17 @@ func (m *Ethernet) Reset()         { *m = Ethernet{} }
 func (m *Ethernet) String() string { return proto.CompactTextString(m) }
 func (*Ethernet) ProtoMessage()    {}
 func (*Ethernet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{1}
+	return fileDescriptor_ecab7372ca821162, []int{1}
 }
+
 func (m *Ethernet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Ethernet.Unmarshal(m, b)
 }
 func (m *Ethernet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Ethernet.Marshal(b, m, deterministic)
 }
-func (dst *Ethernet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Ethernet.Merge(dst, src)
+func (m *Ethernet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Ethernet.Merge(m, src)
 }
 func (m *Ethernet) XXX_Size() int {
 	return xxx_messageInfo_Ethernet.Size(m)
@@ -141,16 +145,17 @@ func (m *IPv4OverEthernet) Reset()         { *m = IPv4OverEthernet{} }
 func (m *IPv4OverEthernet) String() string { return proto.CompactTextString(m) }
 func (*IPv4OverEthernet) ProtoMessage()    {}
 func (*IPv4OverEthernet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{2}
+	return fileDescriptor_ecab7372ca821162, []int{2}
 }
+
 func (m *IPv4OverEthernet) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IPv4OverEthernet.Unmarshal(m, b)
 }
 func (m *IPv4OverEthernet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IPv4OverEthernet.Marshal(b, m, deterministic)
 }
-func (dst *IPv4OverEthernet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IPv4OverEthernet.Merge(dst, src)
+func (m *IPv4OverEthernet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IPv4OverEthernet.Merge(m, src)
 }
 func (m *IPv4OverEthernet) XXX_Size() int {
 	return xxx_messageInfo_IPv4OverEthernet.Size(m)
@@ -208,16 +213,17 @@ func (m *IPv4OverEthernet_ConfiguredInterface) Reset()         { *m = IPv4OverEt
 func (m *IPv4OverEthernet_ConfiguredInterface) String() string { return proto.CompactTextString(m) }
 func (*IPv4OverEthernet_ConfiguredInterface) ProtoMessage()    {}
 func (*IPv4OverEthernet_ConfiguredInterface) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{2, 0}
+	return fileDescriptor_ecab7372ca821162, []int{2, 0}
 }
+
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Unmarshal(m, b)
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Marshal(b, m, deterministic)
 }
-func (dst *IPv4OverEthernet_ConfiguredInterface) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Merge(dst, src)
+func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Merge(m, src)
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Size() int {
 	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Size(m)
@@ -255,16 +261,17 @@ func (m *DNSA) Reset()         { *m = DNSA{} }
 func (m *DNSA) String() string { return proto.CompactTextString(m) }
 func (*DNSA) ProtoMessage()    {}
 func (*DNSA) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{3}
+	return fileDescriptor_ecab7372ca821162, []int{3}
 }
+
 func (m *DNSA) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DNSA.Unmarshal(m, b)
 }
 func (m *DNSA) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DNSA.Marshal(b, m, deterministic)
 }
-func (dst *DNSA) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DNSA.Merge(dst, src)
+func (m *DNSA) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DNSA.Merge(m, src)
 }
 func (m *DNSA) XXX_Size() int {
 	return xxx_messageInfo_DNSA.Size(m)
@@ -308,16 +315,17 @@ func (m *DNSCNAME) Reset()         { *m = DNSCNAME{} }
 func (m *DNSCNAME) String() string { return proto.CompactTextString(m) }
 func (*DNSCNAME) ProtoMessage()    {}
 func (*DNSCNAME) Descriptor() ([]byte, []int) {
-	return fileDescriptor_IPv4_c24d1a3e220808d1, []int{4}
+	return fileDescriptor_ecab7372ca821162, []int{4}
 }
+
 func (m *DNSCNAME) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DNSCNAME.Unmarshal(m, b)
 }
 func (m *DNSCNAME) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DNSCNAME.Marshal(b, m, deterministic)
 }
-func (dst *DNSCNAME) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DNSCNAME.Merge(dst, src)
+func (m *DNSCNAME) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DNSCNAME.Merge(m, src)
 }
 func (m *DNSCNAME) XXX_Size() int {
 	return xxx_messageInfo_DNSCNAME.Size(m)
@@ -351,9 +359,9 @@ func init() {
 	proto.RegisterType((*DNSCNAME)(nil), "proto.DNSCNAME")
 }
 
-func init() { proto.RegisterFile("IPv4.proto", fileDescriptor_IPv4_c24d1a3e220808d1) }
+func init() { proto.RegisterFile("IPv4.proto", fileDescriptor_ecab7372ca821162) }
 
-var fileDescriptor_IPv4_c24d1a3e220808d1 = []byte{
+var fileDescriptor_ecab7372ca821162 = []byte{
 	// 370 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0x5f, 0xef, 0x93, 0x30,
 	0x14, 0x0d, 0x85, 0x21, 0x5e, 0xf4, 0xb7, 0xa5, 0x1a, 0xd3, 0xcc, 0xc4, 0x20, 0x3e, 0x48, 0xa2,

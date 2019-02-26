@@ -3,10 +3,12 @@
 
 package proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -36,6 +38,7 @@ var ServiceInstance_ServiceState_name = map[int32]string{
 	3: "RUN",
 	4: "ERROR",
 }
+
 var ServiceInstance_ServiceState_value = map[string]int32{
 	"UNKNOWN": 0,
 	"INIT":    1,
@@ -47,8 +50,9 @@ var ServiceInstance_ServiceState_value = map[string]int32{
 func (x ServiceInstance_ServiceState) String() string {
 	return proto.EnumName(ServiceInstance_ServiceState_name, int32(x))
 }
+
 func (ServiceInstance_ServiceState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ServiceInstance_360db2c247a70c3f, []int{0, 0}
+	return fileDescriptor_3d00b0fd20962128, []int{0, 0}
 }
 
 type ServiceInstance struct {
@@ -66,16 +70,17 @@ func (m *ServiceInstance) Reset()         { *m = ServiceInstance{} }
 func (m *ServiceInstance) String() string { return proto.CompactTextString(m) }
 func (*ServiceInstance) ProtoMessage()    {}
 func (*ServiceInstance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ServiceInstance_360db2c247a70c3f, []int{0}
+	return fileDescriptor_3d00b0fd20962128, []int{0}
 }
+
 func (m *ServiceInstance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceInstance.Unmarshal(m, b)
 }
 func (m *ServiceInstance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ServiceInstance.Marshal(b, m, deterministic)
 }
-func (dst *ServiceInstance) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ServiceInstance.Merge(dst, src)
+func (m *ServiceInstance) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ServiceInstance.Merge(m, src)
 }
 func (m *ServiceInstance) XXX_Size() int {
 	return xxx_messageInfo_ServiceInstance.Size(m)
@@ -122,15 +127,13 @@ func (m *ServiceInstance) GetErrorMsg() string {
 }
 
 func init() {
-	proto.RegisterType((*ServiceInstance)(nil), "proto.ServiceInstance")
 	proto.RegisterEnum("proto.ServiceInstance_ServiceState", ServiceInstance_ServiceState_name, ServiceInstance_ServiceState_value)
+	proto.RegisterType((*ServiceInstance)(nil), "proto.ServiceInstance")
 }
 
-func init() {
-	proto.RegisterFile("ServiceInstance.proto", fileDescriptor_ServiceInstance_360db2c247a70c3f)
-}
+func init() { proto.RegisterFile("ServiceInstance.proto", fileDescriptor_3d00b0fd20962128) }
 
-var fileDescriptor_ServiceInstance_360db2c247a70c3f = []byte{
+var fileDescriptor_3d00b0fd20962128 = []byte{
 	// 256 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x8e, 0xcf, 0x4b, 0xfb, 0x40,
 	0x14, 0xc4, 0xbf, 0xf9, 0xd9, 0xe6, 0xf5, 0x4b, 0x0d, 0x0f, 0x95, 0x55, 0x2f, 0xa1, 0x5e, 0x72,

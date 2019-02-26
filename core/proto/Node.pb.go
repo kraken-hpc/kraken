@@ -3,10 +3,12 @@
 
 package proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -34,6 +36,7 @@ var Node_RunState_name = map[int32]string{
 	2: "SYNC",
 	3: "ERROR",
 }
+
 var Node_RunState_value = map[string]int32{
 	"UNKNOWN": 0,
 	"INIT":    1,
@@ -44,8 +47,9 @@ var Node_RunState_value = map[string]int32{
 func (x Node_RunState) String() string {
 	return proto.EnumName(Node_RunState_name, int32(x))
 }
+
 func (Node_RunState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_Node_c9a63bf93232cad0, []int{1, 0}
+	return fileDescriptor_ade4b1ea954e8f8c, []int{1, 0}
 }
 
 type Node_PhysState int32
@@ -67,6 +71,7 @@ var Node_PhysState_name = map[int32]string{
 	4: "PHYS_HANG",
 	5: "PHYS_ERROR",
 }
+
 var Node_PhysState_value = map[string]int32{
 	"PHYS_UNKNOWN": 0,
 	"POWER_OFF":    1,
@@ -79,8 +84,9 @@ var Node_PhysState_value = map[string]int32{
 func (x Node_PhysState) String() string {
 	return proto.EnumName(Node_PhysState_name, int32(x))
 }
+
 func (Node_PhysState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_Node_c9a63bf93232cad0, []int{1, 1}
+	return fileDescriptor_ade4b1ea954e8f8c, []int{1, 1}
 }
 
 type NodeList struct {
@@ -94,16 +100,17 @@ func (m *NodeList) Reset()         { *m = NodeList{} }
 func (m *NodeList) String() string { return proto.CompactTextString(m) }
 func (*NodeList) ProtoMessage()    {}
 func (*NodeList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_Node_c9a63bf93232cad0, []int{0}
+	return fileDescriptor_ade4b1ea954e8f8c, []int{0}
 }
+
 func (m *NodeList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NodeList.Unmarshal(m, b)
 }
 func (m *NodeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_NodeList.Marshal(b, m, deterministic)
 }
-func (dst *NodeList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_NodeList.Merge(dst, src)
+func (m *NodeList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeList.Merge(m, src)
 }
 func (m *NodeList) XXX_Size() int {
 	return xxx_messageInfo_NodeList.Size(m)
@@ -140,16 +147,17 @@ func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_Node_c9a63bf93232cad0, []int{1}
+	return fileDescriptor_ade4b1ea954e8f8c, []int{1}
 }
+
 func (m *Node) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Node.Unmarshal(m, b)
 }
 func (m *Node) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Node.Marshal(b, m, deterministic)
 }
-func (dst *Node) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Node.Merge(dst, src)
+func (m *Node) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Node.Merge(m, src)
 }
 func (m *Node) XXX_Size() int {
 	return xxx_messageInfo_Node.Size(m)
@@ -224,15 +232,15 @@ func (m *Node) GetExtensions() []*any.Any {
 }
 
 func init() {
-	proto.RegisterType((*NodeList)(nil), "proto.NodeList")
-	proto.RegisterType((*Node)(nil), "proto.Node")
 	proto.RegisterEnum("proto.Node_RunState", Node_RunState_name, Node_RunState_value)
 	proto.RegisterEnum("proto.Node_PhysState", Node_PhysState_name, Node_PhysState_value)
+	proto.RegisterType((*NodeList)(nil), "proto.NodeList")
+	proto.RegisterType((*Node)(nil), "proto.Node")
 }
 
-func init() { proto.RegisterFile("Node.proto", fileDescriptor_Node_c9a63bf93232cad0) }
+func init() { proto.RegisterFile("Node.proto", fileDescriptor_ade4b1ea954e8f8c) }
 
-var fileDescriptor_Node_c9a63bf93232cad0 = []byte{
+var fileDescriptor_ade4b1ea954e8f8c = []byte{
 	// 415 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x51, 0xcf, 0x6f, 0xd3, 0x30,
 	0x18, 0x25, 0xbf, 0x36, 0xe7, 0x6b, 0xc9, 0xac, 0x4f, 0x1b, 0x32, 0xe5, 0x52, 0x7a, 0xea, 0x85,

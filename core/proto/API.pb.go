@@ -3,11 +3,13 @@
 
 package proto
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
-import empty "github.com/golang/protobuf/ptypes/empty"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	empty "github.com/golang/protobuf/ptypes/empty"
+	math "math"
+)
 
 import (
 	context "golang.org/x/net/context"
@@ -38,6 +40,7 @@ var ServiceControl_Command_name = map[int32]string{
 	1: "UPDATE",
 	2: "INIT",
 }
+
 var ServiceControl_Command_value = map[string]int32{
 	"STOP":   0,
 	"UPDATE": 1,
@@ -47,8 +50,9 @@ var ServiceControl_Command_value = map[string]int32{
 func (x ServiceControl_Command) String() string {
 	return proto.EnumName(ServiceControl_Command_name, int32(x))
 }
+
 func (ServiceControl_Command) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{3, 0}
+	return fileDescriptor_cac38fe7d323f2d0, []int{3, 0}
 }
 
 type MutationControl_Type int32
@@ -62,6 +66,7 @@ var MutationControl_Type_name = map[int32]string{
 	0: "MUTATE",
 	1: "INTERRUPT",
 }
+
 var MutationControl_Type_value = map[string]int32{
 	"MUTATE":    0,
 	"INTERRUPT": 1,
@@ -70,8 +75,9 @@ var MutationControl_Type_value = map[string]int32{
 func (x MutationControl_Type) String() string {
 	return proto.EnumName(MutationControl_Type_name, int32(x))
 }
+
 func (MutationControl_Type) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{4, 0}
+	return fileDescriptor_cac38fe7d323f2d0, []int{4, 0}
 }
 
 type Query struct {
@@ -92,16 +98,17 @@ func (m *Query) Reset()         { *m = Query{} }
 func (m *Query) String() string { return proto.CompactTextString(m) }
 func (*Query) ProtoMessage()    {}
 func (*Query) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{0}
+	return fileDescriptor_cac38fe7d323f2d0, []int{0}
 }
+
 func (m *Query) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Query.Unmarshal(m, b)
 }
 func (m *Query) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Query.Marshal(b, m, deterministic)
 }
-func (dst *Query) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Query.Merge(dst, src)
+func (m *Query) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Query.Merge(m, src)
 }
 func (m *Query) XXX_Size() int {
 	return xxx_messageInfo_Query.Size(m)
@@ -333,16 +340,17 @@ func (m *QueryMulti) Reset()         { *m = QueryMulti{} }
 func (m *QueryMulti) String() string { return proto.CompactTextString(m) }
 func (*QueryMulti) ProtoMessage()    {}
 func (*QueryMulti) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{1}
+	return fileDescriptor_cac38fe7d323f2d0, []int{1}
 }
+
 func (m *QueryMulti) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QueryMulti.Unmarshal(m, b)
 }
 func (m *QueryMulti) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_QueryMulti.Marshal(b, m, deterministic)
 }
-func (dst *QueryMulti) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryMulti.Merge(dst, src)
+func (m *QueryMulti) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryMulti.Merge(m, src)
 }
 func (m *QueryMulti) XXX_Size() int {
 	return xxx_messageInfo_QueryMulti.Size(m)
@@ -372,16 +380,17 @@ func (m *ServiceInitRequest) Reset()         { *m = ServiceInitRequest{} }
 func (m *ServiceInitRequest) String() string { return proto.CompactTextString(m) }
 func (*ServiceInitRequest) ProtoMessage()    {}
 func (*ServiceInitRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{2}
+	return fileDescriptor_cac38fe7d323f2d0, []int{2}
 }
+
 func (m *ServiceInitRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceInitRequest.Unmarshal(m, b)
 }
 func (m *ServiceInitRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ServiceInitRequest.Marshal(b, m, deterministic)
 }
-func (dst *ServiceInitRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ServiceInitRequest.Merge(dst, src)
+func (m *ServiceInitRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ServiceInitRequest.Merge(m, src)
 }
 func (m *ServiceInitRequest) XXX_Size() int {
 	return xxx_messageInfo_ServiceInitRequest.Size(m)
@@ -418,16 +427,17 @@ func (m *ServiceControl) Reset()         { *m = ServiceControl{} }
 func (m *ServiceControl) String() string { return proto.CompactTextString(m) }
 func (*ServiceControl) ProtoMessage()    {}
 func (*ServiceControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{3}
+	return fileDescriptor_cac38fe7d323f2d0, []int{3}
 }
+
 func (m *ServiceControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceControl.Unmarshal(m, b)
 }
 func (m *ServiceControl) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ServiceControl.Marshal(b, m, deterministic)
 }
-func (dst *ServiceControl) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ServiceControl.Merge(dst, src)
+func (m *ServiceControl) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ServiceControl.Merge(m, src)
 }
 func (m *ServiceControl) XXX_Size() int {
 	return xxx_messageInfo_ServiceControl.Size(m)
@@ -467,16 +477,17 @@ func (m *MutationControl) Reset()         { *m = MutationControl{} }
 func (m *MutationControl) String() string { return proto.CompactTextString(m) }
 func (*MutationControl) ProtoMessage()    {}
 func (*MutationControl) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{4}
+	return fileDescriptor_cac38fe7d323f2d0, []int{4}
 }
+
 func (m *MutationControl) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationControl.Unmarshal(m, b)
 }
 func (m *MutationControl) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationControl.Marshal(b, m, deterministic)
 }
-func (dst *MutationControl) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationControl.Merge(dst, src)
+func (m *MutationControl) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationControl.Merge(m, src)
 }
 func (m *MutationControl) XXX_Size() int {
 	return xxx_messageInfo_MutationControl.Size(m)
@@ -535,16 +546,17 @@ func (m *DiscoveryEvent) Reset()         { *m = DiscoveryEvent{} }
 func (m *DiscoveryEvent) String() string { return proto.CompactTextString(m) }
 func (*DiscoveryEvent) ProtoMessage()    {}
 func (*DiscoveryEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{5}
+	return fileDescriptor_cac38fe7d323f2d0, []int{5}
 }
+
 func (m *DiscoveryEvent) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DiscoveryEvent.Unmarshal(m, b)
 }
 func (m *DiscoveryEvent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DiscoveryEvent.Marshal(b, m, deterministic)
 }
-func (dst *DiscoveryEvent) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DiscoveryEvent.Merge(dst, src)
+func (m *DiscoveryEvent) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DiscoveryEvent.Merge(m, src)
 }
 func (m *DiscoveryEvent) XXX_Size() int {
 	return xxx_messageInfo_DiscoveryEvent.Size(m)
@@ -587,16 +599,17 @@ func (m *MutationNodeList) Reset()         { *m = MutationNodeList{} }
 func (m *MutationNodeList) String() string { return proto.CompactTextString(m) }
 func (*MutationNodeList) ProtoMessage()    {}
 func (*MutationNodeList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{6}
+	return fileDescriptor_cac38fe7d323f2d0, []int{6}
 }
+
 func (m *MutationNodeList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationNodeList.Unmarshal(m, b)
 }
 func (m *MutationNodeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationNodeList.Marshal(b, m, deterministic)
 }
-func (dst *MutationNodeList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationNodeList.Merge(dst, src)
+func (m *MutationNodeList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationNodeList.Merge(m, src)
 }
 func (m *MutationNodeList) XXX_Size() int {
 	return xxx_messageInfo_MutationNodeList.Size(m)
@@ -625,16 +638,17 @@ func (m *MutationEdgeList) Reset()         { *m = MutationEdgeList{} }
 func (m *MutationEdgeList) String() string { return proto.CompactTextString(m) }
 func (*MutationEdgeList) ProtoMessage()    {}
 func (*MutationEdgeList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{7}
+	return fileDescriptor_cac38fe7d323f2d0, []int{7}
 }
+
 func (m *MutationEdgeList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationEdgeList.Unmarshal(m, b)
 }
 func (m *MutationEdgeList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationEdgeList.Marshal(b, m, deterministic)
 }
-func (dst *MutationEdgeList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationEdgeList.Merge(dst, src)
+func (m *MutationEdgeList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationEdgeList.Merge(m, src)
 }
 func (m *MutationEdgeList) XXX_Size() int {
 	return xxx_messageInfo_MutationEdgeList.Size(m)
@@ -664,16 +678,17 @@ func (m *MutationPath) Reset()         { *m = MutationPath{} }
 func (m *MutationPath) String() string { return proto.CompactTextString(m) }
 func (*MutationPath) ProtoMessage()    {}
 func (*MutationPath) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{8}
+	return fileDescriptor_cac38fe7d323f2d0, []int{8}
 }
+
 func (m *MutationPath) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationPath.Unmarshal(m, b)
 }
 func (m *MutationPath) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationPath.Marshal(b, m, deterministic)
 }
-func (dst *MutationPath) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationPath.Merge(dst, src)
+func (m *MutationPath) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationPath.Merge(m, src)
 }
 func (m *MutationPath) XXX_Size() int {
 	return xxx_messageInfo_MutationPath.Size(m)
@@ -711,16 +726,17 @@ func (m *MutationNode) Reset()         { *m = MutationNode{} }
 func (m *MutationNode) String() string { return proto.CompactTextString(m) }
 func (*MutationNode) ProtoMessage()    {}
 func (*MutationNode) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{9}
+	return fileDescriptor_cac38fe7d323f2d0, []int{9}
 }
+
 func (m *MutationNode) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationNode.Unmarshal(m, b)
 }
 func (m *MutationNode) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationNode.Marshal(b, m, deterministic)
 }
-func (dst *MutationNode) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationNode.Merge(dst, src)
+func (m *MutationNode) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationNode.Merge(m, src)
 }
 func (m *MutationNode) XXX_Size() int {
 	return xxx_messageInfo_MutationNode.Size(m)
@@ -766,16 +782,17 @@ func (m *MutationEdge) Reset()         { *m = MutationEdge{} }
 func (m *MutationEdge) String() string { return proto.CompactTextString(m) }
 func (*MutationEdge) ProtoMessage()    {}
 func (*MutationEdge) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{10}
+	return fileDescriptor_cac38fe7d323f2d0, []int{10}
 }
+
 func (m *MutationEdge) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_MutationEdge.Unmarshal(m, b)
 }
 func (m *MutationEdge) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_MutationEdge.Marshal(b, m, deterministic)
 }
-func (dst *MutationEdge) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MutationEdge.Merge(dst, src)
+func (m *MutationEdge) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MutationEdge.Merge(m, src)
 }
 func (m *MutationEdge) XXX_Size() int {
 	return xxx_messageInfo_MutationEdge.Size(m)
@@ -828,16 +845,17 @@ func (m *EdgeColor) Reset()         { *m = EdgeColor{} }
 func (m *EdgeColor) String() string { return proto.CompactTextString(m) }
 func (*EdgeColor) ProtoMessage()    {}
 func (*EdgeColor) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{11}
+	return fileDescriptor_cac38fe7d323f2d0, []int{11}
 }
+
 func (m *EdgeColor) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_EdgeColor.Unmarshal(m, b)
 }
 func (m *EdgeColor) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_EdgeColor.Marshal(b, m, deterministic)
 }
-func (dst *EdgeColor) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EdgeColor.Merge(dst, src)
+func (m *EdgeColor) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EdgeColor.Merge(m, src)
 }
 func (m *EdgeColor) XXX_Size() int {
 	return xxx_messageInfo_EdgeColor.Size(m)
@@ -882,16 +900,17 @@ func (m *LogMessage) Reset()         { *m = LogMessage{} }
 func (m *LogMessage) String() string { return proto.CompactTextString(m) }
 func (*LogMessage) ProtoMessage()    {}
 func (*LogMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_API_29aad8d6be19b05f, []int{12}
+	return fileDescriptor_cac38fe7d323f2d0, []int{12}
 }
+
 func (m *LogMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LogMessage.Unmarshal(m, b)
 }
 func (m *LogMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_LogMessage.Marshal(b, m, deterministic)
 }
-func (dst *LogMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LogMessage.Merge(dst, src)
+func (m *LogMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LogMessage.Merge(m, src)
 }
 func (m *LogMessage) XXX_Size() int {
 	return xxx_messageInfo_LogMessage.Size(m)
@@ -924,6 +943,8 @@ func (m *LogMessage) GetMsg() string {
 }
 
 func init() {
+	proto.RegisterEnum("proto.ServiceControl_Command", ServiceControl_Command_name, ServiceControl_Command_value)
+	proto.RegisterEnum("proto.MutationControl_Type", MutationControl_Type_name, MutationControl_Type_value)
 	proto.RegisterType((*Query)(nil), "proto.Query")
 	proto.RegisterType((*QueryMulti)(nil), "proto.QueryMulti")
 	proto.RegisterType((*ServiceInitRequest)(nil), "proto.ServiceInitRequest")
@@ -937,8 +958,6 @@ func init() {
 	proto.RegisterType((*MutationEdge)(nil), "proto.MutationEdge")
 	proto.RegisterType((*EdgeColor)(nil), "proto.EdgeColor")
 	proto.RegisterType((*LogMessage)(nil), "proto.LogMessage")
-	proto.RegisterEnum("proto.ServiceControl_Command", ServiceControl_Command_name, ServiceControl_Command_value)
-	proto.RegisterEnum("proto.MutationControl_Type", MutationControl_Type_name, MutationControl_Type_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1709,9 +1728,9 @@ var _API_serviceDesc = grpc.ServiceDesc{
 	Metadata: "API.proto",
 }
 
-func init() { proto.RegisterFile("API.proto", fileDescriptor_API_29aad8d6be19b05f) }
+func init() { proto.RegisterFile("API.proto", fileDescriptor_cac38fe7d323f2d0) }
 
-var fileDescriptor_API_29aad8d6be19b05f = []byte{
+var fileDescriptor_cac38fe7d323f2d0 = []byte{
 	// 946 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0x4b, 0x6f, 0xdb, 0x46,
 	0x10, 0x26, 0xf5, 0xb4, 0x46, 0xb6, 0xc2, 0x6e, 0x1c, 0x57, 0x56, 0x1a, 0xc0, 0xe1, 0x21, 0xb0,

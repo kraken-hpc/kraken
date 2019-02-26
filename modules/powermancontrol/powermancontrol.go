@@ -119,7 +119,6 @@ func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
 		ServerUrl:       "type.googleapis.com/proto.Powerman/ApiServer",
 		NameUrl:         "type.googleapis.com/proto.Powerman/Name",
-		UuidUrl:         "type.googleapis.com/proto.Powerman/Uuid",
 		PollingInterval: "30s",
 	}
 	return r

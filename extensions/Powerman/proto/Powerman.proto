@@ -12,6 +12,5 @@
 
 message Powerman {
     string api_server = 1; // chassis name
-    string name = 2; // vm name
-    string uuid = 3; // vm uuid
-}
+    string name = 2; // node name
+} 
