@@ -218,7 +218,25 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 
 	red := "#e74c3c"
 	green := "#89CA78"
+	lightGrey := "#bfbfbf"
+	darkGrey := "#848484"
 
+	// Set all nodes and edges to the default grey color first
+	dec := &cpb.EdgeColor{
+		Color:     darkGrey,
+		Highlight: darkGrey,
+		Inherit:   false,
+	}
+
+	for _, me := range edgesMap {
+		me.Color = dec
+	}
+
+	for _, mn := range nodesMap {
+		mn.Color = lightGrey
+	}
+
+	// Set special nodes and edges to green or red
 	for i, me := range path.Chain {
 		if int64(i) != path.Cur {
 			c := &cpb.EdgeColor{
