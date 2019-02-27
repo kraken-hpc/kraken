@@ -64,6 +64,7 @@ type mutationNode struct {
 type mutationPath struct {
 	mutex *sync.Mutex
 	cur   int // where are we currently?
+	cmplt bool
 	// curSeen is a slice of URLs that we've seen (correct) changes in the current mut
 	// 	This is important to keep track of muts that change more than one URL
 	curSeen []string
@@ -276,6 +277,7 @@ func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 	defer path.mutex.Unlock()
 	if path != nil {
 		r.Cur = int64(path.cur)
+		r.Cmplt = path.cmplt
 		for _, me := range path.chain {
 			var nme pb.MutationEdge
 			nme.From = fmt.Sprintf("%p", me.from)
@@ -767,6 +769,7 @@ func (sme *StateMutationEngine) drijkstra(gstart *mutationNode, gend []*mutation
 				gend:    u,
 				chain:   chain,
 				curSeen: []string{},
+				cmplt:   false,
 			}
 			return path
 		}
@@ -805,6 +808,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 			start:   start,
 			end:     end,
 			cur:     0,
+			cmplt:   true,
 			curSeen: []string{},
 			chain:   []*mutationEdge{},
 		}
@@ -986,6 +990,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		sme.startNewMutation(node)
 		return
 	}
+	m.cmplt = false
 
 	rewind := make(map[string]reflect.Value)
 	// starting from the current position, look backwards in the chain
@@ -1136,6 +1141,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		if len(m.chain) == m.cur+1 {
 			// all done!
 			sme.Logf(DEBUG, "mutation chain completed for %s (%d/%d)", node, m.cur+1, len(m.chain))
+			m.cmplt = true
 			return
 		}
 		sme.Logf(DEBUG, "mutation for %s progressing as normal, moving to next (%d/%d)", node, m.cur+1, len(m.chain))

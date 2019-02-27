@@ -217,7 +217,8 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 	}
 
 	red := "#e74c3c"
-	green := "#89CA78"
+	lightGreen := "#89CA78"
+	darkGreen := "#62a053"
 	lightGrey := "#bfbfbf"
 	darkGrey := "#848484"
 
@@ -228,34 +229,61 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 		Inherit:   false,
 	}
 
+	dnc := &cpb.NodeColor{
+		Background: lightGrey,
+		Border:     darkGrey,
+	}
+
 	for _, me := range edgesMap {
 		me.Color = dec
 	}
 
 	for _, mn := range nodesMap {
-		mn.Color = lightGrey
+		mn.Color = dnc
 	}
 
 	// Set special nodes and edges to green or red
 	for i, me := range path.Chain {
 		if int64(i) != path.Cur {
-			c := &cpb.EdgeColor{
-				Color:     green,
-				Highlight: green,
+			ec := &cpb.EdgeColor{
+				Color:     lightGreen,
+				Highlight: lightGreen,
 				Inherit:   false,
 			}
-			edgesMap[me.Id].Color = c
-			nodesMap[me.To].Color = green
-			nodesMap[me.From].Color = green
+			nc := &cpb.NodeColor{
+				Background: lightGreen,
+				Border:     darkGreen,
+			}
+			edgesMap[me.Id].Color = ec
+			nodesMap[me.To].Color = nc
+			nodesMap[me.From].Color = nc
 		} else {
-			c := &cpb.EdgeColor{
-				Color:     red,
-				Highlight: red,
-				Inherit:   false,
+			ec := &cpb.EdgeColor{}
+			nc := &cpb.NodeColor{}
+			if path.Cmplt {
+				ec = &cpb.EdgeColor{
+					Color:     lightGreen,
+					Highlight: lightGreen,
+					Inherit:   false,
+				}
+				nc = &cpb.NodeColor{
+					Background: lightGreen,
+					Border:     red,
+				}
+			} else {
+				ec = &cpb.EdgeColor{
+					Color:     red,
+					Highlight: red,
+					Inherit:   false,
+				}
+				nc = &cpb.NodeColor{
+					Background: lightGreen,
+					Border:     darkGreen,
+				}
 			}
-			edgesMap[me.Id].Color = c
-			nodesMap[me.To].Color = green
-			nodesMap[me.From].Color = green
+			edgesMap[me.Id].Color = ec
+			nodesMap[me.To].Color = nc
+			nodesMap[me.From].Color = nc
 		}
 	}
 

@@ -72,13 +72,14 @@ message MutationEdgeList {
 
 message MutationPath {
     int64 cur = 1;
-    repeated MutationEdge chain = 2;
+    bool cmplt = 2;
+    repeated MutationEdge chain = 3;
 }
 
 message MutationNode {
     string label = 1;
     string id = 2;
-    string color = 3;
+    NodeColor color = 3;
 }
 
 message MutationEdge {
@@ -93,6 +94,12 @@ message EdgeColor {
     string color = 1;
     string highlight = 2;
     bool inherit = 3;
+}
+
+// This is only nessessary for the json mutation node color to output in the correct format for the dashboard
+message NodeColor {
+    string border = 1;
+    string background = 2;
 }
 
 message LogMessage {

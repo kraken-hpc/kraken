@@ -37,7 +37,7 @@ func (m *StateSyncMessage) Reset()         { *m = StateSyncMessage{} }
 func (m *StateSyncMessage) String() string { return proto.CompactTextString(m) }
 func (*StateSyncMessage) ProtoMessage()    {}
 func (*StateSyncMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{0}
+	return fileDescriptor_StateSyncMessage_92bb13c1b9316dfd, []int{0}
 }
 func (m *StateSyncMessage) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StateSyncMessage.Unmarshal(m, b)
@@ -89,7 +89,7 @@ func (m *PhoneHomeRequest) Reset()         { *m = PhoneHomeRequest{} }
 func (m *PhoneHomeRequest) String() string { return proto.CompactTextString(m) }
 func (*PhoneHomeRequest) ProtoMessage()    {}
 func (*PhoneHomeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{1}
+	return fileDescriptor_StateSyncMessage_92bb13c1b9316dfd, []int{1}
 }
 func (m *PhoneHomeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PhoneHomeRequest.Unmarshal(m, b)
@@ -130,7 +130,7 @@ func (m *PhoneHomeReply) Reset()         { *m = PhoneHomeReply{} }
 func (m *PhoneHomeReply) String() string { return proto.CompactTextString(m) }
 func (*PhoneHomeReply) ProtoMessage()    {}
 func (*PhoneHomeReply) Descriptor() ([]byte, []int) {
-	return fileDescriptor_StateSyncMessage_ef9f44bb84d20e95, []int{2}
+	return fileDescriptor_StateSyncMessage_92bb13c1b9316dfd, []int{2}
 }
 func (m *PhoneHomeReply) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PhoneHomeReply.Unmarshal(m, b)
@@ -257,10 +257,10 @@ var _StateSync_serviceDesc = grpc.ServiceDesc{
 }
 
 func init() {
-	proto.RegisterFile("StateSyncMessage.proto", fileDescriptor_StateSyncMessage_ef9f44bb84d20e95)
+	proto.RegisterFile("StateSyncMessage.proto", fileDescriptor_StateSyncMessage_92bb13c1b9316dfd)
 }
 
-var fileDescriptor_StateSyncMessage_ef9f44bb84d20e95 = []byte{
+var fileDescriptor_StateSyncMessage_92bb13c1b9316dfd = []byte{
 	// 217 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x0b, 0x2e, 0x49, 0x2c,
 	0x49, 0x0d, 0xae, 0xcc, 0x4b, 0xf6, 0x4d, 0x2d, 0x2e, 0x4e, 0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca,
