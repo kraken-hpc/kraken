@@ -259,14 +259,18 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 			nodesMap[me.From].Color = nc
 		} else {
 			ec := &cpb.EdgeColor{}
-			nc := &cpb.NodeColor{}
+			tnc := &cpb.NodeColor{}
+			fnc := &cpb.NodeColor{
+				Background: lightGreen,
+				Border:     darkGreen,
+			}
 			if path.Cmplt {
 				ec = &cpb.EdgeColor{
 					Color:     lightGreen,
 					Highlight: lightGreen,
 					Inherit:   false,
 				}
-				nc = &cpb.NodeColor{
+				tnc = &cpb.NodeColor{
 					Background: lightGreen,
 					Border:     red,
 				}
@@ -276,14 +280,14 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 					Highlight: red,
 					Inherit:   false,
 				}
-				nc = &cpb.NodeColor{
+				tnc = &cpb.NodeColor{
 					Background: lightGreen,
 					Border:     darkGreen,
 				}
 			}
 			edgesMap[me.Id].Color = ec
-			nodesMap[me.To].Color = nc
-			nodesMap[me.From].Color = nc
+			nodesMap[me.To].Color = tnc
+			nodesMap[me.From].Color = fnc
 		}
 	}
 
