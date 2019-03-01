@@ -1,8 +1,10 @@
 ---
-- name: Install nginx
+- name: Install nginx and nodejs
   become: yes
   package:
-    name: nginx
+    name: 
+      - nginx
+      - nodejs
     state: present
 
 - name: Configure nginx
@@ -14,11 +16,32 @@
     group: root
     mode: 0644
 
-- name: Synchronize dashboard
+- name: Get kraken-dashboard
+  git:
+    repo: "https://github.com/hpc/kraken-dashboard.git"
+    dest: "/home/vagrant/kraken-dashboard"
+    version: "master"
+
+- name: Npm install node modules
+  npm:
+    path: "/home/vagrant/kraken-dashboard"
+
+- name: Npm build
+  shell: "npm run build"
+  args:
+    chdir: /home/vagrant/kraken-dashboard
+
+# - name: Npm install node modules
+#     shell: "npm i"
+#     register: npm_finished
+#     failed_when: '"ERR!" in npm_finished.stderr'
+#     when: git_finished.changed
+#     args:
+#     chdir: /var/www
+
+- name: Copy Build
   become: yes
-  synchronize:
-    src: dashboard/
-    dest: /usr/share/nginx/html
+  shell: "cp -r /home/vagrant/kraken-dashboard/build/* /usr/share/nginx/html/"
 
 - name: Enable nginx
   become: yes
