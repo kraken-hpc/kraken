@@ -1,8 +1,6 @@
-/* vboxapi.go: this api provides limited virtualbox control through a restapi
- *				the api mimicks a limited version of vboxmanage-rest-api
- *				(https://www.npmjs.com/package/vboxmanage-rest-api)
+/* powermanapi.go: this api provides limited powerman control through a restapi
  *
- * Author: J. Lowell Wofford <lowell@lanl.gov>
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Los Alamos National Security, LLC
@@ -33,7 +31,7 @@ var verbose *bool
 
 func main() {
 	urlBase = flag.String("base", "/powermancontrol", "base URL for api")
-	pmcPath = flag.String("pmc", "/usr/local/bin/powermancontrol", "full path to powermancontrol command")
+	pmcPath = flag.String("pmc", "powerman", "full path to powermancontrol command")
 	listenIP = flag.String("ip", "127.0.0.1", "ip to listen on")
 	listenPort = flag.Uint("port", 8269, "port to listen on")
 	verbose = flag.Bool("v", false, "verbose messages")
@@ -42,6 +40,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc(*urlBase+"/poweron/{name}", powerOn).Methods("GET")
 	router.HandleFunc(*urlBase+"/poweroff/{name}", powerOff).Methods("GET")
+	router.HandleFunc(*urlBase+"/nodeStatus/{name}", nodeStatus).Methods("GET")
 
 	srv := &http.Server{
 		Handler: handlers.CORS(
@@ -63,12 +62,18 @@ func main() {
 
 func powerOff(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	fmt.Println("ATTTTTTTEEEEEEEEEEEMMMMMPTING TO TURN OFF")
 	params := mux.Vars(req)
-	cmd := exec.Command(*pmcPath, "powerman", "-0,", params["name"])
+	fmt.Println("ATTTTTTTEMPTING COMMMMMMMMMMAND CREEEEEEEEEATION")
+	cmd := exec.Command(*pmcPath, "-0", params["name"])
+	fmt.Println("COOOOOOOOOOOOOOOOMPLETED COMMMMMMMMMMAND CREEEEEEEEEATION")
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAATTTTEMPTING POWER OFF")
 	co, e := cmd.CombinedOutput()
+	fmt.Println("COMMAND OUTPUUUUUUUUUUUUUUUUUUUUUUUUUUUT:%v", co)
+	fmt.Println()
 	var rs struct {
 		Shell struct {
 			Command   string
@@ -82,6 +87,7 @@ func powerOff(w http.ResponseWriter, req *http.Request) {
 	if e != nil {
 		rs.Shell.ExitCode = 1
 		rs.Shell.Output = string(co)
+		fmt.Println("FAAAAAAAAAAAAAAAILLLLLLED TO TURN OFFFFFFF")
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	j, _ := json.Marshal(rs)
@@ -93,8 +99,10 @@ func powerOff(w http.ResponseWriter, req *http.Request) {
 
 func powerOn(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	fmt.Println("ATTTTTTTEEEEEEEEEEEMMMMMPTING TO TURN ON")
 	params := mux.Vars(req)
-	cmd := exec.Command(*pmcPath, "powerman", "-1,", params["name"])
+	cmd := exec.Command(*pmcPath, "-1", params["name"])
+
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
@@ -111,10 +119,13 @@ func powerOn(w http.ResponseWriter, req *http.Request) {
 
 	rs.Shell.Command = strings.Join(cmd.Args, " ")
 	rs.Shell.Directory = "NOT_IMPLEMENTED"
+	fmt.Println("ATTEMPTING TO TUUUUUUUUUUUUUUUUUUURN ON")
 	if e != nil {
 		rs.Shell.ExitCode = 1
 		rs.Shell.Output = string(co)
+		fmt.Println("HIIIIIIIIIIIIIIIIIIIIT ERROR IN TURN ON")
 	}
+	fmt.Println("SUUUUUUUUUUUUUUUCCCCCCCCCCCESFULLY COMPLETED COMMAND")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	j, _ := json.Marshal(rs)
 	if *verbose {
@@ -126,7 +137,7 @@ func powerOn(w http.ResponseWriter, req *http.Request) {
 func nodeStatus(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	params := mux.Vars(req)
-	cmd := exec.Command(*pmcPath, "powerman", "-Q", params["name"])
+	cmd := exec.Command(*pmcPath, "-Q", params["name"])
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
@@ -136,12 +147,12 @@ func nodeStatus(w http.ResponseWriter, req *http.Request) {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Printf("Error running the nodeDiscover command: %s", err)
+		log.Printf("Error running the nodeDiscover command: %v\n", err)
 		return
 	}
 
 	discOut := strings.Split(stdout.String(), "\n")
-	if len(discOut) != 3 {
+	if len(discOut) != 4 {
 		log.Printf("Unexpected length for stdout in nodeDiscover: %d", len(discOut))
 		return
 	}
@@ -152,8 +163,10 @@ func nodeStatus(w http.ResponseWriter, req *http.Request) {
 
 	if strings.Contains(discOut[0], params["name"]) {
 		rs.State = "POWER_ON"
+		fmt.Println("Discovering: POWER_ON")
 	} else if strings.Contains(discOut[1], params["name"]) {
 		rs.State = "POWER_OFF"
+		fmt.Println("Discovering: POWER_OFF")
 	} else if strings.Contains(discOut[2], params["name"]) {
 		rs.State = "PHYS_UNKNOWN"
 	} else {

@@ -1,4 +1,4 @@
-/* vboxmanage.go: mutations for VirtualBox using the vboxmanage-rest-api
+/* powermancontrol.go: used to control power on nodes via powerman
  *
  * Author: R. Eli Snyder <resnyder@lanl.gov>s
  *
@@ -36,8 +36,8 @@ import (
 
 const (
 	PMCBase        string = "/powermancontrol"
-	PMCOn          string = PMCBase + "/poweroff"
-	PMCOff         string = PMCBase + "/poweron"
+	PMCOn          string = PMCBase + "/poweron"
+	PMCOff         string = PMCBase + "/poweroff"
 	PMCStat        string = PMCBase + "/nodeStatus"
 	PlatformString string = "powerman"
 )
@@ -235,13 +235,13 @@ func (p *PMC) handleMutation(m lib.Event) {
 			go p.nodeDiscover(srv, name, me.NodeCfg.ID())
 			break
 		case "OFFtoON":
-			go p.nodeOn(srv, name, me.NodeCfg.ID())
+			go p.powerOn(srv, name, me.NodeCfg.ID())
 			break
 		case "ONtoOFF":
-			go p.nodeOff(srv, name, me.NodeCfg.ID())
+			go p.powerOff(srv, name, me.NodeCfg.ID())
 			break
 		case "HANGtoOFF":
-			go p.nodeOff(srv, name, me.NodeCfg.ID())
+			go p.powerOff(srv, name, me.NodeCfg.ID())
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -267,6 +267,11 @@ func (p *PMC) nodeDiscover(srvName, name string, id lib.NodeID) {
 	resp, e := http.Get(url)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
@@ -297,7 +302,8 @@ func (p *PMC) nodeDiscover(srvName, name string, id lib.NodeID) {
 	p.dchan <- v
 }
 
-func (p *PMC) nodeOn(srvName, name string, id lib.NodeID) {
+func (p *PMC) powerOn(srvName, name string, id lib.NodeID) {
+	fmt.Println("ATTTTTEEEEEEMPTTTTING TO POOOOOOWER ON IN MODULE")
 	srv, ok := p.cfg.Servers[srvName]
 	if !ok {
 		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
@@ -305,10 +311,17 @@ func (p *PMC) nodeOn(srvName, name string, id lib.NodeID) {
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 
-	url := "http://" + addr + PMCOn + "/" + name + "?type=headless"
+	url := "http://" + addr + PMCOn + "/" + name
+	fmt.Printf("UUUUUUUUUUUUUUUUUUUUUUUUUUUUURL:%s\n", url)
 	resp, e := http.Get(url)
+	fmt.Printf("REEEEEEEEEEEEEEEEEEEEEEEEEEEESP:%v", resp.Body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
@@ -348,21 +361,29 @@ func (p *PMC) nodeOn(srvName, name string, id lib.NodeID) {
 	p.dchan <- v
 }
 
-func (p *PMC) nodeOff(srvName, name string, id lib.NodeID) {
+func (p *PMC) powerOff(srvName, name string, id lib.NodeID) {
 	srv, ok := p.cfg.Servers[srvName]
+	fmt.Println("ATTTTTEEEEEEMPTTTTING TO POOOOOOWER OFF IN MODULE")
 	if !ok {
 		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 
-	url := "http://" + addr + PMCOff + "/" + name + "/poweroff"
+	url := "http://" + addr + PMCOff + "/" + name 
 	resp, e := http.Get(url)
+	fmt.Printf("REEEEEEEEEEEEEEEEEEEEEEEEEEEESP:%v", resp.Body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
+		return
+	}
 	body, e := ioutil.ReadAll(resp.Body)
+	fmt.Printf("REEEEEEEEEEEEEEEEAAAAAAAAADALL:%v", body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
 		return
@@ -383,7 +404,7 @@ func (p *PMC) nodeOff(srvName, name string, id lib.NodeID) {
 		return
 	}
 	if rs.Shell.ExitCode != 0 {
-		p.api.Logf(lib.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
+		p.api.Logf(lib.LLERROR, "powermancontrol command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
 		return
 	}
 	url = lib.NodeURLJoin(id.String(), "/PhysState")
