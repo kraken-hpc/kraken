@@ -1,6 +1,6 @@
 /* powermancontrol.go: used to control power on nodes via powerman
  *
- * Author: R. Eli Snyder <resnyder@lanl.gov>s
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Triad National Security, LLC
