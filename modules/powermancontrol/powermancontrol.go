@@ -303,6 +303,7 @@ func (p *PMC) nodeDiscover(srvName, name string, id lib.NodeID) {
 }
 
 func (p *PMC) powerOn(srvName, name string, id lib.NodeID) {
+	fmt.Println("ATTTTTEEEEEEMPTTTTING TO POOOOOOWER ON IN MODULE")
 	srv, ok := p.cfg.Servers[srvName]
 	if !ok {
 		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
@@ -311,7 +312,9 @@ func (p *PMC) powerOn(srvName, name string, id lib.NodeID) {
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 
 	url := "http://" + addr + PMCOn + "/" + name
+	fmt.Printf("UUUUUUUUUUUUUUUUUUUUUUUUUUUUURL:%s\n", url)
 	resp, e := http.Get(url)
+	fmt.Printf("REEEEEEEEEEEEEEEEEEEEEEEEEEEESP:%v", resp.Body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
@@ -360,6 +363,7 @@ func (p *PMC) powerOn(srvName, name string, id lib.NodeID) {
 
 func (p *PMC) powerOff(srvName, name string, id lib.NodeID) {
 	srv, ok := p.cfg.Servers[srvName]
+	fmt.Println("ATTTTTEEEEEEMPTTTTING TO POOOOOOWER OFF IN MODULE")
 	if !ok {
 		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
 		return
@@ -368,6 +372,7 @@ func (p *PMC) powerOff(srvName, name string, id lib.NodeID) {
 
 	url := "http://" + addr + PMCOff + "/" + name
 	resp, e := http.Get(url)
+	fmt.Printf("REEEEEEEEEEEEEEEEEEEEEEEEEEEESP:%v", resp.Body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
@@ -378,6 +383,7 @@ func (p *PMC) powerOff(srvName, name string, id lib.NodeID) {
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
+	fmt.Printf("REEEEEEEEEEEEEEEEAAAAAAAAADALL:%v", body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
 		return

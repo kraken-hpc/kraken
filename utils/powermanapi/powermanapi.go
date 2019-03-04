@@ -62,12 +62,18 @@ func main() {
 
 func powerOff(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	fmt.Println("ATTTTTTTEEEEEEEEEEEMMMMMPTING TO TURN OFF")
 	params := mux.Vars(req)
+	fmt.Println("ATTTTTTTEMPTING COMMMMMMMMMMAND CREEEEEEEEEATION")
 	cmd := exec.Command(*pmcPath, "-0", params["name"])
+	fmt.Println("COOOOOOOOOOOOOOOOMPLETED COMMMMMMMMMMAND CREEEEEEEEEATION")
 	if *verbose {
 		log.Printf("Run: %v\n", cmd.Args)
 	}
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAATTTTEMPTING POWER OFF")
 	co, e := cmd.CombinedOutput()
+	fmt.Println("COMMAND OUTPUUUUUUUUUUUUUUUUUUUUUUUUUUUT:%v", co)
+	fmt.Println()
 	var rs struct {
 		Shell struct {
 			Command   string
@@ -81,6 +87,7 @@ func powerOff(w http.ResponseWriter, req *http.Request) {
 	if e != nil {
 		rs.Shell.ExitCode = 1
 		rs.Shell.Output = string(co)
+		fmt.Println("FAAAAAAAAAAAAAAAILLLLLLED TO TURN OFFFFFFF")
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	j, _ := json.Marshal(rs)
@@ -92,6 +99,7 @@ func powerOff(w http.ResponseWriter, req *http.Request) {
 
 func powerOn(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	fmt.Println("ATTTTTTTEEEEEEEEEEEMMMMMPTING TO TURN ON")
 	params := mux.Vars(req)
 	cmd := exec.Command(*pmcPath, "-1", params["name"])
 
@@ -111,10 +119,13 @@ func powerOn(w http.ResponseWriter, req *http.Request) {
 
 	rs.Shell.Command = strings.Join(cmd.Args, " ")
 	rs.Shell.Directory = "NOT_IMPLEMENTED"
+	fmt.Println("ATTEMPTING TO TUUUUUUUUUUUUUUUUUUURN ON")
 	if e != nil {
 		rs.Shell.ExitCode = 1
 		rs.Shell.Output = string(co)
+		fmt.Println("HIIIIIIIIIIIIIIIIIIIIT ERROR IN TURN ON")
 	}
+	fmt.Println("SUUUUUUUUUUUUUUUCCCCCCCCCCCESFULLY COMPLETED COMMAND")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	j, _ := json.Marshal(rs)
 	if *verbose {
@@ -152,8 +163,10 @@ func nodeStatus(w http.ResponseWriter, req *http.Request) {
 
 	if strings.Contains(discOut[0], params["name"]) {
 		rs.State = "POWER_ON"
+		fmt.Println("Discovering: POWER_ON")
 	} else if strings.Contains(discOut[1], params["name"]) {
 		rs.State = "POWER_OFF"
+		fmt.Println("Discovering: POWER_OFF")
 	} else if strings.Contains(discOut[2], params["name"]) {
 		rs.State = "PHYS_UNKNOWN"
 	} else {
