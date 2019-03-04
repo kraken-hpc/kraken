@@ -11,7 +11,7 @@
 
 /*
  * This module will manipulate the PhysState state field.
- * It will be restricted to Platform = vbox
+ * It will be restricted to Platform = powerman
  */
 
 package powermancontrol
@@ -117,8 +117,15 @@ var _ lib.ModuleWithConfig = (*PMC)(nil)
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &pb.PMCConfig{
-		ServerUrl:       "type.googleapis.com/proto.Powerman/ApiServer",
-		NameUrl:         "type.googleapis.com/proto.Powerman/Name",
+		ServerUrl: "type.googleapis.com/proto.Powerman/ApiServer",
+		NameUrl:   "type.googleapis.com/proto.Powerman/Name",
+		Servers: map[string]*pb.PMCServer{
+			"pmc": {
+				Name: "pmc",
+				Ip:   "localhost",
+				Port: 8269,
+			},
+		},
 		PollingInterval: "30s",
 	}
 	return r
