@@ -1,0 +1,56 @@
+{
+  "nodes": [
+    {
+      "id": "Ej5FZ+ibEtOkVkJmVUQAAA==",
+      "runState": "SYNC",
+      "physState": "POWER_ON",
+      "services": [
+        {
+          "id": "restapi",
+          "module": "github.com/hpc/kraken/modules/restapi",
+          "state": "RUN",
+          "config": {
+            "@type": "type.googleapis.com/proto.RestAPIConfig",
+            "addr": "0.0.0.0",
+            "port": 3141
+          }
+        },
+        {
+          "id": "powermancontrol",
+          "module": "github.com/hpc/kraken/modules/powermancontrol",
+          "state": "RUN",
+          "config": {
+            "@type": "type.googleapis.com/proto.PMCConfig",
+            "polling_interval": "30s",
+            "servers": {
+              "powerman": {
+                "name": "powerman",
+                "ip": "127.0.0.1",
+                "port": 8269
+              }
+            }
+          }
+        }
+      ],
+      "extensions": [
+        {
+          "@type": "type.googleapis.com/proto.IPv4OverEthernet",
+          "ifaces": [
+            {
+              "eth": {
+                "iface": "eth0",
+                "mac": "ACVk/F/B",
+                "mtu": 1500,
+                "control": false
+              },
+              "ip": {
+                "ip": "MTcyMTYxMQ==",
+                "subnet": "////AA=="
+              }
+            }
+          ]
+       }
+      ]
+    }
+  ]
+}
