@@ -1,4 +1,4 @@
-/* rpi3.proto: describes Bitscope/Raspberry Pi 3B specific state objects
+/* VBox.proto: describes VirtualBox specific state objects
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
