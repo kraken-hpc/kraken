@@ -1,0 +1,16 @@
+/* Powerman.proto: describes powerman specific state objects
+ *
+ * Author: R. Eli Snyder <resnyder@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+message Powerman {
+    string api_server = 1; // api server location
+    string name = 2; // node name
+} 
