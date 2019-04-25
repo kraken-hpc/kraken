@@ -2,15 +2,20 @@
 - name: Add golang repo key
   become: yes
   rpm_key:
-    state: preset
+    state: present
     key: https://mirror.go-repo.io/centos/RPM-GPG-KEY-GO-REPO
 
 - name: Create golang repo file
-  become:
-  shell: 'curl -s https://mirror.go-repo.io/centos/go-repo.repo | tee /etc/yum.repos.d/go-repo.repo'
+  become: yes
+  get_url:
+    url: https://mirror.go-repo.io/centos/go-repo.repo
+    dest: /etc/yum.repos.d/go-repo.repo
+    mode: 0644
 
-- name: Install golang
+- name: Install golang and git
   become: yes
   package:
-    name: golang
+    name: 
+      - golang
+      - git
     state: present
