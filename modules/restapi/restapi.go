@@ -217,27 +217,77 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 	}
 
 	red := "#e74c3c"
-	green := "#89CA78"
+	lightGreen := "#89CA78"
+	darkGreen := "#62a053"
+	lightGrey := "#bfbfbf"
+	darkGrey := "#848484"
 
+	// Set all nodes and edges to the default grey color first
+	dec := &cpb.EdgeColor{
+		Color:     darkGrey,
+		Highlight: darkGrey,
+		Inherit:   false,
+	}
+
+	dnc := &cpb.NodeColor{
+		Background: lightGrey,
+		Border:     darkGrey,
+	}
+
+	for _, me := range edgesMap {
+		me.Color = dec
+	}
+
+	for _, mn := range nodesMap {
+		mn.Color = dnc
+	}
+
+	// Set special nodes and edges to green or red
 	for i, me := range path.Chain {
 		if int64(i) != path.Cur {
-			c := &cpb.EdgeColor{
-				Color:     green,
-				Highlight: green,
+			ec := &cpb.EdgeColor{
+				Color:     lightGreen,
+				Highlight: lightGreen,
 				Inherit:   false,
 			}
-			edgesMap[me.Id].Color = c
-			nodesMap[me.To].Color = green
-			nodesMap[me.From].Color = green
+			nc := &cpb.NodeColor{
+				Background: lightGreen,
+				Border:     darkGreen,
+			}
+			edgesMap[me.Id].Color = ec
+			nodesMap[me.To].Color = nc
+			nodesMap[me.From].Color = nc
 		} else {
-			c := &cpb.EdgeColor{
-				Color:     red,
-				Highlight: red,
-				Inherit:   false,
+			ec := &cpb.EdgeColor{}
+			tnc := &cpb.NodeColor{}
+			fnc := &cpb.NodeColor{
+				Background: lightGreen,
+				Border:     darkGreen,
 			}
-			edgesMap[me.Id].Color = c
-			nodesMap[me.To].Color = green
-			nodesMap[me.From].Color = green
+			if path.Cmplt {
+				ec = &cpb.EdgeColor{
+					Color:     lightGreen,
+					Highlight: lightGreen,
+					Inherit:   false,
+				}
+				tnc = &cpb.NodeColor{
+					Background: lightGreen,
+					Border:     red,
+				}
+			} else {
+				ec = &cpb.EdgeColor{
+					Color:     red,
+					Highlight: red,
+					Inherit:   false,
+				}
+				tnc = &cpb.NodeColor{
+					Background: lightGreen,
+					Border:     darkGreen,
+				}
+			}
+			edgesMap[me.Id].Color = ec
+			nodesMap[me.To].Color = tnc
+			nodesMap[me.From].Color = fnc
 		}
 	}
 

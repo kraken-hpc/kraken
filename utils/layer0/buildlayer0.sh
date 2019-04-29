@@ -67,7 +67,7 @@ mkdir -p $TMPDIR/base/bin
 
 KRAKEN=$GOPATH/src/github.com/hpc/kraken/build/kraken-linux-$ARCH
 if [ ! -f $KRAKEN ]; then
-    echo "$KARKEN doesn't exist, built it before running this"
+    echo "$KRAKEN doesn't exist, built it before running this"
     rm -rf $TMPDIR
     exit
 fi
