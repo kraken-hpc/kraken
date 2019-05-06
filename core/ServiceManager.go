@@ -79,7 +79,7 @@ func (sm *ServiceManager) Service(id string) (si lib.ServiceInstance) {
 
 func (sm *ServiceManager) RunService(id string) (e error) {
 	if s, ok := sm.srv[id]; ok {
-		if s.Entry == nil { // handle non-executable (core) services
+		if _, ok := s.(lib.ModuleSelfService); !ok { // handle non-executable (core) services
 			return
 		}
 		if s.State() != lib.Service_RUN {
@@ -95,7 +95,7 @@ func (sm *ServiceManager) RunService(id string) (e error) {
 
 func (sm *ServiceManager) StopService(id string) (e error) {
 	if s, ok := sm.srv[id]; ok {
-		if s.Entry == nil { // handle non-executable (core) services
+		if _, ok := s.(lib.ModuleSelfService); !ok { // handle non-executable (core) services
 			return
 		}
 		if s.State() == lib.Service_RUN {

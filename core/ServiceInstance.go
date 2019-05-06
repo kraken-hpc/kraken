@@ -54,13 +54,7 @@ func NewServiceInstance(id, module string, cfg *any.Any) *ServiceInstance {
 }
 
 func NewServiceInstanceFromMessage(m *pb.ServiceInstance) *ServiceInstance {
-	var f func()
-	if mod, ok := Registry.Modules[m.Module]; ok {
-		if modss, ok := mod.(lib.ModuleSelfService); ok {
-			f = modss.Entry
-		}
-	}
-	si := NewServiceInstance(m.Id, m.Module, f, m.Config)
+	si := NewServiceInstance(m.Id, m.Module, m.Config)
 	si.SetState(lib.ServiceState(m.State))
 	return si
 }
