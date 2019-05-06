@@ -52,7 +52,7 @@ func (sm *ServiceManager) AddServiceByModule(id, module string, cfg *any.Any) (e
 	if m, ok := Registry.Modules[module]; ok {
 		if s, ok := m.(lib.ModuleSelfService); ok {
 			// TODO: it would be easy to expand this so there could be multiple instances of the same service
-			return sm.AddService(NewServiceInstance(id, s.Name(), s.Entry, cfg))
+			return sm.AddService(NewServiceInstance(id, s.Name(), cfg))
 		}
 		return fmt.Errorf("module is not runnable: %s", module)
 	}
@@ -79,6 +79,9 @@ func (sm *ServiceManager) Service(id string) (si lib.ServiceInstance) {
 
 func (sm *ServiceManager) RunService(id string) (e error) {
 	if s, ok := sm.srv[id]; ok {
+		if s.Entry == nil { // handle non-executable (core) services
+			return
+		}
 		if s.State() != lib.Service_RUN {
 			if e = sm.start(s); e == nil {
 				s.SetState(lib.Service_RUN)
@@ -92,6 +95,9 @@ func (sm *ServiceManager) RunService(id string) (e error) {
 
 func (sm *ServiceManager) StopService(id string) (e error) {
 	if s, ok := sm.srv[id]; ok {
+		if s.Entry == nil { // handle non-executable (core) services
+			return
+		}
 		if s.State() == lib.Service_RUN {
 			s.Stop()
 			s.SetCmd(nil)
