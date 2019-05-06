@@ -500,7 +500,6 @@ func init() {
 	si := core.NewServiceInstance(
 		"restapi",
 		module.Name(),
-		module.Entry,
 		nil,
 	)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{

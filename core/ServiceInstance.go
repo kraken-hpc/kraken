@@ -32,7 +32,6 @@ type ServiceInstance struct {
 	id     string // ID must be unique
 	module string // name doesn't need to be unique; we can run multiple configs of the same service
 	exe    string // gets set automatically
-	entry  func() // needs to run as a goroutine
 	sock   string
 	cmd    *exec.Cmd
 	cfg    *any.Any
@@ -42,11 +41,10 @@ type ServiceInstance struct {
 }
 
 // NewServiceInstance provides a new, initialized ServiceInstance object
-func NewServiceInstance(id, module string, entry func(), cfg *any.Any) *ServiceInstance {
+func NewServiceInstance(id, module string, cfg *any.Any) *ServiceInstance {
 	ss := &ServiceInstance{
 		id:     id,
 		module: module,
-		entry:  entry,
 		cmd:    nil,
 		cfg:    cfg,
 		state:  lib.Service_UNKNOWN,
@@ -56,13 +54,7 @@ func NewServiceInstance(id, module string, entry func(), cfg *any.Any) *ServiceI
 }
 
 func NewServiceInstanceFromMessage(m *pb.ServiceInstance) *ServiceInstance {
-	var f func()
-	if mod, ok := Registry.Modules[m.Module]; ok {
-		if modss, ok := mod.(lib.ModuleSelfService); ok {
-			f = modss.Entry
-		}
-	}
-	si := NewServiceInstance(m.Id, m.Module, f, m.Config)
+	si := NewServiceInstance(m.Id, m.Module, m.Config)
 	si.SetState(lib.ServiceState(m.State))
 	return si
 }
@@ -108,9 +100,6 @@ func (ss *ServiceInstance) Cmd() *exec.Cmd { return ss.cmd }
 func (ss *ServiceInstance) SetCmd(c *exec.Cmd) { ss.cmd = c }
 
 func (ss *ServiceInstance) SetCtl(c chan<- lib.ServiceControl) { ss.ctl = c }
-
-// Entry is *not* part of lib.Service.  This is specifically for linking ServiceInstance
-func (ss *ServiceInstance) Entry() func() { return ss.entry }
 
 // Config returns the current config
 func (ss *ServiceInstance) Config() *any.Any { return ss.cfg }

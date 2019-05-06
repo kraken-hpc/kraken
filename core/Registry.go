@@ -62,9 +62,9 @@ var _ jsonpb.AnyResolver = (*KrakenRegistry)(nil)
 type KrakenRegistry struct {
 	Modules          map[string]lib.Module
 	Extensions       map[string]lib.Extension
-	Discoverables    map[string]map[string]map[string]reflect.Value // d["module"]["property_url"]["value_id"]
-	Mutations        map[string]map[string]lib.StateMutation        // m["module"]["mutation_id"]
 	ServiceInstances map[string]map[string]lib.ServiceInstance      // s["module"]["instance_id"]
+	Discoverables    map[string]map[string]map[string]reflect.Value // d["service_instance"]["property_url"]["value_id"]
+	Mutations        map[string]map[string]lib.StateMutation        // m["service_instance"]["mutation_id"]
 }
 
 func NewKrakenRegistry() *KrakenRegistry {
@@ -78,7 +78,7 @@ func NewKrakenRegistry() *KrakenRegistry {
 	return r
 }
 
-// RegisterModule adds an module to the map if it hasn't been already
+// RegisterModule adds a module to the map if it hasn't been already
 // It's probably a good idea for this to be done in init()
 func (r *KrakenRegistry) RegisterModule(m lib.Module) {
 	if _, ok := r.Modules[m.Name()]; !ok {
@@ -94,23 +94,24 @@ func (r *KrakenRegistry) RegisterExtension(e lib.Extension) {
 	}
 }
 
-// RegisterDiscoverable adds a map of discoverables the module can emit
-func (r *KrakenRegistry) RegisterDiscoverable(m lib.Module, d map[string]map[string]reflect.Value) {
-	r.Discoverables[m.Name()] = d
-}
-
-// RegisterMutations declares mutations a module can perform
-func (r *KrakenRegistry) RegisterMutations(m lib.Module, d map[string]lib.StateMutation) {
-	r.Mutations[m.Name()] = d
-}
-
-// RegisterServiceInstance creates a service instance with a particular module.RegisterServiceInstance
+// RegisterServiceInstance creates a service instance with a particular module.
 // Note: This can be done after the fact, but serviceinstances that are added after runtime cannot
 // (currently) be used as part of mutation chains.
 func (r *KrakenRegistry) RegisterServiceInstance(m lib.Module, d map[string]lib.ServiceInstance) {
 	r.ServiceInstances[m.Name()] = d
 }
 
+// RegisterDiscoverable adds a map of discoverables the module can emit
+func (r *KrakenRegistry) RegisterDiscoverable(si lib.ServiceInstance, d map[string]map[string]reflect.Value) {
+	r.Discoverables[si.ID()] = d
+}
+
+// RegisterMutations declares mutations a module can perform
+func (r *KrakenRegistry) RegisterMutations(si lib.ServiceInstance, d map[string]lib.StateMutation) {
+	r.Mutations[si.ID()] = d
+}
+
+// Resolve provides a protobuf resolver for module config objects
 func (r *KrakenRegistry) Resolve(url string) (proto.Message, error) {
 	if e, ok := r.Extensions[url]; ok {
 		return e.New(), nil
