@@ -70,11 +70,12 @@ if ! ${VB} list hostonlyifs | grep -A3 -E "^Name.*${VBOXNET}" | grep -q -w "${VB
 fi
 echo "   ${VBOXNET} interface is configured with ${VBOXNET_IP}"
 
+# if we actually exit on failure, we fail if no VMs have run on the network.  Just give a warning.
 if ! (ifconfig "${VBOXNET}" 2>/dev/null || ip addr show "${VBOXNET}" 2>/dev/null) | grep -q -w "${VBOXNET_IP}"; then
-    echo "${VBOXNET} interface is not set to ${VBOXNET_IP}, see vbox network setup instructions"
-    exit 1
+    echo "WARNING: ${VBOXNET} interface is not set to ${VBOXNET_IP}, this may just be because vbox hasn't initialized it yet"
+else 
+    echo "   ${VBOXNET} interface has IP ${VBOXNET_IP}"
 fi
-echo "   ${VBOXNET} interface has IP ${VBOXNET_IP}"
 
 if ! ${VB} list hostonlyifs | grep -A2 -E "^Name.*${VBOXNET}" | grep -q -E '^DHCP.*Disabled'; then
     echo "${VBOXNET} does not have DHCP disable, see vbox network setup instructions"
