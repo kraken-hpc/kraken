@@ -247,9 +247,9 @@ func init() {
 	discovers["/Platform"] = pdsc
 	discovers["/Services/dummy/State"] = map[string]reflect.Value{
 		"Run": reflect.ValueOf(corepb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("dummy", module.Name(), nil)
+	si := core.NewServiceInstance("dummy", module.Name(), module.Entry, nil)
 	si.SetState(lib.Service_STOP)
+	core.Registry.RegisterDiscoverable(module, discovers)
+	core.Registry.RegisterMutations(module, mutations)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(si, discovers)
-	core.Registry.RegisterMutations(si, mutations)
 }

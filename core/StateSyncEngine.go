@@ -831,10 +831,6 @@ func init() {
 			[3]string{"sse", "/PhysState", "HANG"},
 		),
 	}
-	m := &StateSyncEngine{}
-	// This is a non-runnable service instance
-	// it's still needed for mutation/discoverable URL resolving
-	si := NewServiceInstance(m.Name(), m.Name(), nil)
-	Registry.RegisterDiscoverable(si, discoverables)
-	Registry.RegisterMutations(si, mutations)
+	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
+	Registry.RegisterMutations(&StateSyncEngine{}, mutations)
 }
