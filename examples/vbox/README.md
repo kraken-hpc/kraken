@@ -42,11 +42,19 @@ $ cd $GOPATH/src/github.com/hpc/kraken/examples/vbox
 
 Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured. Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an arbitrarily high vboxnet number. The example below is for MacOS.
 
+MacOS:
 ```bash
 $ /Applications/VirtualBox.app/Contents/MacOS/VBoxNetAdpCtl vboxnet99 add
 $ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.255.0
 $ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
 ```
+Linux:
+```bash
+$ /usr/lib/virtualbox/VBoxNetAdpCtl vboxnet99 add
+$ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.255.0
+$ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
+```
+
 
 vboxnet99 should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
 
