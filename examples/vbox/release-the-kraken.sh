@@ -96,7 +96,7 @@ echo "(RE)Starting vboxapi, log file in log/vboxapi.log"
 echo RUN: pkill vboxapi
 pkill vboxapi || true
 echo RUN: nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}"
-nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}" > log/vboxapi.log &
+nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}" -vbm "${VB}" > log/vboxapi.log &
 
 echo "(RE)Starting kraken on the 'kraken'"
 echo RUN: "${VG}" ssh-config kraken > ssh-config
