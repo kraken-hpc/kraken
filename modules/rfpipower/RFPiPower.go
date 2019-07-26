@@ -38,7 +38,7 @@ import (
 	cpb "github.com/hpc/kraken/core/proto"
 	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/pipower/proto"
+	pb "github.com/hpc/kraken/modules/rfpipower/proto"
 )
 
 const (
@@ -106,7 +106,7 @@ var reqs = map[string]reflect.Value{
 var excs = map[string]reflect.Value{}
 
 ////////////////////
-// PiPower Object /
+// RFPiPower Object /
 //////////////////
 
 // PiPower provides a power on/off interface to the proprietary BitScope power control plane
@@ -115,7 +115,7 @@ type RFPiPower struct {
 	//api lib.APIClient
 	//mutex  *sync.Mutex
 	queue  map[string][2]string  // map[<nodename>][<mutation>, <nodeidstr>]
-	cfg    *pb.PiPowerConfig
+	cfg    *pb.RFPiPowerConfig
 	//mchan  <-chan lib.Event
 	//dchan  chan<- lib.Event
 	ticker *time.Ticker
@@ -136,8 +136,8 @@ func (*RFPiPower) Name() string { return "rfpipower" }
 
 // NewConfig returns a fully initialized default config
 func (*RFPiPower) NewConfig() proto.Message {
-	r := &pb.PiPowerConfig{
-		Servers: map[string]*pb.PiPowerServer{
+	r := &pb.RFPiPowerConfig{
+		Servers: map[string]*pb.RFPiPowerServer{
 			"C0": {
 				Name: "C0",
 				Ip:   "127.0.0.1",
@@ -152,7 +152,7 @@ func (*RFPiPower) NewConfig() proto.Message {
 // UpdateConfig updates the running config
 
 func (pp *RFPiPower) UpdateConfig(cfg proto.Message) (e error) {
-	if ppcfg, ok := cfg.(*pb.PiPowerConfig); ok {
+	if ppcfg, ok := cfg.(*pb.RFPiPowerConfig); ok {
 		pp.cfg = ppcfg
 		if pp.ticker != nil {
 			pp.ticker.Stop()
@@ -167,7 +167,7 @@ func (pp *RFPiPower) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*RFPiPower) ConfigURL() string {
-	cfg := &pb.PiPowerConfig{}
+	cfg := &pb.RFPiPowerConfig{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
@@ -231,7 +231,7 @@ func (pp *RFPiPower) Init(api lib.APIClient) {
 	//REVERSE pp.api = api
 	//REVERSE pp.mutex = &sync.Mutex{}
 	pp.queue = make(map[string][2]string)
-	pp.cfg = pp.NewConfig().(*pb.PiPowerConfig)
+	pp.cfg = pp.NewConfig().(*pb.RFPiPowerConfig)
 }
 
 // Stop should perform a graceful exit
