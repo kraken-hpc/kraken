@@ -15,8 +15,8 @@
  * This requires at least Chassis & Rank to be set in the RPi3 extension.
  * This nodename format is a key to knowing which PiPower server to talk to.
  */
-package main
-//package rfpipower
+//package main
+package rfpipower
 
 import (
 	"encoding/json"
@@ -38,6 +38,7 @@ import (
 	cpb "github.com/hpc/kraken/core/proto"
 	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
+	//pb "github.com/hpc/kraken/modules/pipower/proto"
 	pb "github.com/hpc/kraken/modules/rfpipower/proto"
 )
 
@@ -112,27 +113,27 @@ var excs = map[string]reflect.Value{}
 // PiPower provides a power on/off interface to the proprietary BitScope power control plane
 type RFPiPower struct {
        
-	//api lib.APIClient
-	//mutex  *sync.Mutex
+	api lib.APIClient
+	mutex  *sync.Mutex
 	queue  map[string][2]string  // map[<nodename>][<mutation>, <nodeidstr>]
 	cfg    *pb.RFPiPowerConfig
-	//mchan  <-chan lib.Event
-	//dchan  chan<- lib.Event
+	mchan  <-chan lib.Event
+	dchan  chan<- lib.Event
 	ticker *time.Ticker
 }
 
 /*
  *lib.Module
  */
-//REVERSE var _ lib.Module = (*RFPiPower)(nil)
+var _ lib.Module = (*RFPiPower)(nil)
 
 // Name returns the FQDN of the module
-//func (*RFPiPower) Name() string { return "github.com/hpc/kraken/modules/pipower" }
-func (*RFPiPower) Name() string { return "rfpipower" }
+func (*RFPiPower) Name() string { return "github.com/hpc/kraken/modules/rfpipower" }
+
 /*
  * lib.ModuleWithConfig
  */
-//REVERSE var _ lib.ModuleWithConfig = (*RFPiPower)(nil)
+var _ lib.ModuleWithConfig = (*RFPiPower)(nil)
 
 // NewConfig returns a fully initialized default config
 func (*RFPiPower) NewConfig() proto.Message {
@@ -175,31 +176,28 @@ func (*RFPiPower) ConfigURL() string {
 /*
  * lib.ModuleWithMutations & lib.ModuleWithDiscovery
  */
-//REVERSE var _ lib.ModuleWithMutations = (*PiPower)(nil)
-//REVERSE var _ lib.ModuleWithDiscovery = (*PiPower)(nil)
+var _ lib.ModuleWithMutations = (*RFPiPower)(nil)
+var _ lib.ModuleWithDiscovery = (*RFPiPower)(nil)
 
 // SetMutationChan sets the current mutation channel
 // this is generally done by the API
-//REVERSE func (pp *PiPower) SetMutationChan(c <-chan lib.Event) { pp.mchan = c }
+func (pp *RFPiPower) SetMutationChan(c <-chan lib.Event) { pp.mchan = c }
 
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
-//REVERSE func (pp *PiPower) SetDiscoveryChan(c chan<- lib.Event) { pp.dchan = c }
+func (pp *RFPiPower) SetDiscoveryChan(c chan<- lib.Event) { pp.dchan = c }
 
 /*
  * lib.ModuleSelfService
  */
- 
- //REVERSE
- /* 
+  
 var _ lib.ModuleSelfService = (*RFPiPower)(nil)
-*/
+
 // Entry is the module's executable entrypoint
 func (pp *RFPiPower) Entry() {
-     // REVERSE
-     /*
+
 	url := lib.NodeURLJoin(pp.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "pipower"), "State"))
+		lib.URLPush(lib.URLPush("/Services", "rfpipower"), "State"))
 	pp.dchan <- core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -208,7 +206,7 @@ func (pp *RFPiPower) Entry() {
 			URL:     url,
 			ValueID: "RUN",
 		},
-	) */
+	) 
 	// main loop
 	for {
 		// fire a timer that will do our next work
@@ -218,18 +216,18 @@ func (pp *RFPiPower) Entry() {
 		case <-pp.ticker.C: // time to do work
 			go pp.fireChanges()
 			break
-		//REVERSE
-		/*case m := <-pp.mchan: // mutation request
+		
+		case m := <-pp.mchan: // mutation request
 			go pp.handleMutation(m)
-			break*/
+			break
 		}
 	}
 }
 
 // Init is used to intialize an executable module prior to entrypoint
 func (pp *RFPiPower) Init(api lib.APIClient) {
-	//REVERSE pp.api = api
-	//REVERSE pp.mutex = &sync.Mutex{}
+	pp.api = api
+	pp.mutex = &sync.Mutex{}
 	pp.queue = make(map[string][2]string)
 	pp.cfg = pp.NewConfig().(*pb.RFPiPowerConfig)
 }
@@ -257,7 +255,7 @@ func (pp *RFPiPower) fireChanges() {
 
 	idmap := map[string]string{}
 	
-	//REVERSE pp.mutex.Lock()
+	pp.mutex.Lock()
 	for m := range pp.queue {
 		c, n := pp.parseNodeName(m)
 		
@@ -278,7 +276,7 @@ func (pp *RFPiPower) fireChanges() {
 	}
 	
 	pp.queue = make(map[string][2]string)
-	//REVERSE pp.mutex.Unlock()
+	pp.mutex.Unlock()
 	for c := range on {
 		pp.fire(c, on[c], "on", idmap)
 	}
@@ -291,16 +289,15 @@ func (pp *RFPiPower) fireChanges() {
 	
 }
 
-func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {
-//func fire(c string, ns []string, cmd string, idmap map[string]string) {    
-       //REVERSE
-       /*srv, ok := pp.cfg.Servers[c]
+func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {    
+       
+        srv, ok := pp.cfg.Servers[c]
 	if !ok {
 	   
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
 	}
 	fmt.Println("SRV:",srv)
-	*/
+
 	// POST NEW CODE*************
 	payLoad, _ := json.Marshal(nodesInfo{
      	State: cmd,
@@ -315,36 +312,34 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
      	fmt.Println("Making Post Call.")
      	resp, err := http.Post(
 	url,
-     	//"http://localhost:8000/redfish/v1/Systems/C0/Actions/ComputerSystem.Reset",
      	"application/json",
      	bytes.NewBuffer(payLoad),
      	)
 	if err != nil {
            fmt.Println(err)
-	   //pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
+	   pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
            return
      	}
 	
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		//pp.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
+		pp.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
 		return
 	}
 	rs := []ppNode{}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		//pp.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
+		pp.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
 		fmt.Println(e)
 		return
 	}
-	// REMOVE
+
 	/*sort.Slice(rs, func(i, j int) bool {
   		return rs[i].ID < rs[j].ID
 	})*/
-	fmt.Println(rs)
-	//REVERSE
-	/*
+	//fmt.Println(rs)
+	
 	for _, r := range rs {
 		url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
 		vid := "POWER_OFF"
@@ -361,13 +356,13 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 			},
 		)
 		pp.dchan <- v
-	} */
+	} 
 }
 
 
 func (pp *RFPiPower) handleMutation(m lib.Event) {
 	if m.Type() != lib.Event_STATE_MUTATION {
-		//REVERSE pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
+		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
 	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
@@ -375,7 +370,7 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
 	if len(vs) != 2 {
-		//REVERSE pp.api.Logf(lib.LLERROR, "incomplete RPi3 data for power control: %v", vs)
+		pp.api.Logf(lib.LLERROR, "incomplete RPi3 data for power control: %v", vs)
 		return
 	}
 	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
@@ -389,9 +384,9 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		case "ONtoOFF":
 			fallthrough
 		case "HANGtoOFF":
-			//REVERSE pp.mutex.Lock()
+			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
-			//REVERSE pp.mutex.Unlock() 
+			pp.mutex.Unlock() 
 			/*
 					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
 					ev := core.NewEvent(
@@ -425,9 +420,9 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		}
 		break
 	case core.MutationEvent_INTERRUPT:
-		//REVERSE pp.mutex.Lock()
+		pp.mutex.Lock()
 		delete(pp.queue, nodename)
-		//REVERSE pp.mutex.Unlock()
+		pp.mutex.Unlock()
 		break
 	}
 }
@@ -474,11 +469,10 @@ func init() {
 	core.Registry.RegisterDiscoverable(module, discovers)
 	core.Registry.RegisterMutations(module, mutations)
 }
-
+/*
 func  main(){
 
      fmt.Println("Executing a dummy queue!!!")
-     //*********************TESTING******************************
      pp := new (RFPiPower)
      pp.queue = make(map[string][2]string)
      key := ""
@@ -490,6 +484,7 @@ func  main(){
         pp.queue[key] = val
       }
       fmt.Println(pp.queue)
-      //*********************TESTING******************************
+      
       pp.fireChanges()     
 }
+*/
