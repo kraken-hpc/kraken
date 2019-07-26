@@ -3,11 +3,9 @@
 
 package proto
 
-import (
-	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,7 +16,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 type RFPiPowerConfig struct {
 	Servers              map[string]*RFPiPowerServer `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
@@ -32,17 +30,16 @@ func (m *RFPiPowerConfig) Reset()         { *m = RFPiPowerConfig{} }
 func (m *RFPiPowerConfig) String() string { return proto.CompactTextString(m) }
 func (*RFPiPowerConfig) ProtoMessage()    {}
 func (*RFPiPowerConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8ec28710b4dcfc55, []int{0}
+	return fileDescriptor_rfpipower_659fa86591b832a1, []int{0}
 }
-
 func (m *RFPiPowerConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RFPiPowerConfig.Unmarshal(m, b)
 }
 func (m *RFPiPowerConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_RFPiPowerConfig.Marshal(b, m, deterministic)
 }
-func (m *RFPiPowerConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RFPiPowerConfig.Merge(m, src)
+func (dst *RFPiPowerConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RFPiPowerConfig.Merge(dst, src)
 }
 func (m *RFPiPowerConfig) XXX_Size() int {
 	return xxx_messageInfo_RFPiPowerConfig.Size(m)
@@ -80,17 +77,16 @@ func (m *RFPiPowerServer) Reset()         { *m = RFPiPowerServer{} }
 func (m *RFPiPowerServer) String() string { return proto.CompactTextString(m) }
 func (*RFPiPowerServer) ProtoMessage()    {}
 func (*RFPiPowerServer) Descriptor() ([]byte, []int) {
-	return fileDescriptor_8ec28710b4dcfc55, []int{1}
+	return fileDescriptor_rfpipower_659fa86591b832a1, []int{1}
 }
-
 func (m *RFPiPowerServer) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RFPiPowerServer.Unmarshal(m, b)
 }
 func (m *RFPiPowerServer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_RFPiPowerServer.Marshal(b, m, deterministic)
 }
-func (m *RFPiPowerServer) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RFPiPowerServer.Merge(m, src)
+func (dst *RFPiPowerServer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RFPiPowerServer.Merge(dst, src)
 }
 func (m *RFPiPowerServer) XXX_Size() int {
 	return xxx_messageInfo_RFPiPowerServer.Size(m)
@@ -128,9 +124,9 @@ func init() {
 	proto.RegisterType((*RFPiPowerServer)(nil), "proto.RFPiPowerServer")
 }
 
-func init() { proto.RegisterFile("rfpipower.proto", fileDescriptor_8ec28710b4dcfc55) }
+func init() { proto.RegisterFile("rfpipower.proto", fileDescriptor_rfpipower_659fa86591b832a1) }
 
-var fileDescriptor_8ec28710b4dcfc55 = []byte{
+var fileDescriptor_rfpipower_659fa86591b832a1 = []byte{
 	// 207 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x2f, 0x4a, 0x2b, 0xc8,
 	0x2c, 0xc8, 0x2f, 0x4f, 0x2d, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53, 0x4a,
