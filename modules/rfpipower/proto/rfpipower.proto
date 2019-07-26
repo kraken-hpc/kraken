@@ -1,0 +1,22 @@
+/* pipower.proto: describes the PiPowerConfig object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message PiPowerConfig {
+    map<string, PiPowerServer> servers = 1;
+    string tick = 2;  // collect messages and bundle them every <tick_duration>
+}
+
+message PiPowerServer {
+    string name = 1;
+    string ip    = 2;
+    int32 port = 3;
+}
