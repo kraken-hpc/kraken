@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pipower.proto
+//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/rfpipower.proto
 
 /*
  * This module will manipulate the PhysState state field.
