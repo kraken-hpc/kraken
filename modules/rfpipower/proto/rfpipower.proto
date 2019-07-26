@@ -1,4 +1,4 @@
-/* pipower.proto: describes the PiPowerConfig object
+/* rfpipower.proto: describes the RFPiPowerConfig object
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -10,12 +10,12 @@
 syntax = "proto3";
 package proto;
 
-message PiPowerConfig {
-    map<string, PiPowerServer> servers = 1;
+message RFPiPowerConfig {
+    map<string, RFPiPowerServer> servers = 1;
     string tick = 2;  // collect messages and bundle them every <tick_duration>
 }
 
-message PiPowerServer {
+message RFPiPowerServer {
     string name = 1;
     string ip    = 2;
     int32 port = 3;
