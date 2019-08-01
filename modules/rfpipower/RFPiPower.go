@@ -55,7 +55,7 @@ type ppNode struct {
 
 // payload struct for collection of nodes
 type nodesInfo struct {
-     State string
+     CMD string
      Nodes []string
 }
 
@@ -300,7 +300,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 
 	// POST NEW CODE*************
 	payLoad, _ := json.Marshal(nodesInfo{
-     	State: cmd,
+     	CMD: cmd,
      	Nodes: ns,
      	})
 	
