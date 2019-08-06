@@ -306,7 +306,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	
 	// URL construction: chassis ip, port, identity
 	// change hard coded "ip" with "srv.Ip" and "port" with strconv.Itoa(int(srv.Port))
-	addr := "localhost" + ":" + "8000"
+	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
         url := "http://" + addr + "/redfish/v1/Systems/" + c + "/Actions/ComputerSystem.Reset"
 
      	fmt.Println("Making Post Call.")
@@ -324,7 +324,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
+		pp.api.Logf(lib.LLERROR, "http POST response failed to read body: %v", e)
 		return
 	}
 	rs := []ppNode{}
