@@ -38,6 +38,7 @@ var (
 	verbose   = flag.Bool("v", false, "verbose will print extra information about the build process")
 	race      = flag.Bool("race", false, "build with -race, warning: enables CGO")
 	pprof     = flag.Bool("pprof", false, "build with pprof support")
+	uroot     = flag.String("uroot", "", "generate a source tree of kraken that can be embedded into u-root")
 )
 
 // config
@@ -109,6 +110,31 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 				}
 				targets = append(targets, target)
 			}
+		}
+	}
+	return
+}
+
+func uKraken(dir string, krakendir string) (e error) {
+	// Create output directory if nonexistent
+	e = os.MkdirAll(dir, 0755)
+	if *verbose {
+		if e != nil {
+			log.Printf("error locating/creating directory for u-root-embeddable kraken source tree")
+			return
+		} else {
+			log.Printf("created/found directory \"%s\" for generated kraken source tree", dir)
+		}
+	}
+
+	// Generate kraken source from templates into dir
+	_, e = compileTemplates(krakendir, dir)
+	if *verbose {
+		if e != nil {
+			log.Printf("error compiling templates for u-root-embeddable kraken source tree")
+			return
+		} else {
+			log.Printf("generated kraken source tree for u-root in %s", dir)
 		}
 	}
 	return
@@ -198,18 +224,28 @@ func main() {
 		cfg.Pprof = true
 	}
 
+	// Get kraken source tree root (and module directory)
+	krakenDir, e := getModDir()
+	if e != nil {
+		log.Fatalf("error getting current module directory: %v", e)
+	}
+	log.Printf("using kraken at: %s", krakenDir)
+
+	// Do we want to build source for u-root?
+	if *uroot != "" {
+		log.Printf("generating kraken source tree for u-root")
+		e = uKraken(*uroot, krakenDir)
+		if e != nil {
+			log.Fatalf("could not create source tree for u-root: %v", e)
+		}
+	}
+
 	// create build dir
 	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
 		if e = os.Mkdir(*buildDir, 0755); e != nil {
 			log.Fatalf("could not create build directory: %v", e)
 		}
 	}
-
-	krakenDir, e := getModDir()
-	if e != nil {
-		log.Fatalf("error getting current module directory: %v", e)
-	}
-	log.Printf("using kraken at: %s", krakenDir)
 
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?
 	os.Mkdir(tmpDir, 0755)
