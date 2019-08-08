@@ -24,7 +24,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/otiai10/copy"
+	cp "github.com/otiai10/copy"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -145,7 +145,7 @@ func uKraken(dir string, krakendir string) (e error) {
 		if *verbose {
 			log.Printf("copying \"%s\" to \"%s\"", file, dir)
 		}
-		Copy(file, os.Join(dir, file))
+		cp.Copy(file, path.Join(dir, file))
 	}
 
 	return
