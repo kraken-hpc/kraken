@@ -24,6 +24,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/otiai10/copy"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -137,6 +138,16 @@ func uKraken(dir string, krakendir string) (e error) {
 			log.Printf("generated kraken source tree for u-root in %s", dir)
 		}
 	}
+
+	// Copy needed files
+	files := []string{"core", "extensions", "lib", "modules", "utils", "vendor"}
+	for _, file := range files {
+		if *verbose {
+			log.Printf("copying \"%s\" to \"%s\"", file, dir)
+		}
+		Copy(file, os.Join(dir, file))
+	}
+
 	return
 }
 
