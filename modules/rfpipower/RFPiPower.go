@@ -308,7 +308,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	// change hard coded "ip" with "srv.Ip" and "port" with strconv.Itoa(int(srv.Port))
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
         url := "http://" + addr + "/redfish/v1/Systems/" + c + "/Actions/ComputerSystem.Reset"
-
+	/*
      	fmt.Println("Making Post Call.")
      	resp, err := http.Post(
 	url,
@@ -320,11 +320,28 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	   pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
            return
      	}
+	*/
+	//fmt.Println("Making Put Call.")
+	httpClient := &http.Client{}
+     	req, err := http.NewRequest(http.MethodPut,
+	url,
+     	bytes.NewBuffer(payLoad)
+     	)
+	if err != nil {
+	   pp.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
+           return
+     	}
 	
+	resp, err = httpClient.Do(req) 
+	if err != nil {
+	   pp.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
+           return
+     	}
+
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "http POST response failed to read body: %v", e)
+		pp.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
 		return
 	}
 	rs := []ppNode{}
