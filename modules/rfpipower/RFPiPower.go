@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
@@ -108,7 +109,7 @@ var excs = map[string]reflect.Value{}
 // RFPiPower Object /
 //////////////////
 
-// PiPower provides a power on/off interface to the proprietary BitScope power control plane
+// RFPiPower provides a power on/off interface to the proprietary BitScope power control plane
 type RFPiPower struct {
 	api    lib.APIClient
 	mutex  *sync.Mutex
@@ -148,7 +149,6 @@ func (*RFPiPower) NewConfig() proto.Message {
 }
 
 // UpdateConfig updates the running config
-
 func (pp *RFPiPower) UpdateConfig(cfg proto.Message) (e error) {
 	if ppcfg, ok := cfg.(*pb.RFPiPowerConfig); ok {
 		pp.cfg = ppcfg
@@ -292,7 +292,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
 	}
-	
+
 	payLoad, _ := json.Marshal(nodesInfo{
 		CMD:   cmd,
 		Nodes: ns,
