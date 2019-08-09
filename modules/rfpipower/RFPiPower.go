@@ -1,6 +1,6 @@
-/* pipower.go: a power control module for the proprietary BitScope power control module
+/* rfpipower.go: a Redfish API based power control module
  *
- * Author: J. Lowell Wofford <lowell@lanl.gov>
+ * Author: J. Lowell Wofford <lowell@lanl.gov>, Ghazanfar Ali <ghazanfar.ali@ttu.edu>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Triad National Security, LLC
@@ -15,7 +15,7 @@
  * This requires at least Chassis & Rank to be set in the RPi3 extension.
  * This nodename format is a key to knowing which PiPower server to talk to.
  */
-//package main
+
 package rfpipower
 
 import (
@@ -30,9 +30,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	//"sort"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
@@ -40,7 +37,6 @@ import (
 	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
 
-	//pb "github.com/hpc/kraken/modules/pipower/proto"
 	pb "github.com/hpc/kraken/modules/rfpipower/proto"
 )
 
@@ -296,9 +292,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
 	}
-	fmt.Println("SRV:", srv)
-
-	// POST NEW CODE*************
+	
 	payLoad, _ := json.Marshal(nodesInfo{
 		CMD:   cmd,
 		Nodes: ns,
@@ -308,20 +302,7 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	// change hard coded "ip" with "srv.Ip" and "port" with strconv.Itoa(int(srv.Port))
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 	url := "http://" + addr + "/redfish/v1/Systems/" + c + "/Actions/ComputerSystem.Reset"
-	/*
-		     	fmt.Println("Making Post Call.")
-		     	resp, err := http.Post(
-			url,
-		     	"application/json",
-		     	bytes.NewBuffer(payLoad),
-		     	)
-			if err != nil {
-		           fmt.Println(err)
-			   pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
-		           return
-		     	}
-	*/
-	//fmt.Println("Making Put Call.")
+
 	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payLoad))
 	if err != nil {
@@ -349,11 +330,6 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 		return
 	}
 
-	/*sort.Slice(rs, func(i, j int) bool {
-	  		return rs[i].ID < rs[j].ID
-		})*/
-	//fmt.Println(rs)
-
 	for _, r := range rs {
 		url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
 		vid := "POWER_OFF"
@@ -378,7 +354,6 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
-	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
 	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
@@ -400,31 +375,6 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
 			pp.mutex.Unlock()
-			/*
-					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
-					ev := core.NewEvent(
-						lib.Event_DISCOVERY,
-						url,
-						&core.DiscoveryEvent{
-							Module:  pp.Name(),
-							URL:     url,
-							ValueID: "RUN_UK",
-						},
-					)
-					pp.dchan <- ev
-				url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
-				ev := core.NewEvent(
-					lib.Event_DISCOVERY,
-					url,
-					&core.DiscoveryEvent{
-						Module:  pp.Name(),
-						URL:     url,
-						ValueID: "PXE_NONE",
-					},
-				)
-				pp.dchan <- ev
-			*/
-
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -481,23 +431,3 @@ func init() {
 	core.Registry.RegisterDiscoverable(module, discovers)
 	core.Registry.RegisterMutations(module, mutations)
 }
-
-/*
-func  main(){
-
-     fmt.Println("Executing a dummy queue!!!")
-     pp := new (RFPiPower)
-     pp.queue = make(map[string][2]string)
-     key := ""
-     var val [2]string
-     for i := 0; i < 150; i++{
-        key = "C0n"+strconv.Itoa(i+1)
-        val[0] = "OFFtoON"
-        val[1] = strconv.Itoa(i+1)
-        pp.queue[key] = val
-      }
-      fmt.Println(pp.queue)
-
-      pp.fireChanges()
-}
-*/
