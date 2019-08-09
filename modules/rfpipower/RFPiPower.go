@@ -19,6 +19,7 @@
 package rfpipower
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -29,15 +30,16 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"bytes"
+
 	//"sort"
-	
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
+
 	//pb "github.com/hpc/kraken/modules/pipower/proto"
 	pb "github.com/hpc/kraken/modules/rfpipower/proto"
 )
@@ -55,8 +57,8 @@ type ppNode struct {
 
 // payload struct for collection of nodes
 type nodesInfo struct {
-     CMD string
-     Nodes []string
+	CMD   string
+	Nodes []string
 }
 
 // ppmut helps us succinctly define our mutations
@@ -112,10 +114,9 @@ var excs = map[string]reflect.Value{}
 
 // PiPower provides a power on/off interface to the proprietary BitScope power control plane
 type RFPiPower struct {
-       
-	api lib.APIClient
+	api    lib.APIClient
 	mutex  *sync.Mutex
-	queue  map[string][2]string  // map[<nodename>][<mutation>, <nodeidstr>]
+	queue  map[string][2]string // map[<nodename>][<mutation>, <nodeidstr>]
 	cfg    *pb.RFPiPowerConfig
 	mchan  <-chan lib.Event
 	dchan  chan<- lib.Event
@@ -165,7 +166,6 @@ func (pp *RFPiPower) UpdateConfig(cfg proto.Message) (e error) {
 	return fmt.Errorf("invalid config type")
 }
 
-
 // ConfigURL gives the any resolver URL for the config
 func (*RFPiPower) ConfigURL() string {
 	cfg := &pb.RFPiPowerConfig{}
@@ -190,7 +190,7 @@ func (pp *RFPiPower) SetDiscoveryChan(c chan<- lib.Event) { pp.dchan = c }
 /*
  * lib.ModuleSelfService
  */
-  
+
 var _ lib.ModuleSelfService = (*RFPiPower)(nil)
 
 // Entry is the module's executable entrypoint
@@ -206,7 +206,7 @@ func (pp *RFPiPower) Entry() {
 			URL:     url,
 			ValueID: "RUN",
 		},
-	) 
+	)
 	// main loop
 	for {
 		// fire a timer that will do our next work
@@ -216,7 +216,7 @@ func (pp *RFPiPower) Entry() {
 		case <-pp.ticker.C: // time to do work
 			go pp.fireChanges()
 			break
-		
+
 		case m := <-pp.mchan: // mutation request
 			go pp.handleMutation(m)
 			break
@@ -254,11 +254,11 @@ func (pp *RFPiPower) fireChanges() {
 	stat := map[string][]string{}
 
 	idmap := map[string]string{}
-	
+
 	pp.mutex.Lock()
 	for m := range pp.queue {
 		c, n := pp.parseNodeName(m)
-		
+
 		idmap[m] = pp.queue[m][1]
 		switch pp.queue[m][0] {
 		case "UKtoOFF": // this actually just forces discovery
@@ -274,7 +274,7 @@ func (pp *RFPiPower) fireChanges() {
 			break
 		}
 	}
-	
+
 	pp.queue = make(map[string][2]string)
 	pp.mutex.Unlock()
 	for c := range on {
@@ -286,57 +286,54 @@ func (pp *RFPiPower) fireChanges() {
 	for c := range stat {
 		pp.fire(c, stat[c], "state", idmap)
 	}
-	
+
 }
 
-func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {    
-       
-        srv, ok := pp.cfg.Servers[c]
+func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {
+
+	srv, ok := pp.cfg.Servers[c]
 	if !ok {
-	   
+
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
 	}
-	fmt.Println("SRV:",srv)
+	fmt.Println("SRV:", srv)
 
 	// POST NEW CODE*************
 	payLoad, _ := json.Marshal(nodesInfo{
-     	CMD: cmd,
-     	Nodes: ns,
-     	})
-	
+		CMD:   cmd,
+		Nodes: ns,
+	})
+
 	// URL construction: chassis ip, port, identity
 	// change hard coded "ip" with "srv.Ip" and "port" with strconv.Itoa(int(srv.Port))
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
-        url := "http://" + addr + "/redfish/v1/Systems/" + c + "/Actions/ComputerSystem.Reset"
+	url := "http://" + addr + "/redfish/v1/Systems/" + c + "/Actions/ComputerSystem.Reset"
 	/*
-     	fmt.Println("Making Post Call.")
-     	resp, err := http.Post(
-	url,
-     	"application/json",
-     	bytes.NewBuffer(payLoad),
-     	)
-	if err != nil {
-           fmt.Println(err)
-	   pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
-           return
-     	}
+		     	fmt.Println("Making Post Call.")
+		     	resp, err := http.Post(
+			url,
+		     	"application/json",
+		     	bytes.NewBuffer(payLoad),
+		     	)
+			if err != nil {
+		           fmt.Println(err)
+			   pp.api.Logf(lib.LLERROR, "http POST API failed: %v", err)
+		           return
+		     	}
 	*/
 	//fmt.Println("Making Put Call.")
 	httpClient := &http.Client{}
-     	req, err := http.NewRequest(http.MethodPut,
-	url,
-     	bytes.NewBuffer(payLoad)
-     	)
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payLoad))
 	if err != nil {
-	   pp.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
-           return
-     	}
-	
-	resp, err = httpClient.Do(req) 
+		pp.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
+		return
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
-	   pp.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
-           return
-     	}
+		pp.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
+		return
+	}
 
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
@@ -353,10 +350,10 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 	}
 
 	/*sort.Slice(rs, func(i, j int) bool {
-  		return rs[i].ID < rs[j].ID
-	})*/
+	  		return rs[i].ID < rs[j].ID
+		})*/
 	//fmt.Println(rs)
-	
+
 	for _, r := range rs {
 		url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
 		vid := "POWER_OFF"
@@ -373,9 +370,8 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 			},
 		)
 		pp.dchan <- v
-	} 
+	}
 }
-
 
 func (pp *RFPiPower) handleMutation(m lib.Event) {
 	if m.Type() != lib.Event_STATE_MUTATION {
@@ -403,7 +399,7 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		case "HANGtoOFF":
 			pp.mutex.Lock()
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
-			pp.mutex.Unlock() 
+			pp.mutex.Unlock()
 			/*
 					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
 					ev := core.NewEvent(
@@ -428,7 +424,7 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 				)
 				pp.dchan <- ev
 			*/
-			
+
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -443,7 +439,6 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		break
 	}
 }
-
 
 // initialization
 func init() {
@@ -486,6 +481,7 @@ func init() {
 	core.Registry.RegisterDiscoverable(module, discovers)
 	core.Registry.RegisterMutations(module, mutations)
 }
+
 /*
 func  main(){
 
@@ -501,7 +497,7 @@ func  main(){
         pp.queue[key] = val
       }
       fmt.Println(pp.queue)
-      
-      pp.fireChanges()     
+
+      pp.fireChanges()
 }
 */
