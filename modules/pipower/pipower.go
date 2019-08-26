@@ -275,6 +275,7 @@ func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]stri
 	srv, ok := pp.cfg.Servers[c]
 	if !ok {
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
+		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
 	nlist := strings.Join(ns, ",")
