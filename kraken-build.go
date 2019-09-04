@@ -39,7 +39,7 @@ var (
 	verbose   = flag.Bool("v", false, "verbose will print extra information about the build process")
 	race      = flag.Bool("race", false, "build with -race, warning: enables CGO")
 	pprof     = flag.Bool("pprof", false, "build with pprof support")
-	uroot     = flag.String("uroot", "", "generate a source tree of kraken that can be embedded into u-root")
+	uroot     = flag.String("uroot", "", "generate a source tree of kraken that can be embedded into u-root; requires dst path")
 )
 
 // config
