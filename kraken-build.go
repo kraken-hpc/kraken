@@ -273,6 +273,16 @@ func main() {
 	// build
 	for t := range cfg.Targets {
 		log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
+
+		// Kraken for u-root
+		if *uroot != "" {
+			log.Printf("building kraken for u-root")
+			if e = buildKraken(*uroot, fromTemplates, cfg.Targets[t], *verbose); e != nil {
+				log.Printf("failed to build %s for u-root: %v", t, e)
+			}
+		}
+
+		// Kraken proper
 		if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
 			log.Printf("failed to build %s: %v", t, e)
 			continue
