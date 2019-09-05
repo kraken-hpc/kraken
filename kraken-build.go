@@ -283,7 +283,7 @@ func main() {
 		}
 		upath := filepath.Join(*uroot, "main")
 		if e = os.Rename(upath, filepath.Join(*uroot, "kraken")); e != nil {
-			log.Printf("failed to rename main binary; does it exist?")
+			log.Printf("rename failed: %s -> %s; does it exist?", filepath.Join(*uroot, "main"), filepath.Join(*uroot, "kraken"))
 		}
 
 		// Kraken proper
