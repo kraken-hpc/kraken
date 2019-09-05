@@ -244,7 +244,7 @@ func main() {
 
 	// Do we want to build source for u-root?
 	if *uroot != "" {
-		log.Printf("generating kraken source tree for u-root")
+		log.Printf("generating kraken source tree for u-root into \"%s\"", *uroot)
 		e = uKraken(*uroot, krakenDir)
 		if e != nil {
 			log.Fatalf("could not create source tree for u-root: %v", e)
