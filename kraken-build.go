@@ -281,6 +281,12 @@ func main() {
 				log.Printf("failed to build %s for u-root: %v", t, e)
 			}
 		}
+		upath := filepath.Join(*uroot, "main")
+		if _, err := os.Stat(upath); !os.IsNotExist(err) {
+			os.Rename(upath, filepath.Join(*uroot, "kraken"))
+		} else {
+			log.Printf("failed to rename main binary; does it exist?")
+		}
 
 		// Kraken proper
 		if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
