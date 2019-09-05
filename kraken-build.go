@@ -116,36 +116,39 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-func uKraken(dir string, krakendir string) (e error) {
+func uKraken(outDir string, krakendir string) (targets []string, e error) {
 	// Create output directory if nonexistent
-	e = os.MkdirAll(dir, 0755)
+	e = os.MkdirAll(outDir, 0755)
 	if *verbose {
 		if e != nil {
 			log.Printf("error locating/creating directory for u-root-embeddable kraken source tree")
 			return
 		} else {
-			log.Printf("created/found directory \"%s\" for generated kraken source tree", dir)
+			log.Printf("created/found directory \"%s\" for generated kraken source tree", outDir)
 		}
 	}
 
-	// Generate kraken source from templates into dir
-	_, e = compileTemplates(krakendir, dir)
+	tmpDir := filepath.Join(outDir, "tmp") // make an option to change where this is?
+	os.Mkdir(tmpDir, 0755)
+
+	// Generate kraken source from templates into outDir
+	_, e = compileTemplates(krakendir, tmpDir)
 	if *verbose {
 		if e != nil {
 			log.Printf("error compiling templates for u-root-embeddable kraken source tree")
 			return
 		} else {
-			log.Printf("generated kraken source tree for u-root in %s", dir)
+			log.Printf("generated kraken source tree for u-root in %s", outDir)
 		}
 	}
 
 	// Copy needed files
-	files := []string{"core", "extensions", "lib", "modules", "utils", "vendor"}
+	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "vendor", "go.mod", "go.sum"}
 	for _, file := range files {
 		if *verbose {
-			log.Printf("copying \"%s\" to \"%s\"", file, dir)
+			log.Printf("copying \"%s\" to \"%s\"", file, outDir)
 		}
-		cp.Copy(file, path.Join(dir, file))
+		cp.Copy(file, path.Join(outDir, file))
 	}
 
 	return
@@ -243,9 +246,10 @@ func main() {
 	log.Printf("using kraken at: %s", krakenDir)
 
 	// Do we want to build source for u-root?
+	var ufromTemplates []string
 	if *uroot != "" {
 		log.Printf("generating kraken source tree for u-root into \"%s\"", *uroot)
-		e = uKraken(*uroot, krakenDir)
+		ufromTemplates, e = uKraken(*uroot, krakenDir)
 		if e != nil {
 			log.Fatalf("could not create source tree for u-root: %v", e)
 		}
@@ -260,6 +264,20 @@ func main() {
 
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?
 	os.Mkdir(tmpDir, 0755)
+
+	// Create u-root kraken build dir if flag passed
+	var ubldDir string
+	var utmpDir string
+	if *uroot != "" {
+		ubldDir = filepath.Join(*uroot, "build")
+		utmpDir = filepath.Join(*uroot, "tmp")
+		os.Mkdir(utmpDir, 0755)
+		if _, e = os.Stat(ubldDir); os.IsNotExist(e) {
+			if e = os.Mkdir(ubldDir, 0755); e != nil {
+				log.Fatalf("could not create u-root kraken build directory: %v", e)
+			}
+		}
+	}
 
 	// setup build environment
 	log.Println("setting up build environment")
@@ -277,13 +295,18 @@ func main() {
 		// Kraken for u-root
 		if *uroot != "" {
 			log.Printf("building kraken for u-root")
-			if e = buildKraken(*uroot, fromTemplates, cfg.Targets[t], *verbose); e != nil {
+			if e = buildKraken(utmpDir, ufromTemplates, cfg.Targets[t], *verbose); e != nil {
 				log.Printf("failed to build %s for u-root: %v", t, e)
+				continue
 			}
-		}
-		upath := filepath.Join(*uroot, "main")
-		if e = os.Rename(upath, filepath.Join(*uroot, "kraken")); e != nil {
-			log.Printf("rename failed: %s -> %s; does it exist?", filepath.Join(*uroot, "main"), filepath.Join(*uroot, "kraken"))
+
+			// Move binary to proper location
+			upathMain := filepath.Join(*uroot, "main")
+			upathBuildDir := filepath.Join(*uroot, "build")
+			upathKraken := filepath.Join(upathBuildDir, "kraken-"+t)
+			if e = os.Rename(upathMain, upathKraken); e != nil {
+				log.Printf("rename failed: %v", e)
+			}
 		}
 
 		// Kraken proper
@@ -308,6 +331,9 @@ func main() {
 
 	if !*noCleanup { // cleanup now
 		os.RemoveAll(tmpDir)
+		if *uroot != "" {
+			os.RemoveAll(utmpDir)
+		}
 	} else {
 		log.Printf("leaving temp directory: %s", tmpDir)
 	}
