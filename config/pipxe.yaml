@@ -18,5 +18,5 @@ extensions:
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/pipower
+  - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
