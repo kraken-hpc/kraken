@@ -268,12 +268,20 @@ func main() {
 	os.Mkdir(tmpDir, 0755)
 
 	// Create u-root kraken build dir if flag passed
-	var ubldDir string
-	var utmpDir string
+	var ubldDir string // Build dir for kraken u-root command
+	var usrcDir string // Source dir for kraken u-root compiled templates
 	if *uroot != "" {
 		ubldDir = filepath.Join(*uroot, "build")
-		utmpDir = filepath.Join(*uroot, "tmp")
-		os.Mkdir(utmpDir, 0755)
+		usrcDir = filepath.Join(*uroot, "src")
+
+		// Make sure usrcDir exists
+		if _, e = os.Stat(usrcDir); os.IsNotExist(e) {
+			if e = os.Mkdir(usrcDir, 0755); e != nil {
+				os.Mkdir(usrcDir, 0755)
+			}
+		}
+
+		// Make sure ubldDir exists
 		if _, e = os.Stat(ubldDir); os.IsNotExist(e) {
 			if e = os.Mkdir(ubldDir, 0755); e != nil {
 				log.Fatalf("could not create u-root kraken build directory: %v", e)
@@ -296,14 +304,15 @@ func main() {
 
 		// Kraken for u-root
 		if *uroot != "" {
+			// Build
 			log.Printf("building kraken for u-root")
-			if e = buildKraken(utmpDir, ufromTemplates, cfg.Targets[t], *verbose); e != nil {
+			if e = buildKraken(usrcDir, ufromTemplates, cfg.Targets[t], *verbose); e != nil {
 				log.Printf("failed to build %s for u-root: %v", t, e)
 				continue
 			}
 
 			// Move binary to proper location
-			upathMain := filepath.Join(*uroot, "main")
+			upathMain := filepath.Join(usrcDir, "main")
 			upathBuildDir := filepath.Join(*uroot, "build")
 			upathKraken := filepath.Join(upathBuildDir, "kraken-"+t)
 			if e = os.Rename(upathMain, upathKraken); e != nil {
@@ -334,7 +343,7 @@ func main() {
 	if !*noCleanup { // cleanup now
 		os.RemoveAll(tmpDir)
 		if *uroot != "" {
-			os.RemoveAll(utmpDir)
+			os.RemoveAll(usrcDir)
 		}
 	} else {
 		log.Printf("leaving temp directory: %s", tmpDir)
