@@ -116,7 +116,8 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-func uKraken(outDir string, krakendir string) (targets []string, e error) {
+// Generate kraken source tree for u-root command from krakenDir into outDir
+func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
 	e = os.MkdirAll(outDir, 0755)
 	if *verbose {
@@ -128,11 +129,12 @@ func uKraken(outDir string, krakendir string) (targets []string, e error) {
 		}
 	}
 
-	tmpDir := filepath.Join(outDir, "tmp") // make an option to change where this is?
-	os.Mkdir(tmpDir, 0755)
+	// Create src dir (within outDir) for template compilation output
+	srcDir := filepath.Join(outDir, "src") // make an option to change where this is?
+	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
-	_, e = compileTemplates(krakendir, tmpDir)
+	_, e = compileTemplates(krakenDir, srcDir)
 	if *verbose {
 		if e != nil {
 			log.Printf("error compiling templates for u-root-embeddable kraken source tree")
@@ -142,7 +144,7 @@ func uKraken(outDir string, krakendir string) (targets []string, e error) {
 		}
 	}
 
-	// Copy needed files
+	// Copy needed files from krakenDir to outDir
 	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "vendor", "go.mod", "go.sum"}
 	for _, file := range files {
 		if *verbose {
