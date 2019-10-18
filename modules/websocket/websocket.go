@@ -21,7 +21,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hpc/kraken/extensions/IPv4"
 	pb "github.com/hpc/kraken/modules/websocket/proto"
 
 	"github.com/golang/protobuf/proto"
@@ -93,10 +92,11 @@ func (w *WebSocket) Entry() {
 	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
 	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
-	v, e := nself.GetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface")
-	fmt.Printf("Value: %v Error: %v\n", v, e)
-	w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
-	w.srvIp = IPv4.BytesToIP(v.Bytes())
+	s := nself.GetService("restapi")
+	c := s.Config()
+	fmt.Printf("Value: %v \n", c)
+	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
+	// w.srvIp = IPv4.BytesToIP(v.Bytes())
 	w.setupRouter()
 	go w.startServer()
 	w.hub = w.newHub()
