@@ -95,6 +95,7 @@ func (w *WebSocket) Entry() {
 	s := nself.GetService("restapi")
 	c := s.Config()
 	fmt.Printf("Value: %v \n", c)
+	panic("something")
 	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	// w.srvIp = IPv4.BytesToIP(v.Bytes())
 	w.setupRouter()
