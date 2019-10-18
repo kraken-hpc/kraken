@@ -41,7 +41,6 @@ type RestAPI struct {
 	api    lib.APIClient
 	router *mux.Router
 	srv    *http.Server
-	wsPort int64
 }
 
 type GraphJson struct {
@@ -50,9 +49,6 @@ type GraphJson struct {
 }
 
 func (r *RestAPI) Entry() {
-	nself, _ := r.api.QueryRead(r.api.Self().String())
-	v, _ := nself.GetValue(r.cfg.WsPortUrl)
-	r.wsPort = v.Int()
 	r.setupRouter()
 	for {
 		r.startServer()
@@ -148,7 +144,17 @@ func (r *RestAPI) srvStop() {
 
 func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
-	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.cfg.Addr, r.wsPort, "/ws")
+	nself, _ := r.api.QueryRead(r.api.Self().String())
+	v, e := nself.GetValue(r.cfg.WsPortUrl)
+	var wsPort int64
+	if e != nil {
+		wsPort = v.Int()
+	}
+	if wsPort == 0 {
+		r.api.Logf(lib.LLERROR, "Could not get WebSocket port. Is websocket module running?")
+		return
+	}
+	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.cfg.Addr, wsPort, "/ws")
 	var resp = []byte(json)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(resp)
