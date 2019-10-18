@@ -93,7 +93,7 @@ func (w *WebSocket) Entry() {
 	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
 	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
-	v, e := nself.GetValue(w.cfg.AddrUrl)
+	v, e := nself.GetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface")
 	fmt.Printf("Value: %v Error: %v\n", v, e)
 	w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	w.srvIp = IPv4.BytesToIP(v.Bytes())
