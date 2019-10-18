@@ -92,7 +92,7 @@ type Action struct {
 func (w *WebSocket) Entry() {
 	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
-	fmt.Printf("nself: %+v\n", nself.HasService("type.googleapis.com/proto.RestAPIConfig"))
+	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
 	v, e := nself.GetValue(w.cfg.AddrUrl)
 	fmt.Printf("Value: %v Error: %v\n", v, e)
 	w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
