@@ -7,134 +7,167 @@
  * See LICENSE file for details.
  */
 
-syntax = "proto3";
-package proto;
-
-import "Node.proto";
-import "google/protobuf/any.proto";
-import "google/protobuf/Empty.proto";
-
-message Query {
-    string URL = 1;
-    oneof payload {
-        Node node = 2;
-        string text = 3;
-        MutationNodeList mutationNodeList = 4;
-        MutationEdgeList mutationEdgeList = 5;
-        MutationPath mutationPath = 6;
-    }
-}
-
-message QueryMulti {
-    repeated Query queries = 1;
-}
-
-message ServiceInitRequest {
-    string id = 1;
-    string module = 2;
-}
-
-message ServiceControl {
-    enum Command {
-        STOP = 0;
-        UPDATE = 1;
-        INIT = 2; // special control to send our node info one time
-    }
-    Command command = 1;
-    google.protobuf.Any config = 2;
-}
-
-message MutationControl {
-    enum Type {
-        MUTATE = 0;
-        INTERRUPT = 1;
-    }
-    string module = 1;
-    string id = 2;
-    Type type = 3;
-    Node cfg = 4;
-    Node dsc = 5;
-}
-
-message DiscoveryEvent {
-    string id = 1;
-    string url = 2;
-    string value_id = 3;
-}
-
-message MutationNodeList {
-    repeated MutationNode MutationNodeList = 1;
-}
-
-message MutationEdgeList {
-    repeated MutationEdge MutationEdgeList = 1;
-}
-
-message MutationPath {
-    int64 cur = 1;
-    bool cmplt = 2;
-    repeated MutationEdge chain = 3;
-}
-
-message MutationNode {
-    string label = 1;
-    string id = 2;
-    NodeColor color = 3;
-}
-
-message MutationEdge {
-    string from = 1;
-    string to = 2;
-    string id = 3;
-    EdgeColor color = 4;
-}
-
-// This is only nessessary for the json mutation edge color to output in the correct format for the dashboard
-message EdgeColor {
-    string color = 1;
-    string highlight = 2;
-    bool inherit = 3;
-}
-
-// This is only nessessary for the json mutation node color to output in the correct format for the dashboard
-message NodeColor {
-    string border = 1;
-    string background = 2;
-}
-
-message LogMessage {
-    string origin = 1;
-    uint32 level = 2;
-    string msg = 3;
-}
-
-service API {
-    // Query language
-    // TODO: create API for bulk CRUD operations
-    rpc QueryCreate(Query) returns (Query) {}
-    rpc QueryRead(Query) returns (Query) {}
-    rpc QueryReadDsc(Query) returns (Query) {}
-    rpc QueryUpdate(Query) returns (Query) {}
-    rpc QueryUpdateDsc(Query) returns (Query) {}
-    rpc QueryDelete(Query) returns (Query) {}
-    rpc QueryReadAll(google.protobuf.Empty) returns (QueryMulti) {}
-    rpc QueryReadAllDsc(google.protobuf.Empty) returns (QueryMulti) {}
-    rpc QueryMutationNodes(google.protobuf.Empty) returns (Query) {}    
-    rpc QueryMutationEdges(google.protobuf.Empty) returns (Query) {}    
-    rpc QueryNodeMutationNodes(Query) returns (Query) {}    
-    rpc QueryNodeMutationEdges(Query) returns (Query) {}    
-    rpc QueryNodeMutationPath(Query) returns (Query) {}    
-    rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
-
-    // Service management
-    rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}
-
-    // Mutation/Discover management
-    rpc MutationInit(ServiceInitRequest) returns (stream MutationControl) {}
-
-    // Discovery management
-    rpc DiscoveryInit(stream DiscoveryEvent) returns (google.protobuf.Empty) {}
-
-    // Logging
-    rpc LoggerInit(stream LogMessage) returns (google.protobuf.Empty) {}
-}
+ syntax = "proto3";
+ package proto;
+ 
+ import "Node.proto";
+ import "google/protobuf/any.proto";
+ import "google/protobuf/Empty.proto";
+ 
+ message Query {
+     string URL = 1;
+     oneof payload {
+         Node node = 2;
+         string text = 3;
+         MutationNodeList mutationNodeList = 4;
+         MutationEdgeList mutationEdgeList = 5;
+         MutationPath mutationPath = 6;
+     }
+ }
+ 
+ message QueryMulti {
+     repeated Query queries = 1;
+ }
+ 
+ message ServiceInitRequest {
+     string id = 1;
+     string module = 2;
+ }
+ 
+ message ServiceControl {
+     enum Command {
+         STOP = 0;
+         UPDATE = 1;
+         INIT = 2; // special control to send our node info one time
+     }
+     Command command = 1;
+     google.protobuf.Any config = 2;
+ }
+ 
+ message MutationControl {
+     enum Type {
+         MUTATE = 0;
+         INTERRUPT = 1;
+     }
+     string module = 1;
+     string id = 2;
+     Type type = 3;
+     Node cfg = 4;
+     Node dsc = 5;
+ }
+ 
+ message StateChangeControl {
+     enum Type {
+         CREATE      = 0;
+         READ        = 1; //unused
+         UPDATE      = 2;
+         DELETE      = 3;
+         CFG_READ    = 4; //unused
+         CFG_UPDATE  = 5;
+     }
+     string url = 1;
+     string value = 2;
+ }
+ 
+ message EventControl {
+     enum Type {
+         StateChange = 0;
+         Mutation    = 1;
+         Discovery   = 2;
+     }
+     Type type = 1;
+     StateChangeControl.Type SCCType = 2;
+     MutationControl.Type MCType = 3;
+     string module = 4;
+     string id = 5;
+     Node cfg = 6;
+     Node dsc = 7;
+     string url = 8;
+     string value = 9;
+ }
+ 
+ message DiscoveryEvent {
+     string id = 1;
+     string url = 2;
+     string value_id = 3;
+ }
+ 
+ message MutationNodeList {
+     repeated MutationNode MutationNodeList = 1;
+ }
+ 
+ message MutationEdgeList {
+     repeated MutationEdge MutationEdgeList = 1;
+ }
+ 
+ message MutationPath {
+     int64 cur = 1;
+     bool cmplt = 2;
+     repeated MutationEdge chain = 3;
+ }
+ 
+ message MutationNode {
+     string label = 1;
+     string id = 2;
+     NodeColor color = 3;
+ }
+ 
+ message MutationEdge {
+     string from = 1;
+     string to = 2;
+     string id = 3;
+     EdgeColor color = 4;
+ }
+ 
+ // This is only nessessary for the json mutation edge color to output in the correct format for the dashboard
+ message EdgeColor {
+     string color = 1;
+     string highlight = 2;
+     bool inherit = 3;
+ }
+ 
+ // This is only nessessary for the json mutation node color to output in the correct format for the dashboard
+ message NodeColor {
+     string border = 1;
+     string background = 2;
+ }
+ 
+ message LogMessage {
+     string origin = 1;
+     uint32 level = 2;
+     string msg = 3;
+ }
+ 
+ service API {
+     // Query language
+     // TODO: create API for bulk CRUD operations
+     rpc QueryCreate(Query) returns (Query) {}
+     rpc QueryRead(Query) returns (Query) {}
+     rpc QueryReadDsc(Query) returns (Query) {}
+     rpc QueryUpdate(Query) returns (Query) {}
+     rpc QueryUpdateDsc(Query) returns (Query) {}
+     rpc QueryDelete(Query) returns (Query) {}
+     rpc QueryReadAll(google.protobuf.Empty) returns (QueryMulti) {}
+     rpc QueryReadAllDsc(google.protobuf.Empty) returns (QueryMulti) {}
+     rpc QueryMutationNodes(google.protobuf.Empty) returns (Query) {}    
+     rpc QueryMutationEdges(google.protobuf.Empty) returns (Query) {}    
+     rpc QueryNodeMutationNodes(Query) returns (Query) {}    
+     rpc QueryNodeMutationEdges(Query) returns (Query) {}    
+     rpc QueryNodeMutationPath(Query) returns (Query) {}    
+     rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
+ 
+     // Service management
+     rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}
+ 
+     // Mutation/Discover management
+     rpc MutationInit(ServiceInitRequest) returns (stream MutationControl) {}
+ 
+     // Event management
+     rpc EventInit(ServiceInitRequest) returns (stream EventControl) {}
+ 
+     // Discovery management
+     rpc DiscoveryInit(stream DiscoveryEvent) returns (google.protobuf.Empty) {}
+ 
+     // Logging
+     rpc LoggerInit(stream LogMessage) returns (google.protobuf.Empty) {}
+ }

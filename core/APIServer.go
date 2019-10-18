@@ -352,6 +352,79 @@ func (s *APIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.API_Mutat
 	return
 }
 
+// EventInit handles establishing the event stream
+// This just caputures all events and sends them over the stream
+func (s *APIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.API_EventInitServer) (e error) {
+	module := sir.GetModule()
+	echan := make(chan lib.Event)
+	filterFunction := func(e lib.Event) bool {
+		return true
+	}
+	list := NewEventListener("EventFor:"+module, lib.Event_ALL,
+		filterFunction,
+		func(v lib.Event) error { return ChanSender(v, echan) })
+	// subscribe our listener
+	s.schan <- list
+
+	for {
+		v := <-echan
+		var ec = &pb.EventControl{}
+		switch v.Type() {
+		case lib.Event_STATE_MUTATION:
+			smev := v.Data().(*MutationEvent)
+			ec = &pb.EventControl{
+				Module:  smev.Mutation[0],
+				Id:      smev.Mutation[1],
+				Type:    pb.EventControl_Mutation,
+				SCCType: -1,
+				MCType:  smev.Type,
+				Cfg:     smev.NodeCfg.Message().(*pb.Node),
+				Dsc:     smev.NodeDsc.Message().(*pb.Node),
+				Url:     "",
+				Value:   "",
+			}
+		case lib.Event_STATE_CHANGE:
+			scev := v.Data().(*StateChangeEvent)
+			s.Logf(lib.LLDEBUG, "api server got state change event: %+v\n%v", scev, scev.Value)
+			ec = &pb.EventControl{
+				Module:  "",
+				Id:      "",
+				Type:    pb.EventControl_StateChange,
+				SCCType: scev.Type,
+				MCType:  -1,
+				Cfg:     nil,
+				Dsc:     nil,
+				Url:     scev.URL,
+				Value:   lib.ValueToString(scev.Value),
+			}
+		case lib.Event_DISCOVERY:
+			dev := v.Data().(*DiscoveryEvent)
+			ec = &pb.EventControl{
+				Module:  dev.Module,
+				Id:      "",
+				Type:    pb.EventControl_Discovery,
+				SCCType: -1,
+				MCType:  -1,
+				Cfg:     nil,
+				Dsc:     nil,
+				Url:     dev.URL,
+				Value:   dev.ValueID,
+			}
+		default:
+			s.Logf(lib.LLERROR, "Couldn't convert Event into mutation, statechange, or discovery: %+v", v)
+		}
+		if e := stream.Send(ec); e != nil {
+			s.Logf(INFO, "event stream closed: %v", e)
+			break
+		}
+	}
+
+	// politely unsubscribe
+	list.SetState(lib.EventListener_UNSUBSCRIBE)
+	s.schan <- list
+	return
+}
+
 // DiscoveryInit handles discoveries from nodes
 // This dispatches nodes
 func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {

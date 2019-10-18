@@ -15,6 +15,7 @@ import (
 	"net"
 	"reflect"
 
+	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
 
@@ -22,19 +23,16 @@ import (
 // Auxiliary Objects /
 /////////////////////
 
-// StateChangeType is an enumeration for state change events
-type StateChangeType uint8
-
 const (
-	StateChange_CREATE     StateChangeType = 0
-	StateChange_READ       StateChangeType = 1 //unused
-	StateChange_UPDATE     StateChangeType = 2
-	StateChange_DELETE     StateChangeType = 3
-	StateChange_CFG_READ   StateChangeType = 4 //unused
-	StateChange_CFG_UPDATE StateChangeType = 5
+	StateChange_CREATE     pb.StateChangeControl_Type = pb.StateChangeControl_CREATE
+	StateChange_READ       pb.StateChangeControl_Type = pb.StateChangeControl_READ //unused
+	StateChange_UPDATE     pb.StateChangeControl_Type = pb.StateChangeControl_UPDATE
+	StateChange_DELETE     pb.StateChangeControl_Type = pb.StateChangeControl_DELETE
+	StateChange_CFG_READ   pb.StateChangeControl_Type = pb.StateChangeControl_CFG_READ //unused
+	StateChange_CFG_UPDATE pb.StateChangeControl_Type = pb.StateChangeControl_CFG_UPDATE
 )
 
-var StateChangeTypeString = map[StateChangeType]string{
+var StateChangeTypeString = map[pb.StateChangeControl_Type]string{
 	StateChange_CREATE:     "CREATE",
 	StateChange_READ:       "READ",
 	StateChange_UPDATE:     "UPDATE",
@@ -45,7 +43,7 @@ var StateChangeTypeString = map[StateChangeType]string{
 
 // A StateChangeEvent is emitted when the StateDifferenceEngine detects a change to either Dsc or Cfg
 type StateChangeEvent struct {
-	Type  StateChangeType
+	Type  pb.StateChangeControl_Type
 	URL   string
 	Value reflect.Value
 }
@@ -55,7 +53,7 @@ func (sce *StateChangeEvent) String() string {
 }
 
 // NewStateChangeEvent creates a new event of this time, fully specified
-func NewStateChangeEvent(t StateChangeType, u string, v reflect.Value) lib.Event {
+func NewStateChangeEvent(t pb.StateChangeControl_Type, u string, v reflect.Value) lib.Event {
 	sce := &StateChangeEvent{
 		Type:  t,
 		URL:   u,

@@ -166,6 +166,7 @@ const (
 	Event_STATE_SYNC
 	Event_API
 	Event_DISCOVERY
+	Event_ALL
 )
 
 var EventTypeString = map[EventType]string{
@@ -175,6 +176,7 @@ var EventTypeString = map[EventType]string{
 	Event_STATE_SYNC:     "STATE_SYNC",
 	Event_API:            "API",
 	Event_DISCOVERY:      "DISCOVERY",
+	Event_ALL:            "ALL",
 }
 
 // Event 's capture a happening's type, location, and optional data
@@ -527,6 +529,11 @@ type ModuleWithMutations interface {
 type ModuleWithDiscovery interface {
 	Module
 	SetDiscoveryChan(chan<- Event)
+}
+
+type ModuleWithAllEvents interface {
+	Module
+	SetEventsChan(<-chan Event)
 }
 
 type APIClient interface {

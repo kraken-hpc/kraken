@@ -41,6 +41,7 @@ type RestAPI struct {
 	api    lib.APIClient
 	router *mux.Router
 	srv    *http.Server
+	wsPort int64
 }
 
 type GraphJson struct {
@@ -49,6 +50,9 @@ type GraphJson struct {
 }
 
 func (r *RestAPI) Entry() {
+	nself, _ := r.api.QueryRead(r.api.Self().String())
+	v, _ := nself.GetValue(r.cfg.WsPortUrl)
+	r.wsPort = v.Int()
 	r.setupRouter()
 	for {
 		r.startServer()
@@ -79,8 +83,9 @@ func (r *RestAPI) Init(api lib.APIClient) {
 
 func (r *RestAPI) NewConfig() proto.Message {
 	return &pb.RestAPIConfig{
-		Addr: "127.0.0.1",
-		Port: 3141,
+		Addr:      "127.0.0.1",
+		Port:      3141,
+		WsPortUrl: "type.googleapis.com/proto.RestAPIConfig/Port",
 	}
 }
 
@@ -109,6 +114,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
 	r.router.HandleFunc("/enumerables", r.getAllEnums).Methods("GET")
+	r.router.HandleFunc("/ws", r.webSocketRedirect).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -139,6 +145,15 @@ func (r *RestAPI) srvStop() {
 /*
  * Route handlers
  */
+
+func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.cfg.Addr, r.wsPort, "/ws")
+	var resp = []byte(json)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(resp)
+	r.api.Logf(lib.LLDEBUG, "Wrote back response of: %v", resp)
+}
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()

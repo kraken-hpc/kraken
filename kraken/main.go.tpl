@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	pb "github.com/hpc/kraken/core/proto"
 	pbr "github.com/hpc/kraken/modules/restapi/proto"
+	pbw "github.com/hpc/kraken/modules/websocket/proto"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -157,7 +158,7 @@ func main() {
 	// we'll modify ourselves a bit to get running
 	self, _ := qe.Read(k.Ctx.Self)
 
-	// if we're full-state, we start restapi automatically
+	// if we're full-state, we start restapi and websocket automatically
 	if len(parents) == 0 {
 		restapi := self.GetService("restapi")
 		cfg := &pbr.RestAPIConfig{
@@ -167,6 +168,23 @@ func main() {
 		any, _ := ptypes.MarshalAny(cfg)
 		restapi.SetState(lib.Service_RUN)
 		restapi.UpdateConfig(any)
+		websocket := self.GetService("websocket")
+		//wcfg := &pbw.WebSocketConfig{
+		//	Addr:           *ipapi,
+		//	Port:           3142,
+		//	Tick:           "1ms",
+		//	WriteWait:      "10s",
+		//	PongWait:       "60s",
+		//	PingPeriod:     "54s",
+		//	MaxMessageSize: 512,
+		//}
+		wcfg := &pbw.WebSocketConfig{
+			Port:           3142,
+		}
+		wAny, _ := ptypes.MarshalAny(wcfg)
+		websocket.SetState(lib.Service_RUN)
+		websocket.UpdateConfig(wAny)
+
 	}
 	qe.Update(self)
 	self, _ = qe.Read(k.Ctx.Self)

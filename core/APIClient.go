@@ -246,7 +246,7 @@ func (a *APIClient) MutationInit(id string, module string) (c <-chan lib.Event, 
 		for {
 			var mc *pb.MutationControl
 			if mc, e = stream.(pb.API_MutationInitClient).Recv(); e != nil {
-				fmt.Printf("got stream read error on mutation stream: %v\n", e)
+				a.Logf(lib.LLERROR, "got stream read error on mutation stream: %v\n", e)
 				return
 			}
 			cfg := NewNodeFromMessage(mc.GetCfg())
@@ -260,6 +260,57 @@ func (a *APIClient) MutationInit(id string, module string) (c <-chan lib.Event, 
 					NodeDsc:  dsc,
 					Mutation: [2]string{mc.GetModule(), mc.GetId()},
 				})
+		}
+	}()
+	c = cc
+	return
+}
+
+func (a *APIClient) EventInit(id string, module string) (c <-chan lib.Event, e error) {
+	var stream grpc.ClientStream
+	if stream, e = a.serverStream("EventInit", reflect.ValueOf(&pb.ServiceInitRequest{Id: id, Module: module})); e != nil {
+		return
+	}
+	cc := make(chan lib.Event)
+	go func() {
+		for {
+			var ec *pb.EventControl
+			if ec, e = stream.(pb.API_EventInitClient).Recv(); e != nil {
+				a.Logf(lib.LLERROR, "got stream read error on event stream: %v\n", e)
+				return
+			}
+			switch ec.GetType() {
+			case pb.EventControl_Mutation:
+				cfg := NewNodeFromMessage(ec.GetCfg())
+				dsc := NewNodeFromMessage(ec.GetDsc())
+				cc <- NewEvent(
+					lib.Event_STATE_MUTATION,
+					cfg.ID().String(),
+					&MutationEvent{
+						Type:     ec.GetMCType(),
+						NodeCfg:  cfg,
+						NodeDsc:  dsc,
+						Mutation: [2]string{ec.GetModule(), ec.GetId()},
+					})
+			case pb.EventControl_StateChange:
+				cc <- NewEvent(
+					lib.Event_STATE_CHANGE,
+					ec.GetUrl(),
+					&StateChangeEvent{
+						Type:  ec.GetSCCType(),
+						URL:   ec.GetUrl(),
+						Value: reflect.ValueOf(ec.GetValue()),
+					})
+			case pb.EventControl_Discovery:
+				cc <- NewEvent(
+					lib.Event_DISCOVERY,
+					ec.GetUrl(),
+					&DiscoveryEvent{
+						Module:  ec.GetModule(),
+						URL:     ec.GetUrl(),
+						ValueID: ec.GetValue(),
+					})
+			}
 		}
 	}()
 	c = cc
