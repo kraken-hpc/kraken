@@ -90,8 +90,11 @@ type Action struct {
 }
 
 func (w *WebSocket) Entry() {
+	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
+	fmt.Printf("nself: %+v\n", nself)
 	v, _ := nself.GetValue(w.cfg.AddrUrl)
+	fmt.Printf("Value: %v\n", v)
 	w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	w.srvIp = IPv4.BytesToIP(v.Bytes())
 	w.setupRouter()
