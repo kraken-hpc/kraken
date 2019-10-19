@@ -96,7 +96,7 @@ func (w *WebSocket) Entry() {
 	c := s.Config()
 	fmt.Printf("Value: %v \n", c)
 	v, e := nself.GetValue("type.googleapis.com/proto.RestAPIConfig")
-	w.api.Logf(lib.LLDEBUG, "newvalue: %v error: %v\n", v, e)
+	fmt.Printf("newvalue: %v error: %v\n", v, e)
 	panic("something")
 	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	// w.srvIp = IPv4.BytesToIP(v.Bytes())
