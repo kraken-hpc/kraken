@@ -94,7 +94,7 @@ func (w *WebSocket) Entry() {
 	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
 	s := nself.GetService("restapi")
 	c := s.Config()
-	fmt.Printf("Value: %v \n", c)
+	fmt.Printf("Value: %v \n", c.GetValue())
 	v, e := nself.GetValue("Services/proto.RestAPIConfig")
 	fmt.Printf("newvalue: %v error: %v\n", v, e)
 	panic("something")
