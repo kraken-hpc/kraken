@@ -161,7 +161,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	var resp = []byte(json)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(resp)
-	r.api.Logf(lib.LLDEBUG, "Wrote back response of: %v", resp)
+	r.api.Logf(lib.LLDEBUG, "Wrote back response of: %v", json)
 }
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
