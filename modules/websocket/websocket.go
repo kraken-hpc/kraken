@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	rpb "github.com/hpc/kraken/modules/restapi/proto"
 	pb "github.com/hpc/kraken/modules/websocket/proto"
 
 	"github.com/golang/protobuf/proto"
@@ -104,6 +105,19 @@ func (w *WebSocket) Entry() {
 	fmt.Printf("exe: %+v\n", s.Exe())
 	fmt.Printf("config: %+v\n", s.Config())
 	fmt.Printf("message: %+v\n", s.Message())
+	fmt.Printf("configtypeurl: %+v\n", c.GetTypeUrl())
+	fmt.Printf("configvalue: %+v\n", c.GetValue())
+	var restConfig rpb.RestAPIConfig
+	if err := proto.Unmarshal(c.GetValue(), &restConfig); err != nil {
+		fmt.Printf("error during marshaling!: %v\n", err)
+	} else {
+		fmt.Printf("unmarshalling was successful!: %+v\n", restConfig)
+	}
+
+	// if c.Is(pb.WebSocketConfig.descriptor)
+	// ptypes.UnmarshalAny(c, *pb.WebSocketConfig)
+	// fmt.Printf("configvalue: %+v\n", c.ProtoMessage())
+
 	panic("something")
 	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	// w.srvIp = IPv4.BytesToIP(v.Bytes())
