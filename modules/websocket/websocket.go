@@ -93,32 +93,15 @@ func (w *WebSocket) Entry() {
 	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
 	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
-	s := nself.GetService("restapi")
-	c := s.Config()
-	fmt.Printf("Value: %v \n", string(c.GetValue()))
-	v, e := nself.GetValue(w.cfg.GetAddrUrl())
-	fmt.Printf("newvalue: %v error: %v\n", v, e)
-	fmt.Printf("id: %+v\n", s.ID())
-	fmt.Printf("state: %+v\n", s.State())
-	fmt.Printf("getstate: %+v\n", s.GetState())
-	fmt.Printf("module: %+v\n", s.Module())
-	fmt.Printf("exe: %+v\n", s.Exe())
-	fmt.Printf("config: %+v\n", s.Config())
-	fmt.Printf("message: %+v\n", s.Message())
-	fmt.Printf("configtypeurl: %+v\n", c.GetTypeUrl())
-	fmt.Printf("configvalue: %+v\n", c.GetValue())
 	var restConfig rpb.RestAPIConfig
-	if err := proto.Unmarshal(c.GetValue(), &restConfig); err != nil {
+	if err := proto.Unmarshal(nself.GetService("restapi").Config().GetValue(), &restConfig); err != nil {
 		fmt.Printf("error during marshaling!: %v\n", err)
 	} else {
 		fmt.Printf("unmarshalling was successful!: %+v\n", restConfig)
 	}
+	w.srvIp = net.ParseIP(restConfig.GetAddr())
 
-	// if c.Is(pb.WebSocketConfig.descriptor)
-	// ptypes.UnmarshalAny(c, *pb.WebSocketConfig)
-	// fmt.Printf("configvalue: %+v\n", c.ProtoMessage())
-
-	panic("something")
+	// panic("something")
 	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
 	// w.srvIp = IPv4.BytesToIP(v.Bytes())
 	w.setupRouter()
