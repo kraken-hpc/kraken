@@ -394,9 +394,9 @@ func (c *Client) read() {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				c.w.api.Logf(lib.LLERROR, "websocket received unexpected close error: %v", err)
+			} else {
+				c.w.api.Logf(lib.LLERROR, "websocket read error: %v", err)
 			}
-			c.w.api.Logf(lib.LLERROR, "websocket read error: %v", err)
-
 			break
 		}
 		action := &Action{
