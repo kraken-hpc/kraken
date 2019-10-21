@@ -148,6 +148,11 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 		p, sub := lib.URLShift(sub)
 		ext, ok := n.exts[lib.URLPush(root, p)]
 		if !ok {
+			for _, srv := range n.srvs {
+				if srv.Config().GetTypeUrl() == lib.URLPush(root, p) {
+					fmt.Printf("found a config that matches the url: %v", srv.Config().GetValue())
+				}
+			}
 			e = fmt.Errorf("node does not have extension: %s", lib.URLPush(root, p))
 			return
 		}
