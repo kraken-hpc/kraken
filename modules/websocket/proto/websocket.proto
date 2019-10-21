@@ -11,7 +11,6 @@ syntax = "proto3";
 package proto;
 
 message WebSocketConfig {
-    string addr_url = 1;
     int32 port = 2;
     string tick = 3;            // collect messages and bundle them every <tick_duration>
     string writeWait = 4;       // Time allowed to write a message to the peer.

@@ -13,5 +13,4 @@ package proto;
 message RestAPIConfig {
     string addr = 1;
     int32 port = 2;
-    string ws_port_url = 3;
 }

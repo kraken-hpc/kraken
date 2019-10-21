@@ -150,9 +150,8 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	nself, _ := r.api.QueryRead(r.api.Self().String())
 	var wsConfig wpb.WebSocketConfig
 	if err := proto.Unmarshal(nself.GetService("websocket").Config().GetValue(), &wsConfig); err != nil {
-		fmt.Printf("error during marshaling!: %v\n", err)
-	} else {
-		fmt.Printf("unmarshalling was successful!: %+v\n", wsConfig)
+		r.api.Logf(lib.LLERROR, "Error getting websocket config. Is the websocket module running?: %v\n", err)
+		return
 	}
 	wsPort := wsConfig.GetPort()
 	if wsPort == 0 {

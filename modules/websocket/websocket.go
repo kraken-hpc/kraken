@@ -208,7 +208,6 @@ func (w *WebSocket) NewConfig() proto.Message {
 		maxMessageSize = 512                 // Maximum message size allowed from peer.
 	)
 	return &pb.WebSocketConfig{
-		AddrUrl:        "type.googleapis.com/proto.RestAPIConfig/addr",
 		Port:           3142,
 		Tick:           "1ms",
 		WriteWait:      writeWait.String(),
