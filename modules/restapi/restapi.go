@@ -157,7 +157,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		r.api.Logf(lib.LLERROR, "Could not get WebSocket port. Is websocket module running?")
 		return
 	}
-	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.cfg.Addr, wsPort, "/ws")
+	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.srv.Addr, wsPort, "/ws")
 	var resp = []byte(json)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(resp)
