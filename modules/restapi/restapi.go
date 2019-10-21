@@ -16,6 +16,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"reflect"
@@ -145,6 +146,7 @@ func (r *RestAPI) srvStop() {
 
 func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	host, _, _ := net.SplitHostPort(req.Host)
 	nself, _ := r.api.QueryRead(r.api.Self().String())
 	var wsConfig wpb.WebSocketConfig
 	if err := proto.Unmarshal(nself.GetService("websocket").Config().GetValue(), &wsConfig); err != nil {
@@ -157,7 +159,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		r.api.Logf(lib.LLERROR, "Could not get WebSocket port. Is websocket module running?")
 		return
 	}
-	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, r.srv.Addr, wsPort, "/ws")
+	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, host, wsPort, "/ws")
 	var resp = []byte(json)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(resp)
