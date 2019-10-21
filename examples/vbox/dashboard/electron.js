@@ -16,8 +16,9 @@ function createWindow() {
     width: 1000,
     height: 750,
     webPreferences: {
-      nodeIntegration: true
-    }
+      nodeIntegration: true,
+    },
+    icon: './favicon.png'
   })
 
   // and load the index.html of the app.
@@ -27,7 +28,7 @@ function createWindow() {
   // mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
-  mainWindow.on('closed', () => mainWindow = null)
+  mainWindow.on('closed', () => (mainWindow = null))
 }
 
 // This method will be called when Electron has finished
