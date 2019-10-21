@@ -83,6 +83,10 @@ type Payload struct {
 	Value  string        `json:"value"`
 }
 
+func (p *Payload) String() string {
+	return fmt.Sprintf("Type: %v, Url: %v, Data: %v, NodeId: %v, Value: %v", lib.EventTypeString[p.Type], p.URL, p.Data, p.NodeId, p.Value)
+}
+
 type Action struct {
 	Command   Command       `json:"command"`
 	EventType lib.EventType `json:"type"`
@@ -90,25 +94,18 @@ type Action struct {
 }
 
 func (w *WebSocket) Entry() {
-	fmt.Println("websocket entry")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
-	fmt.Printf("nself: %+v\n", nself.GetServiceIDs())
 	var restConfig rpb.RestAPIConfig
 	if err := proto.Unmarshal(nself.GetService("restapi").Config().GetValue(), &restConfig); err != nil {
-		fmt.Printf("error during marshaling!: %v\n", err)
-	} else {
-		fmt.Printf("unmarshalling was successful!: %+v\n", restConfig)
+		w.api.Logf(lib.LLERROR, "Error getting restapi config. Is the restapi module running?: %v\n", err)
+		return
 	}
 	w.srvIp = net.ParseIP(restConfig.GetAddr())
 
-	// panic("something")
-	// w.api.Logf(lib.LLDEBUG, "queried for self: %+v", v)
-	// w.srvIp = IPv4.BytesToIP(v.Bytes())
 	w.setupRouter()
 	go w.startServer()
 	w.hub = w.newHub()
 	go w.hub.run()
-	w.api.Logf(lib.LLDEBUG, "WebSocket is listening for all events\n")
 	for {
 		// create a timer that will send queued websocket messages
 		dur, _ := time.ParseDuration(w.cfg.GetTick())
@@ -283,20 +280,20 @@ func (w *WebSocket) newHub() *Hub {
 }
 
 func (h *Hub) run() {
-	h.api.Logf(lib.LLDEBUG, "Starting Hub\n")
+	h.api.Logf(lib.LLDDDEBUG, "Starting Hub\n")
 	for {
 		select {
 		case client := <-h.register:
-			h.api.Logf(lib.LLDEBUG, "hub registering new client %p", client)
+			h.api.Logf(lib.LLDDDEBUG, "hub registering new client %p", client)
 			h.clients[client] = true
 			h.api.Logf(lib.LLDDDEBUG, "hub client list: %+v", h.clients)
 		case client := <-h.unregister:
-			h.api.Logf(lib.LLDEBUG, "hub unregistering client %p", client)
+			h.api.Logf(lib.LLDDDEBUG, "hub unregistering client %p", client)
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
-			h.api.Logf(lib.LLDEBUG, "hub client list: %+v", h.clients)
+			h.api.Logf(lib.LLDDDEBUG, "hub client list: %+v", h.clients)
 		case messages := <-h.broadcast:
 			for client := range h.clients {
 				select {
@@ -310,13 +307,13 @@ func (h *Hub) run() {
 		case action := <-h.action:
 			switch action.Command {
 			case SUBSCRIBE:
-				h.api.Logf(lib.LLDEBUG, "Subscribing to: %v", lib.EventTypeString[action.EventType])
+				h.api.Logf(lib.LLDDDEBUG, "Subscribing to: %v", lib.EventTypeString[action.EventType])
 				action.Client.subscribeEvent(action.EventType)
 			case UNSUBSCRIBE:
-				h.api.Logf(lib.LLDEBUG, "Unsubscribing to: %v", lib.EventTypeString[action.EventType])
+				h.api.Logf(lib.LLDDDEBUG, "Unsubscribing to: %v", lib.EventTypeString[action.EventType])
 				action.Client.unsubscribeEvent(action.EventType)
 			default:
-				h.api.Logf(lib.LLDEBUG, "received action has unknown command: %v", action.Command)
+				h.api.Logf(lib.LLDDEBUG, "Hub received action that has unknown command: %v", action.Command)
 			}
 		}
 	}
@@ -344,7 +341,7 @@ func (c *Client) write() {
 	for {
 		select {
 		case messages, ok := <-c.send:
-			c.w.api.Logf(lib.LLDDEBUG, "client %p got messages from hub: %+v", c, messages)
+			c.w.api.Logf(lib.LLDDDEBUG, "client %p got messages from hub: %+v", c, messages)
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.

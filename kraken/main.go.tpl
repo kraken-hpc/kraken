@@ -161,9 +161,8 @@ func main() {
 	if len(parents) == 0 {
 		restapi := self.GetService("restapi")
 		cfg := &pbr.RestAPIConfig{
-			Addr:      *ipapi,
-			Port:      3141,
-			WsPortUrl: "type.googleapis.com/proto.RestAPIConfig/Port",
+			Addr: *ipapi,
+			Port: 3141,
 		}
 		any, _ := ptypes.MarshalAny(cfg)
 		restapi.SetState(lib.Service_RUN)

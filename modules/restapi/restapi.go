@@ -81,9 +81,8 @@ func (r *RestAPI) Init(api lib.APIClient) {
 
 func (r *RestAPI) NewConfig() proto.Message {
 	return &pb.RestAPIConfig{
-		Addr:      "127.0.0.1",
-		Port:      3141,
-		WsPortUrl: "type.googleapis.com/proto.RestAPIConfig/Port",
+		Addr: "127.0.0.1",
+		Port: 3141,
 	}
 }
 
@@ -154,15 +153,11 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	wsPort := wsConfig.GetPort()
-	if wsPort == 0 {
-		r.api.Logf(lib.LLERROR, "Could not get WebSocket port. Is websocket module running?")
-		return
-	}
 	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, host, wsPort, "/ws")
 	var resp = []byte(json)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(resp)
-	r.api.Logf(lib.LLDEBUG, "Wrote back response of: %v", json)
+	r.api.Logf(lib.LLDDDEBUG, "Websocket redirecting to: %v", json)
 }
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
