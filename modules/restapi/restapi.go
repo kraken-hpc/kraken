@@ -30,6 +30,7 @@ import (
 
 	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/restapi/proto"
+	wpb "github.com/hpc/kraken/modules/websocket/proto"
 )
 
 var _ lib.Module = (*RestAPI)(nil)
@@ -145,11 +146,13 @@ func (r *RestAPI) srvStop() {
 func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	nself, _ := r.api.QueryRead(r.api.Self().String())
-	v, e := nself.GetValue(r.cfg.WsPortUrl)
-	var wsPort int64
-	if e != nil {
-		wsPort = v.Int()
+	var wsConfig wpb.WebSocketConfig
+	if err := proto.Unmarshal(nself.GetService("websocket").Config().GetValue(), &wsConfig); err != nil {
+		fmt.Printf("error during marshaling!: %v\n", err)
+	} else {
+		fmt.Printf("unmarshalling was successful!: %+v\n", wsConfig)
 	}
+	wsPort := wsConfig.GetPort()
 	if wsPort == 0 {
 		r.api.Logf(lib.LLERROR, "Could not get WebSocket port. Is websocket module running?")
 		return
