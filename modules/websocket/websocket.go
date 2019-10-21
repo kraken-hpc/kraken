@@ -356,7 +356,7 @@ func (c *Client) write() {
 				}
 			}
 
-			c.w.api.Logf(lib.LLDEBUG, "sending messages to client: %v\n", finalMessages)
+			c.w.api.Logf(lib.LLDDDEBUG, "sending messages to client: %v\n", finalMessages)
 			if len(finalMessages) != 0 {
 				err := c.conn.WriteJSON(finalMessages)
 				if err != nil {
@@ -399,14 +399,14 @@ func (c *Client) read() {
 
 			break
 		}
-		c.w.api.Logf(lib.LLDEBUG, "client got message: %v", message)
 		action := &Action{
 			Client: c,
 		}
 		json.Unmarshal(message, &action)
+		c.w.api.Logf(lib.LLDDDEBUG, "client got message from websocket connection: %v", action)
 		c.hub.action <- action
 	}
-	c.w.api.Logf(lib.LLDEBUG, "Closing websocket client: %p\n", c)
+	c.w.api.Logf(lib.LLDDEBUG, "Closing websocket client: %p\n", c)
 }
 
 func (c *Client) subscribeEvent(t lib.EventType) {
@@ -433,7 +433,7 @@ func (w *WebSocket) serveWs(hub *Hub, wrt http.ResponseWriter, req *http.Request
 	}
 	// Creating client with buffered payload channel set to 50. This might have to be increased if we have a lot of nodes
 	client := &Client{hub: hub, conn: conn, send: make(chan []*Payload, 50), w: w, subs: make(map[lib.EventType]bool)}
-	w.api.Logf(lib.LLDEBUG, "websocket added new client: %p\n", client)
+	w.api.Logf(lib.LLDDDEBUG, "websocket added new client: %p\n", client)
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
