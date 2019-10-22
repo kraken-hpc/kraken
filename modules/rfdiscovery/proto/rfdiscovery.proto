@@ -11,7 +11,7 @@
  package proto;
 
  message RFDiscoveryConfig { // information of the redfish discovery module
-    map<string, RFAggregatorServer> servers = 1;
+    map<string, RFAggregator> servers = 1;
     string polling_interval = 2;
     string name_url = 3;
     string server_url = 4;
@@ -19,7 +19,7 @@
     string ip_url = 6;
 }
 
-message RFAggregatorServer { // information of the aggregator server
+message RFAggregator { // information of the aggregator server
     string name = 1;
     string ip    = 2;
     int32 port = 3;

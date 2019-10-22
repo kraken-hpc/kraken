@@ -109,7 +109,7 @@ func (*RFD) NewConfig() proto.Message {
 		NameUrl:   "type.googleapis.com/proto.RFAggregator/Name",
 		UuidUrl:   "type.googleapis.com/proto.RFAggregator/Uuid",
 		IpUrl:     "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		Servers: map[string]*pb.RFAggregatorServer{
+		Servers: map[string]*pb.RFAggregator{
 			"rfa": {
 				Name: "rfa",
 				Ip:   "localhost",
