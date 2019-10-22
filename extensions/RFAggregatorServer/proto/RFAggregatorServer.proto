@@ -1,0 +1,18 @@
+/* RFAggregatorServer.proto: describes Redfish specific aggregation objects
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>, J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+message RFAggregatorServer {
+    string api_server = 1; // rf aggregator name
+    string name = 2; // node name
+    string uuid = 3; // node uuid 
+
+}

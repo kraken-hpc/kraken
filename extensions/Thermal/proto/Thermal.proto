@@ -1,0 +1,24 @@
+/* Thermal.proto: enumeration for determining thermal states of node compoenents.
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu> J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+message Thermal {
+     enum CPU_TEMP_State {
+        CPU_TEMP_NONE = 0;
+        CPU_TEMP_NORMAL = 1;
+        CPU_TEMP_HIGH = 2;
+        CPU_TEMP_CRITICAL = 3;
+
+        //TEMP_WAIT = 1; // Thermal request sent to node
+        
+    }
+    CPU_TEMP_State state = 1;
+}
