@@ -104,9 +104,9 @@ var _ lib.ModuleWithConfig = (*RFD)(nil)
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {
 	r := &pb.RFDiscoveryConfig{
-		ServerUrl: "type.googleapis.com/proto.RFAggregator/ApiServer",
-		NameUrl:   "type.googleapis.com/proto.RFAggregator/Name",
-		UuidUrl:   "type.googleapis.com/proto.RFAggregator/Uuid",
+		ServerUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
+		NameUrl:   "type.googleapis.com/proto.RFAggregatorServer/Name",
+		UuidUrl:   "type.googleapis.com/proto.RFAggregatorServer/Uuid",
 		IpUrl:     "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		Servers: map[string]*pb.RFAggregator{
 			"rfa": {
