@@ -32,7 +32,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/rfdiscovery/proto"
 )
@@ -304,42 +303,55 @@ func (rfd *RFD) discoverAll() {
 
 // initialization
 func init() {
-	module := &RFD{}
-	//mutations := make(map[string]lib.StateMutation)
-	discovers := make(map[string]map[string]reflect.Value)
-	drstate := make(map[string]reflect.Value)
+	// module := &RFD{}
+	// //mutations := make(map[string]lib.StateMutation)
+	// discovers := make(map[string]map[string]reflect.Value)
+	// drstate := make(map[string]reflect.Value)
 
-	// for m := range muts {
-	// 	dur, _ := time.ParseDuration(muts[m].timeout)
-	// 	mutations[m] = core.NewStateMutation(
-	// 		map[string][2]reflect.Value{
-	// 			"/PhysState": {
-	// 				reflect.ValueOf(muts[m].f),
-	// 				reflect.ValueOf(muts[m].t),
-	// 			},
-	// 		},
-	// 		reqs,
-	// 		excs,
-	// 		lib.StateMutationContext_CHILD,
-	// 		dur,
-	// 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
-	// 	)
-	// 	drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
+	// // for m := range muts {
+	// // 	dur, _ := time.ParseDuration(muts[m].timeout)
+	// // 	mutations[m] = core.NewStateMutation(
+	// // 		map[string][2]reflect.Value{
+	// // 			"/PhysState": {
+	// // 				reflect.ValueOf(muts[m].f),
+	// // 				reflect.ValueOf(muts[m].t),
+	// // 			},
+	// // 		},
+	// // 		reqs,
+	// // 		excs,
+	// // 		lib.StateMutationContext_CHILD,
+	// // 		dur,
+	// // 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
+	// // 	)
+	// // 	drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
+	// // }
+	// discovers[ThermalStateURL] = drstate
+	// discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
+	// discovers["/RunState"] = map[string]reflect.Value{
+	// 	"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	// }
-	discovers["/PhysState"] = drstate
-	discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
-	discovers["/RunState"] = map[string]reflect.Value{
-		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
-	}
-	discovers["/Services/vboxmanage/State"] = map[string]reflect.Value{
-		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry, nil)
+	// discovers["/Services/vboxmanage/State"] = map[string]reflect.Value{
+	// 	"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
+	// si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry, nil)
 
-	// Register it all
+	// // Register it all
+	// core.Registry.RegisterModule(module)
+	// core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	// core.Registry.RegisterDiscoverable(module, discovers)
+	// //core.Registry.RegisterMutations(module, mutations)
+
+	module := &RFD{}
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(module, discovers)
-	//core.Registry.RegisterMutations(module, mutations)
+	si := core.NewServiceInstance(
+		"rfdiscovery",
+		module.Name(),
+		module.Entry,
+		nil,
+	)
+	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
+		si.ID(): si,
+	})
+
 }
 
 func lambdaStateDiscovery(v nodeCPUTemp) (int, string, string) {
