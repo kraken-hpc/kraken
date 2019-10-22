@@ -13,6 +13,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -52,6 +53,9 @@ func NewNodeFromJSON(j []byte) *Node {
 	e := UnmarshalJSON(j, n.pb)
 	if e != nil {
 		fmt.Printf("UnmarshJSON failed: %v\n", e)
+		if jsonError, ok := e.(*json.SyntaxError); ok {
+			fmt.Printf("failled offset: %v\n", jsonError.Offset)
+		}
 		return nil
 	}
 	n.importExtensions()
