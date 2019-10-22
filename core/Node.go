@@ -55,6 +55,8 @@ func NewNodeFromJSON(j []byte) *Node {
 		fmt.Printf("UnmarshJSON failed: %v\n", e)
 		if jsonError, ok := e.(*json.SyntaxError); ok {
 			fmt.Printf("failled offset: %v\n", jsonError.Offset)
+		} else {
+			fmt.Printf("couldn't get offset\n")
 		}
 		return nil
 	}
