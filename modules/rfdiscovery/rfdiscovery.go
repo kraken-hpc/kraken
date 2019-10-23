@@ -165,10 +165,10 @@ func (rfd *RFD) Entry() {
 	// setup a ticker for polling discovery
 	dur, _ := time.ParseDuration(rfd.cfg.GetPollingInterval())
 	rfd.pollTicker = time.NewTicker(dur)
+	rfd.api.Logf(lib.LLDEBUG, "starting main loop for rfdiscovery")
 
 	// main loop
 	for {
-
 		select {
 		case <-rfd.pollTicker.C:
 			go rfd.discoverAll()
@@ -198,7 +198,7 @@ func (rfd *RFD) Stop() {
 // discoverAll is used to do polling discovery of CPU temperature
 // Note: this is probably not extremely efficient for large systems
 func (rfd *RFD) discoverAll() {
-	rfd.api.Log(lib.LLDEBUG, "polling for node CPU temperature")
+	rfd.api.Logf(lib.LLDEBUG, "polling for node CPU temperature")
 	ns, e := rfd.api.QueryReadAll()
 	if e != nil {
 		rfd.api.Logf(lib.LLERROR, "polling CPU temperature query failed: %v", e)
