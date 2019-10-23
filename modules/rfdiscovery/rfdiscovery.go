@@ -195,6 +195,7 @@ func (rfd *RFD) SetDiscoveryChan(c chan<- lib.Event) { rfd.dchan = c }
 
 // Entry is the module's executable entrypoint
 func (rfd *RFD) Entry() {
+	rfd.api.Logf(lib.LLDEBUG, "**************** DEBUG RFDISCOVERY ENTRY *******************")
 	url := lib.NodeURLJoin(rfd.api.Self().String(), ModuleStateUrl)
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
