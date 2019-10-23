@@ -164,7 +164,7 @@ func (rfd *RFD) Entry() {
 
 	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY ENTRY *******************")
 
-	url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "CPU_TEMP_State"))
+	url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "CPU_TEMP_STATE"))
 	rfd.dchan <- core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,

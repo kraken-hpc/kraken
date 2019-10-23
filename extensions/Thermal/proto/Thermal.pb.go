@@ -18,37 +18,37 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type Thermal_CPU_TEMP_State int32
+type Thermal_CPU_TEMP_STATE int32
 
 const (
-	Thermal_CPU_TEMP_NONE     Thermal_CPU_TEMP_State = 0
-	Thermal_CPU_TEMP_NORMAL   Thermal_CPU_TEMP_State = 1
-	Thermal_CPU_TEMP_HIGH     Thermal_CPU_TEMP_State = 2
-	Thermal_CPU_TEMP_CRITICAL Thermal_CPU_TEMP_State = 3
+	Thermal_CPU_TEMP_NONE     Thermal_CPU_TEMP_STATE = 0
+	Thermal_CPU_TEMP_NORMAL   Thermal_CPU_TEMP_STATE = 1
+	Thermal_CPU_TEMP_HIGH     Thermal_CPU_TEMP_STATE = 2
+	Thermal_CPU_TEMP_CRITICAL Thermal_CPU_TEMP_STATE = 3
 )
 
-var Thermal_CPU_TEMP_State_name = map[int32]string{
+var Thermal_CPU_TEMP_STATE_name = map[int32]string{
 	0: "CPU_TEMP_NONE",
 	1: "CPU_TEMP_NORMAL",
 	2: "CPU_TEMP_HIGH",
 	3: "CPU_TEMP_CRITICAL",
 }
-var Thermal_CPU_TEMP_State_value = map[string]int32{
+var Thermal_CPU_TEMP_STATE_value = map[string]int32{
 	"CPU_TEMP_NONE":     0,
 	"CPU_TEMP_NORMAL":   1,
 	"CPU_TEMP_HIGH":     2,
 	"CPU_TEMP_CRITICAL": 3,
 }
 
-func (x Thermal_CPU_TEMP_State) String() string {
-	return proto.EnumName(Thermal_CPU_TEMP_State_name, int32(x))
+func (x Thermal_CPU_TEMP_STATE) String() string {
+	return proto.EnumName(Thermal_CPU_TEMP_STATE_name, int32(x))
 }
-func (Thermal_CPU_TEMP_State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_Thermal_3ab991915d7c0d0a, []int{0, 0}
+func (Thermal_CPU_TEMP_STATE) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_Thermal_b6c6df993dd61718, []int{0, 0}
 }
 
 type Thermal struct {
-	State                Thermal_CPU_TEMP_State `protobuf:"varint,1,opt,name=state,proto3,enum=proto.Thermal_CPU_TEMP_State" json:"state,omitempty"`
+	State                Thermal_CPU_TEMP_STATE `protobuf:"varint,1,opt,name=state,proto3,enum=proto.Thermal_CPU_TEMP_STATE" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-"`
 	XXX_unrecognized     []byte                 `json:"-"`
 	XXX_sizecache        int32                  `json:"-"`
@@ -58,7 +58,7 @@ func (m *Thermal) Reset()         { *m = Thermal{} }
 func (m *Thermal) String() string { return proto.CompactTextString(m) }
 func (*Thermal) ProtoMessage()    {}
 func (*Thermal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_Thermal_3ab991915d7c0d0a, []int{0}
+	return fileDescriptor_Thermal_b6c6df993dd61718, []int{0}
 }
 func (m *Thermal) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Thermal.Unmarshal(m, b)
@@ -78,7 +78,7 @@ func (m *Thermal) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Thermal proto.InternalMessageInfo
 
-func (m *Thermal) GetState() Thermal_CPU_TEMP_State {
+func (m *Thermal) GetState() Thermal_CPU_TEMP_STATE {
 	if m != nil {
 		return m.State
 	}
@@ -87,21 +87,21 @@ func (m *Thermal) GetState() Thermal_CPU_TEMP_State {
 
 func init() {
 	proto.RegisterType((*Thermal)(nil), "proto.Thermal")
-	proto.RegisterEnum("proto.Thermal_CPU_TEMP_State", Thermal_CPU_TEMP_State_name, Thermal_CPU_TEMP_State_value)
+	proto.RegisterEnum("proto.Thermal_CPU_TEMP_STATE", Thermal_CPU_TEMP_STATE_name, Thermal_CPU_TEMP_STATE_value)
 }
 
-func init() { proto.RegisterFile("Thermal.proto", fileDescriptor_Thermal_3ab991915d7c0d0a) }
+func init() { proto.RegisterFile("Thermal.proto", fileDescriptor_Thermal_b6c6df993dd61718) }
 
-var fileDescriptor_Thermal_3ab991915d7c0d0a = []byte{
-	// 146 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_Thermal_b6c6df993dd61718 = []byte{
+	// 148 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x0d, 0xc9, 0x48, 0x2d,
 	0xca, 0x4d, 0xcc, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05, 0x53, 0x4a, 0x8b, 0x18,
 	0xb9, 0xd8, 0xa1, 0x12, 0x42, 0xc6, 0x5c, 0xac, 0xc5, 0x25, 0x89, 0x25, 0xa9, 0x12, 0x8c, 0x0a,
 	0x8c, 0x1a, 0x7c, 0x46, 0xb2, 0x10, 0x95, 0x7a, 0x30, 0x7d, 0xce, 0x01, 0xa1, 0xf1, 0x21, 0xae,
-	0xbe, 0x01, 0xf1, 0xc1, 0x20, 0x45, 0x41, 0x10, 0xb5, 0x4a, 0x49, 0x5c, 0x7c, 0xa8, 0x12, 0x42,
-	0x82, 0x5c, 0xbc, 0x70, 0x11, 0x3f, 0x7f, 0x3f, 0x57, 0x01, 0x06, 0x21, 0x61, 0x2e, 0x7e, 0x24,
-	0xa1, 0x20, 0x5f, 0x47, 0x1f, 0x01, 0x46, 0x14, 0x75, 0x1e, 0x9e, 0xee, 0x1e, 0x02, 0x4c, 0x42,
-	0xa2, 0x5c, 0x82, 0x70, 0x21, 0xe7, 0x20, 0xcf, 0x10, 0x4f, 0x67, 0x47, 0x1f, 0x01, 0xe6, 0x24,
-	0x36, 0xb0, 0x43, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0xf9, 0x0f, 0x00, 0x9c, 0xc3, 0x00,
-	0x00, 0x00,
+	0xbe, 0x01, 0xf1, 0xc1, 0x21, 0x8e, 0x21, 0xae, 0x41, 0x10, 0xb5, 0x4a, 0x49, 0x5c, 0x7c, 0xa8,
+	0x12, 0x42, 0x82, 0x5c, 0xbc, 0x70, 0x11, 0x3f, 0x7f, 0x3f, 0x57, 0x01, 0x06, 0x21, 0x61, 0x2e,
+	0x7e, 0x24, 0xa1, 0x20, 0x5f, 0x47, 0x1f, 0x01, 0x46, 0x14, 0x75, 0x1e, 0x9e, 0xee, 0x1e, 0x02,
+	0x4c, 0x42, 0xa2, 0x5c, 0x82, 0x70, 0x21, 0xe7, 0x20, 0xcf, 0x10, 0x4f, 0x67, 0x47, 0x1f, 0x01,
+	0xe6, 0x24, 0x36, 0xb0, 0x43, 0x8c, 0x01, 0x01, 0x00, 0x00, 0xff, 0xff, 0x5a, 0x5b, 0xfa, 0xb0,
+	0xc3, 0x00, 0x00, 0x00,
 }

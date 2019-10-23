@@ -11,7 +11,7 @@
  package proto;
 
 message Thermal {
-     enum CPU_TEMP_State {
+     enum CPU_TEMP_STATE {
         CPU_TEMP_NONE = 0;
         CPU_TEMP_NORMAL = 1;
         CPU_TEMP_HIGH = 2;
@@ -20,5 +20,5 @@ message Thermal {
         //TEMP_WAIT = 1; // Thermal request sent to node
         
     }
-    CPU_TEMP_State state = 1;
+    CPU_TEMP_STATE state = 1;
 }
