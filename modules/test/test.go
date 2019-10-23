@@ -126,29 +126,39 @@ func (t *Test) discoverAll() {
 		t.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
 		return
 	}
-	ipmap := make(map[string]lib.NodeID)
-	bySrv := make(map[string][]string)
+	bySrv := make(map[string][]lib.Node)
 
 	// get ip addresses for nodes
 	for _, n := range ns {
-		vs := n.GetValues([]string{t.cfg.GetIpUrl(), t.cfg.GetAggUrl()})
-		if len(vs) != 2 {
-			t.api.Logf(lib.LLERROR, "problem getting ip addresses and agg name for nodes")
+		v, e := n.GetValue(t.cfg.GetAggUrl())
+		if e != nil {
+			t.api.Logf(lib.LLERROR, "problem getting agg name for nodes")
 		}
-		ip := IPv4.BytesToIP(vs[t.cfg.GetIpUrl()].Bytes())
-		aggName := vs[t.cfg.GetAggUrl()].String()
-		ipmap[ip.String()] = n.ID()
-		bySrv[aggName] = append(bySrv[aggName], ip.String())
+		// ip := IPv4.BytesToIP(vs[t.cfg.GetIpUrl()].Bytes())
+		aggName := v.String()
+		// ipmap[ip.String()] = n
+		// idmap[name] = n.ID()
+		bySrv[aggName] = append(bySrv[aggName], n)
 	}
 
 	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", bySrv)
-	t.fakeDiscover(aggName, bySrv[aggName])
+	for aggName, nodes := range bySrv {
+		t.fakeDiscover(aggName, nodes)
+	}
+	// t.fakeDiscover(aggName, bySrv[aggName])
 	// for _, n := range ns {
 	// 	t.fakeDiscover(n)
 	// }
 }
 
-func (t *Test) fakeDiscover(aggregatorName string, nodeList []string) {
+func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
+
+	var ipList []string
+	for _, n := range nodeList {
+		v, _ := n.GetValue(t.cfg.GetIpUrl())
+		ip := IPv4.BytesToIP(v.Bytes()).String()
+		ipList = append(ipList, ip)
+	}
 
 	srvs := t.cfg.GetServers()
 	srvIP := srvs[aggregatorName].GetIp()
@@ -158,17 +168,20 @@ func (t *Test) fakeDiscover(aggregatorName string, nodeList []string) {
 	var vid thpb.Thermal_CPU_TEMP_STATE
 	vid = thpb.Thermal_CPU_TEMP_HIGH
 
-	url := lib.NodeURLJoin(node.ID().String(), ThermalStateURL)
-	v := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  t.Name(),
-			URL:     url,
-			ValueID: vid.String(),
-		},
-	)
-	t.dchan <- v
+	for _, n := range nodeList {
+		url := lib.NodeURLJoin(n.ID().String(), ThermalStateURL)
+		v := core.NewEvent(
+			lib.Event_DISCOVERY,
+			url,
+			&core.DiscoveryEvent{
+				Module:  t.Name(),
+				URL:     url,
+				ValueID: vid.String(),
+			},
+		)
+		t.dchan <- v
+	}
+
 }
 
 // Init is used to intialize an executable module prior to entrypoint
