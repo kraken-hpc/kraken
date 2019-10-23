@@ -145,7 +145,7 @@ func (t *Test) discoverAll() {
 	t.fakeDiscover(aggName, bySrv[aggName])
 	// for _, n := range ns {
 	// 	t.fakeDiscover(n)
-	}
+	// }
 }
 
 func (t *Test) fakeDiscover(aggregatorName string, nodeList []string) {
