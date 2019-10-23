@@ -37,12 +37,15 @@ import (
 )
 
 const (
-	ThermalStateURL = "type.googleapis.com/proto.Thermal/State"
+	// ThermalStateURL state URL for Thermal extension
+	ThermalStateURL string = "type.googleapis.com/proto.Thermal/State"
 
-	VBMBase string = "/vboxmanage"
-	VBMStat string = VBMBase + "/showvminfo"
+	//VBMBase         string = "/vboxmanage"
+	//VBMStat         string = VBMBase + "/showvminfo"
 	// VBMOn          string = VBMBase + "/startvm"
 	// VBMOff         string = VBMBase + "/controlvm"
+
+	// PlatformString represents the underlying node architecture
 	PlatformString string = "rpi3"
 )
 
@@ -52,7 +55,7 @@ var okNodes = 0
 var highNodes = 0
 var critNodes = 0
 
-// payload struct for collection of nodes
+// PayLoad struct for collection of nodes
 type PayLoad struct {
 	NodesAddressList []string `json:"nodesaddresslist"`
 	Timeout          int      `json:"timeout"`
@@ -63,6 +66,7 @@ type nodeCPUTemp struct {
 	CPUTemp     int
 }
 
+//CPUTempCollection is array of CPU Temperature responses
 type CPUTempCollection struct {
 	CPUTempList []nodeCPUTemp `json:"cputemplist"`
 }
@@ -76,10 +80,10 @@ var reqs = map[string]reflect.Value{
 var excs = map[string]reflect.Value{}
 
 ////////////////////
-// VBM Object /
+// RFD Object /
 //////////////////
 
-// VBM provides a power on/off interface to the vboxmanage-rest-api interface
+// RFD provides a power on/off interface to the vboxmanage-rest-api interface
 type RFD struct {
 	api lib.APIClient
 	cfg *pb.RFDiscoveryConfig
@@ -157,7 +161,10 @@ var _ lib.ModuleSelfService = (*RFD)(nil)
 
 // Entry is the module's executable entrypoint
 func (rfd *RFD) Entry() {
-	url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "State"))
+
+	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY ENTRY *******************")
+
+	url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "CPU_TEMP_State"))
 	rfd.dchan <- core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -192,7 +199,7 @@ func (rfd *RFD) Init(api lib.APIClient) {
 }
 
 // Stop should perform a graceful exit
-func (rf *RFD) Stop() {
+func (rfd *RFD) Stop() {
 	os.Exit(0)
 }
 
@@ -303,7 +310,10 @@ func (rfd *RFD) discoverAll() {
 
 // initialization
 func init() {
-	// module := &RFD{}
+
+	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY INIT *******************")
+
+	//module := &RFD{}
 	// //mutations := make(map[string]lib.StateMutation)
 	// discovers := make(map[string]map[string]reflect.Value)
 	// drstate := make(map[string]reflect.Value)
