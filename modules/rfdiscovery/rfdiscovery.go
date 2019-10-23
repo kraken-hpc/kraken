@@ -32,13 +32,16 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
+	cpb "github.com/hpc/kraken/core/proto"
+	thpb "github.com/hpc/kraken/extensions/Thermal/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/rfdiscovery/proto"
 )
 
 const (
 	// ThermalStateURL state URL for Thermal extension
-	ThermalStateURL string = "type.googleapis.com/proto.Thermal/State"
+	ThermalStateURL = "type.googleapis.com/proto.Thermal/State"
+	ModuleStateUrl  = "/Services/rfdiscovery/State"
 
 	//VBMBase string = "/vboxmanage"
 	//VBMStat string = VBMBase + "/showvminfo"
@@ -46,8 +49,13 @@ const (
 	// VBMOff         string = VBMBase + "/controlvm"
 
 	// PlatformString represents the underlying node architecture
-	PlatformString string = "rpi3"
+	// PlatformString string = "rpi3"
 )
+
+var _ lib.Module = (*RFD)(nil)
+var _ lib.ModuleWithConfig = (*RFD)(nil)
+var _ lib.ModuleWithDiscovery = (*RFD)(nil)
+var _ lib.ModuleSelfService = (*RFD)(nil)
 
 // HTTP Request time out in milliseconds
 var nodeReqTimeout = 250
@@ -72,12 +80,12 @@ type CPUTempCollection struct {
 }
 
 // modify these if you want different requires for mutations
-var reqs = map[string]reflect.Value{
-	"/Platform": reflect.ValueOf(PlatformString),
-}
+// var reqs = map[string]reflect.Value{
+// 	"/Platform": reflect.ValueOf(PlatformString),
+// }
 
 // modify this if you want excludes
-var excs = map[string]reflect.Value{}
+// var excs = map[string]reflect.Value{}
 
 ////////////////////
 // RFD Object /
@@ -85,25 +93,14 @@ var excs = map[string]reflect.Value{}
 
 // RFD provides a power on/off interface to the vboxmanage-rest-api interface
 type RFD struct {
-	api lib.APIClient
-	cfg *pb.RFDiscoveryConfig
-	//mchan      <-chan lib.Event
+	api        lib.APIClient
+	cfg        *pb.RFDiscoveryConfig
 	dchan      chan<- lib.Event
 	pollTicker *time.Ticker
 }
 
-/*
- *lib.Module
- */
-var _ lib.Module = (*RFD)(nil)
-
 // Name returns the FQDN of the module
 func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfdiscovery" }
-
-/*
- * lib.ModuleWithConfig
- */
-var _ lib.ModuleWithConfig = (*RFD)(nil)
 
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {
@@ -145,26 +142,17 @@ func (*RFD) ConfigURL() string {
 	return any.GetTypeUrl()
 }
 
-/*
- * lib.ModuleWithDiscovery
- */
-var _ lib.ModuleWithDiscovery = (*RFD)(nil)
-
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
 func (rfd *RFD) SetDiscoveryChan(c chan<- lib.Event) { rfd.dchan = c }
-
-/*
- * lib.ModuleSelfService
- */
-var _ lib.ModuleSelfService = (*RFD)(nil)
 
 // Entry is the module's executable entrypoint
 func (rfd *RFD) Entry() {
 
 	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY ENTRY *******************")
 
-	url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "State"))
+	// url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "State"))
+	url := lib.NodeURLJoin(rfd.api.Self().String(), ModuleStateUrl)
 	rfd.dchan <- core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -221,14 +209,15 @@ func (rfd *RFD) discoverAll() {
 
 	// build lists
 	for _, n := range ns {
-		vs := n.GetValues([]string{"/Platform", rfd.cfg.GetNameUrl(), rfd.cfg.GetServerUrl(), rfd.cfg.GetIpUrl()})
-		if len(vs) != 3 {
+		// vs := n.GetValues([]string{"/Platform", rfd.cfg.GetNameUrl(), rfd.cfg.GetServerUrl(), rfd.cfg.GetIpUrl()})
+		vs := n.GetValues([]string{rfd.cfg.GetServerUrl(), rfd.cfg.GetIpUrl()})
+		if len(vs) != 2 {
 			rfd.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete Aggregator info", n.ID().String())
 			continue
 		}
-		if vs["/Platform"].String() != PlatformString { // Note: this may need to be more flexible in the future
-			continue
-		}
+		// if vs["/Platform"].String() != PlatformString { // Note: this may need to be more flexible in the future
+		// 	continue
+		// }
 		//name := vs[rfd.cfg.GetNameUrl()].String()
 		srv := vs[rfd.cfg.GetServerUrl()].String()
 		ip := vs[rfd.cfg.GetIpUrl()].String()
@@ -249,61 +238,23 @@ func (rfd *RFD) discoverAll() {
 
 // initialization
 func init() {
-
-	log.Println("**************** DEBUG RFDISCOVERY INIT *******************")
-
-	//module := &RFD{}
-	// //mutations := make(map[string]lib.StateMutation)
-	// discovers := make(map[string]map[string]reflect.Value)
-	// drstate := make(map[string]reflect.Value)
-
-	// // for m := range muts {
-	// // 	dur, _ := time.ParseDuration(muts[m].timeout)
-	// // 	mutations[m] = core.NewStateMutation(
-	// // 		map[string][2]reflect.Value{
-	// // 			"/PhysState": {
-	// // 				reflect.ValueOf(muts[m].f),
-	// // 				reflect.ValueOf(muts[m].t),
-	// // 			},
-	// // 		},
-	// // 		reqs,
-	// // 		excs,
-	// // 		lib.StateMutationContext_CHILD,
-	// // 		dur,
-	// // 		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
-	// // 	)
-	// // 	drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
-	// // }
-	// discovers[ThermalStateURL] = drstate
-	// discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
-	// discovers["/RunState"] = map[string]reflect.Value{
-	// 	"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
-	// }
-	// discovers["/Services/vboxmanage/State"] = map[string]reflect.Value{
-	// 	"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
-	// si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry, nil)
-
-	// // Register it all
-	// core.Registry.RegisterModule(module)
-	// core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	// core.Registry.RegisterDiscoverable(module, discovers)
-	// //core.Registry.RegisterMutations(module, mutations)
-
 	module := &RFD{}
-	core.Registry.RegisterModule(module)
-	log.Println("**************** DEBUG RFDISCOVERY: AFTER REG MODULE *******************")
-	si := core.NewServiceInstance(
-		"rfdiscovery",
-		module.Name(),
-		module.Entry,
-		nil,
-	)
-	log.Println("**************** DEBUG RFDISCOVERY: AFTER NEW SERVICE INSTANCE *******************")
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
-		si.ID(): si,
-	})
-	log.Println("**************** DEBUG RFDISCOVERY: AFTER REG SERVICE INSTANCE *******************")
+	discovers := make(map[string]map[string]reflect.Value)
+	drfd := make(map[string]reflect.Value)
 
+	drfd[thpb.Thermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_NONE)
+	drfd[thpb.Thermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_NORMAL)
+	drfd[thpb.Thermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_HIGH)
+	drfd[thpb.Thermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_CRITICAL)
+
+	discovers["type.googleapis.com/proto.Thermal/State"] = drfd
+	discovers[ModuleStateUrl] = map[string]reflect.Value{"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
+
+	si := core.NewServiceInstance("rfdiscovery", module.Name(), module.Entry, nil)
+
+	core.Registry.RegisterModule(module)
+	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterDiscoverable(module, discovers)
 }
 
 func lambdaStateDiscovery(v nodeCPUTemp) (int, string, string) {
@@ -351,12 +302,12 @@ func GetNodeIPAddress() string {
 	return ip
 
 	/*
-		     hostname, err := os.Hostname()
-		     if err != nil {
-		     	hostname = "nil"
-			log.Fatalf("could not obtain hostname: %v", err)
-		     }
-		     return hostname
+		  hostname, err := os.Hostname()
+		  if err != nil {
+			  hostname = "nil"
+		 log.Fatalf("could not obtain hostname: %v", err)
+		  }
+		  return hostname
 	*/
 }
 
