@@ -1,5 +1,8 @@
-# kraken-build.go: describes a build for a Virtualbox testbed
+# kraken-build.go: describes a build for a BitScope Raspberry Pi cluster
 targets:
+  'linux-arm64':  # this identifies the build, will be appended to the binary name
+    os: 'linux'     # os must match a supported GOOS
+    arch: 'arm64'   # arch must match a supported GOARCH
   'linux-amd64':
     os: 'linux'
     arch: 'amd64'
@@ -10,14 +13,13 @@ targets:
 # included extensions
 extensions:
   - github.com/hpc/kraken/extensions/IPv4
-  - github.com/hpc/kraken/extensions/VBox
-  - github.com/hpc/kraken/extensions/PXE
+  - github.com/hpc/kraken/extensions/RPi3
   - github.com/hpc/kraken/extensions/Thermal
   - github.com/hpc/kraken/extensions/RFAggregatorServer
 
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/vboxmanage
-  - github.com/hpc/kraken/modules/pxe
+  - github.com/hpc/kraken/modules/rfpipower
+  - github.com/hpc/kraken/modules/pipxe
   - github.com/hpc/kraken/modules/rfdiscovery
