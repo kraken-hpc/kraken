@@ -40,8 +40,8 @@ const (
 	// ThermalStateURL state URL for Thermal extension
 	ThermalStateURL string = "type.googleapis.com/proto.Thermal/State"
 
-	//VBMBase         string = "/vboxmanage"
-	//VBMStat         string = VBMBase + "/showvminfo"
+	VBMBase string = "/vboxmanage"
+	VBMStat string = VBMBase + "/showvminfo"
 	// VBMOn          string = VBMBase + "/startvm"
 	// VBMOff         string = VBMBase + "/controlvm"
 
@@ -311,7 +311,7 @@ func (rfd *RFD) discoverAll() {
 // initialization
 func init() {
 
-	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY INIT *******************")
+	log.Println("**************** DEBUG RFDISCOVERY INIT *******************")
 
 	//module := &RFD{}
 	// //mutations := make(map[string]lib.StateMutation)
