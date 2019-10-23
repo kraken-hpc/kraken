@@ -120,6 +120,7 @@ func (t *Test) Entry() {
 // Note: this is probably not extremely efficient for large systems
 func (t *Test) discoverAll() {
 	t.api.Log(lib.LLDEBUG, "polling for node state")
+
 	ns, e := t.api.QueryReadAll()
 	if e != nil {
 		t.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
@@ -141,12 +142,18 @@ func (t *Test) discoverAll() {
 	}
 
 	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", bySrv)
-	for _, n := range ns {
-		t.fakeDiscover(n)
+	t.fakeDiscover(aggName, bySrv[aggName])
+	// for _, n := range ns {
+	// 	t.fakeDiscover(n)
 	}
 }
 
-func (t *Test) fakeDiscover(node lib.Node) {
+func (t *Test) fakeDiscover(aggregatorName string, nodeList []string) {
+
+	srvs := t.cfg.GetServers()
+	srvIP := srvs[aggregatorName].GetIp()
+
+	t.api.Logf(lib.LLDEBUG, "*****AGGREGATOR IP ADDRESS: %v", srvIP)
 
 	var vid thpb.Thermal_CPU_TEMP_STATE
 	vid = thpb.Thermal_CPU_TEMP_HIGH
