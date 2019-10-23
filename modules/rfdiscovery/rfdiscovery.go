@@ -40,8 +40,8 @@ const (
 	// ThermalStateURL state URL for Thermal extension
 	ThermalStateURL string = "type.googleapis.com/proto.Thermal/State"
 
-	VBMBase string = "/vboxmanage"
-	VBMStat string = VBMBase + "/showvminfo"
+	//VBMBase string = "/vboxmanage"
+	//VBMStat string = VBMBase + "/showvminfo"
 	// VBMOn          string = VBMBase + "/startvm"
 	// VBMOff         string = VBMBase + "/controlvm"
 
@@ -206,67 +206,6 @@ func (rfd *RFD) Stop() {
 ////////////////////////
 // Unexported methods /
 //////////////////////
-
-func (rfd *RFD) vmDiscover(srvName, name string, id lib.NodeID) {
-	srv, ok := rfd.cfg.Servers[srvName]
-	if !ok {
-		rfd.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
-		return
-	}
-	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
-
-	url := "http://" + addr + VBMStat + "/" + name
-	resp, e := http.Get(url)
-	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "error dialing api: %v", e)
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		rfd.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
-		return
-	}
-	body, e := ioutil.ReadAll(resp.Body)
-	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
-		return
-	}
-	var rs struct {
-		Name  string
-		Uuid  string
-		Ram   string
-		Vram  string
-		State string
-	}
-	e = json.Unmarshal(body, &rs)
-	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
-		return
-	}
-	var vid string
-	switch rs.State {
-	case "paused":
-		fallthrough
-	case "powered off":
-		vid = "POWER_OFF"
-	case "running":
-		vid = "POWER_ON"
-	default:
-		vid = "PHYS_UNKNOWN"
-	}
-
-	url = lib.NodeURLJoin(id.String(), ThermalStateURL)
-	v := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  rfd.Name(),
-			URL:     url,
-			ValueID: vid,
-		},
-	)
-	rfd.dchan <- v
-}
 
 // discoverAll is used to do polling discovery of CPU temperature
 // Note: this is probably not extremely efficient for large systems
