@@ -24,6 +24,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	"github.com/hpc/kraken/extensions/IPv4"
 	thpb "github.com/hpc/kraken/extensions/Thermal/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/test/proto"
@@ -131,8 +132,8 @@ func (t *Test) discoverAll() {
 		if e != nil {
 			t.api.Logf(lib.LLERROR, "problem getting ip address of nodes")
 		}
-		ip := v.String()
-		ipmap[ip] = n.ID()
+		ip := IPv4.BytesToIP(v.Bytes())
+		ipmap[ip.String()] = n.ID()
 	}
 
 	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", ipmap)
