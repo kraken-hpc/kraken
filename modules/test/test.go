@@ -55,7 +55,8 @@ func (*Test) Name() string { return "github.com/hpc/kraken/modules/test" }
 // NewConfig returns a fully initialized default config
 func (*Test) NewConfig() proto.Message {
 	r := &pb.TestConfig{
-		IpUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		IpUrl:  "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
 		Servers: map[string]*pb.TestServer{
 			"testServer": {
 				Name: "testServer",
@@ -125,18 +126,21 @@ func (t *Test) discoverAll() {
 		return
 	}
 	ipmap := make(map[string]lib.NodeID)
+	bySrv := make(map[string][]string)
 
 	// get ip addresses for nodes
 	for _, n := range ns {
-		v, e := n.GetValue(t.cfg.GetIpUrl())
-		if e != nil {
-			t.api.Logf(lib.LLERROR, "problem getting ip address of nodes")
+		vs := n.GetValues([]string{t.cfg.GetIpUrl(), t.cfg.GetAggUrl()})
+		if len(vs) != 2 {
+			t.api.Logf(lib.LLERROR, "problem getting ip addresses and agg name for nodes")
 		}
-		ip := IPv4.BytesToIP(v.Bytes())
+		ip := IPv4.BytesToIP(vs[t.cfg.GetIpUrl()].Bytes())
+		aggName := vs[t.cfg.GetAggUrl()].String()
 		ipmap[ip.String()] = n.ID()
+		bySrv[aggName] = append(bySrv[aggName], ip.String())
 	}
 
-	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", ipmap)
+	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", bySrv)
 	for _, n := range ns {
 		t.fakeDiscover(n)
 	}
