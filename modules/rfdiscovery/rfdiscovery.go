@@ -291,15 +291,18 @@ func init() {
 
 	module := &RFD{}
 	core.Registry.RegisterModule(module)
+	log.Println("**************** DEBUG RFDISCOVERY: AFTER REG MODULE *******************")
 	si := core.NewServiceInstance(
 		"rfdiscovery",
 		module.Name(),
 		module.Entry,
 		nil,
 	)
+	log.Println("**************** DEBUG RFDISCOVERY: AFTER NEW SERVICE INSTANCE *******************")
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
 		si.ID(): si,
 	})
+	log.Println("**************** DEBUG RFDISCOVERY: AFTER REG SERVICE INSTANCE *******************")
 
 }
 
