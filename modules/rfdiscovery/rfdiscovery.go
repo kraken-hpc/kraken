@@ -162,10 +162,9 @@ func (rfd *RFD) Entry() {
 			ValueID: "RUN",
 		},
 	)
-	// setup a ticker for polling discovery
-	dur, _ := time.ParseDuration(rfd.cfg.GetPollingInterval())
+
+	dur, _ := time.ParseDuration("10s")
 	rfd.pollTicker = time.NewTicker(dur)
-	rfd.api.Logf(lib.LLDEBUG, "starting main loop for rfdiscovery")
 
 	// main loop
 	for {
@@ -173,11 +172,25 @@ func (rfd *RFD) Entry() {
 		case <-rfd.pollTicker.C:
 			go rfd.discoverAll()
 			break
-			// case m := <-pp.mchan: // mutation request
-			// 	go pp.handleMutation(m)
-			// 	break
 		}
 	}
+
+	// // setup a ticker for polling discovery
+	// dur, _ := time.ParseDuration(rfd.cfg.GetPollingInterval())
+	// rfd.pollTicker = time.NewTicker(dur)
+	// rfd.api.Logf(lib.LLDEBUG, "starting main loop for rfdiscovery")
+
+	// // main loop
+	// for {
+	// 	select {
+	// 	case <-rfd.pollTicker.C:
+	// 		go rfd.discoverAll()
+	// 		break
+	// 		// case m := <-pp.mchan: // mutation request
+	// 		// 	go pp.handleMutation(m)
+	// 		// 	break
+	// 	}
+	// }
 }
 
 // Init is used to intialize an executable module prior to entrypoint
