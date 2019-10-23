@@ -1,0 +1,22 @@
+/* capmc.proto: describes the CAPMCConfig object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message TestConfig {
+    map<string, TestServer> servers = 1;
+    string ip_url = 2;
+}
+
+message TestServer {
+    string name = 1;
+    string ip    = 2;
+    int32 port = 3;
+}

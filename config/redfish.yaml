@@ -22,4 +22,4 @@ modules:
   - github.com/hpc/kraken/modules/restapi
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
-  - github.com/hpc/kraken/modules/rfdiscovery
+  - github.com/hpc/kraken/modules/test

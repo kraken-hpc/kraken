@@ -126,7 +126,7 @@ type RFPiPower struct {
 var _ lib.Module = (*RFPiPower)(nil)
 
 // Name returns the FQDN of the module
-func (*RFPiPower) Name() string { return "github.com/hpc/kraken/modules/pipower" }
+func (*RFPiPower) Name() string { return "github.com/hpc/kraken/modules/rfpipower" }
 
 /*
  * lib.ModuleWithConfig
@@ -193,7 +193,7 @@ var _ lib.ModuleSelfService = (*RFPiPower)(nil)
 func (pp *RFPiPower) Entry() {
 
 	url := lib.NodeURLJoin(pp.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "pipower"), "State"))
+		lib.URLPush(lib.URLPush("/Services", "rfpipower"), "State"))
 	pp.dchan <- core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
