@@ -138,7 +138,9 @@ func (t *Test) discoverAll() {
 		aggName := v.String()
 		// ipmap[ip.String()] = n
 		// idmap[name] = n.ID()
-		bySrv[aggName] = append(bySrv[aggName], n)
+		if aggName != "" {
+			bySrv[aggName] = append(bySrv[aggName], n)
+		}
 	}
 
 	for aggName, nodes := range bySrv {
@@ -161,6 +163,8 @@ func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
 	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", ipList)
 
 	srvs := t.cfg.GetServers()
+	t.api.Logf(lib.LLDEBUG, "*****AGGREGATOR servers: %+v", srvs)
+
 	srvIP := srvs[aggregatorName].GetIp()
 
 	t.api.Logf(lib.LLDEBUG, "*****AGGREGATOR IP ADDRESS: %v", srvIP)
