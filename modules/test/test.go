@@ -141,7 +141,6 @@ func (t *Test) discoverAll() {
 		bySrv[aggName] = append(bySrv[aggName], n)
 	}
 
-	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", bySrv)
 	for aggName, nodes := range bySrv {
 		t.fakeDiscover(aggName, nodes)
 	}
@@ -159,6 +158,7 @@ func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
 		ip := IPv4.BytesToIP(v.Bytes()).String()
 		ipList = append(ipList, ip)
 	}
+	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", ipList)
 
 	srvs := t.cfg.GetServers()
 	srvIP := srvs[aggregatorName].GetIp()
