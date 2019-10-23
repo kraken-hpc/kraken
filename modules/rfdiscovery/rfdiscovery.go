@@ -147,13 +147,56 @@ func (*RFD) ConfigURL() string {
 func (rfd *RFD) SetDiscoveryChan(c chan<- lib.Event) { rfd.dchan = c }
 
 // Entry is the module's executable entrypoint
+// func (rfd *RFD) Entry() {
+
+// 	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY ENTRY *******************")
+
+// 	// url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "State"))
+// 	url := lib.NodeURLJoin(rfd.api.Self().String(), ModuleStateUrl)
+// 	rfd.dchan <- core.NewEvent(
+// 		lib.Event_DISCOVERY,
+// 		url,
+// 		&core.DiscoveryEvent{
+// 			Module:  rfd.Name(),
+// 			URL:     url,
+// 			ValueID: "RUN",
+// 		},
+// 	)
+
+// 	dur, _ := time.ParseDuration("10s")
+// 	rfd.pollTicker = time.NewTicker(dur)
+
+// 	// main loop
+// 	for {
+// 		select {
+// 		case <-rfd.pollTicker.C:
+// 			go rfd.discoverAll()
+// 			break
+// 		}
+// 	}
+
+// 	// // setup a ticker for polling discovery
+// 	// dur, _ := time.ParseDuration(rfd.cfg.GetPollingInterval())
+// 	// rfd.pollTicker = time.NewTicker(dur)
+// 	// rfd.api.Logf(lib.LLDEBUG, "starting main loop for rfdiscovery")
+
+// 	// // main loop
+// 	// for {
+// 	// 	select {
+// 	// 	case <-rfd.pollTicker.C:
+// 	// 		go rfd.discoverAll()
+// 	// 		break
+// 	// 		// case m := <-pp.mchan: // mutation request
+// 	// 		// 	go pp.handleMutation(m)
+// 	// 		// 	break
+// 	// 	}
+// 	// }
+// }
+
+// Entry is the module's executable entrypoint
 func (rfd *RFD) Entry() {
-
-	rfd.api.Logf(lib.LLERROR, "**************** DEBUG RFDISCOVERY ENTRY *******************")
-
-	// url := lib.NodeURLJoin(rfd.api.Self().String(), lib.URLPush(lib.URLPush("/Services", "rfdiscovery"), "State"))
 	url := lib.NodeURLJoin(rfd.api.Self().String(), ModuleStateUrl)
-	rfd.dchan <- core.NewEvent(
+	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
@@ -162,7 +205,9 @@ func (rfd *RFD) Entry() {
 			ValueID: "RUN",
 		},
 	)
+	rfd.dchan <- ev
 
+	// setup a ticker for polling discovery
 	dur, _ := time.ParseDuration("10s")
 	rfd.pollTicker = time.NewTicker(dur)
 
@@ -170,27 +215,11 @@ func (rfd *RFD) Entry() {
 	for {
 		select {
 		case <-rfd.pollTicker.C:
+			rfd.api.Logf(lib.LLDEBUG, "TICK")
 			go rfd.discoverAll()
 			break
 		}
 	}
-
-	// // setup a ticker for polling discovery
-	// dur, _ := time.ParseDuration(rfd.cfg.GetPollingInterval())
-	// rfd.pollTicker = time.NewTicker(dur)
-	// rfd.api.Logf(lib.LLDEBUG, "starting main loop for rfdiscovery")
-
-	// // main loop
-	// for {
-	// 	select {
-	// 	case <-rfd.pollTicker.C:
-	// 		go rfd.discoverAll()
-	// 		break
-	// 		// case m := <-pp.mchan: // mutation request
-	// 		// 	go pp.handleMutation(m)
-	// 		// 	break
-	// 	}
-	// }
 }
 
 // Init is used to intialize an executable module prior to entrypoint
