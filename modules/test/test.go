@@ -183,11 +183,13 @@ func (t *Test) discoverAll() {
 
 func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
 
+	var idMap map[string]lib.NodeID
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(t.cfg.GetIpUrl())
 		ip := IPv4.BytesToIP(v.Bytes()).String()
 		ipList = append(ipList, ip)
+		idMap[ip] = n.ID()
 	}
 	t.api.Logf(lib.LLDEBUG, "got ip addresses: %v", ipList)
 
@@ -204,21 +206,28 @@ func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
 	//srvIP := t.cfg.Servers[srvName].GetIp()
 	//srvPort := t.cfg.Servers[srvName].GetPort()
 	aggregatorURL := fmt.Sprintf("http://%v:%v/redfish/v1/AggregationService/Chassis/%v/Thermal", srvIP, srvPort, c)
-	aggregateCPUTemp(aggregatorURL, ipList)
+	rs, _ := aggregateCPUTemp(aggregatorURL, ipList)
 
-	// ************** call to aggregator end
-	var vid thpb.Thermal_CPU_TEMP_STATE
-	vid = thpb.Thermal_CPU_TEMP_HIGH
+	//var vid thpb.Thermal_CPU_TEMP_STATE
 
-	for _, n := range nodeList {
-		url := lib.NodeURLJoin(n.ID().String(), ThermalStateURL)
+	for _, r := range rs.CPUTempList {
+		cpuTemp, vid, ip := lambdaStateDiscovery(r)
+		fmt.Printf("\n NodeAddress: %s CPU Temperature: %dC and Temperature State: %s\n", ip, cpuTemp, vid)
+		//vid := thpb.Thermal_CPU_TEMP_STATE[cpuTempState]
+		// ************** call to aggregator end
+
+		//Thermal_CPU_TEMP_HIGH
+
+		//for _, n := range nodeList {
+		url := lib.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
 		v := core.NewEvent(
 			lib.Event_DISCOVERY,
 			url,
 			&core.DiscoveryEvent{
-				Module:  t.Name(),
-				URL:     url,
-				ValueID: vid.String(),
+				Module: t.Name(),
+				URL:    url,
+				//ValueID: vid.String(),
+				ValueID: vid,
 			},
 		)
 		t.dchan <- v
@@ -260,19 +269,22 @@ func init() {
 
 func lambdaStateDiscovery(v nodeCPUTemp) (int, string, string) {
 	cpuTemp := v.CPUTemp
-	cpuTempState := "CPU_TEMP_NONE"
+	cpuTempState := thpb.Thermal_CPU_TEMP_NONE
 
 	if cpuTemp <= 3000 || cpuTemp >= 70000 {
-		cpuTempState = "CPU_TEMP_CRITICAL"
+		//cpuTempState = "CPU_TEMP_CRITICAL"
+		cpuTempState = thpb.Thermal_CPU_TEMP_CRITICAL
 		critNodes++
 	} else if cpuTemp >= 60000 && cpuTemp < 70000 {
-		cpuTempState = "CPU_TEMP_HIGH"
+		//cpuTempState = "CPU_TEMP_HIGH"
+		cpuTempState = thpb.Thermal_CPU_TEMP_HIGH
 		highNodes++
 	} else if cpuTemp > 3000 && cpuTemp < 60000 {
-		cpuTempState = "CPU_TEMP_NORMAL"
+		//cpuTempState = "CPU_TEMP_NORMAL"
+		cpuTempState = thpb.Thermal_CPU_TEMP_NORMAL
 		okNodes++
 	}
-	return cpuTemp, cpuTempState, v.HostAddress
+	return cpuTemp, cpuTempState.String(), v.HostAddress
 
 }
 
@@ -286,8 +298,8 @@ func lambdaStateDiscovery(v nodeCPUTemp) (int, string, string) {
 // 	return ns
 // }
 
-func aggregateCPUTemp(aggregatorAddress string, ns []string) {
-
+func aggregateCPUTemp(aggregatorAddress string, ns []string) (CPUTempCollection, error) {
+	var rs CPUTempCollection
 	payLoad, e := json.Marshal(PayLoad{
 		NodesAddressList: ns,
 		Timeout:          nodeReqTimeout,
@@ -298,14 +310,14 @@ func aggregateCPUTemp(aggregatorAddress string, ns []string) {
 	if err != nil {
 		//pp.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
 		fmt.Println(err)
-		return
+		return rs, err
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		//pp.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
 		fmt.Println(err)
-		return
+		return rs, err
 	}
 
 	defer resp.Body.Close()
@@ -313,71 +325,37 @@ func aggregateCPUTemp(aggregatorAddress string, ns []string) {
 	if e != nil {
 		//pp.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
 		fmt.Println(e)
-		return
+		return rs, e
 	}
-	var rs CPUTempCollection
+
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
 		//pp.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
 		fmt.Println(e)
-		return
-	}
-	for _, r := range rs.CPUTempList {
-		cpuTemp, cpuTempState, node := lambdaStateDiscovery(r)
-		fmt.Printf("\n NodeAddress: %s CPU Temperature: %dC and Temperature State: %s\n", node, cpuTemp, cpuTempState)
-		//fmt.Println(r.CPUTemp)
-		// url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
-		// vid := "POWER_OFF"
-		// if r.State == "on" {
-		// 	vid = "POWER_ON"
-		// }
-		// v := core.NewEvent(
-		// 	lib.Event_DISCOVERY,
-		// 	url,
-		// 	&core.DiscoveryEvent{
-		// 		Module:  pp.Name(),
-		// 		URL:     url,
-		// 		ValueID: vid,
-		// 	},
-		// )
-		// pp.dchan <- v
+		return rs, e
 	}
 	fmt.Println("Total responses from Pi nodes:", len(rs.CPUTempList))
-	fmt.Println("Total OK Temp. Nodes: ", okNodes, ", Total High Temp. Nodes: ", highNodes, ", Total Critical Temp. Nodes: ", critNodes)
+	return rs, nil
+
+	// for _, r := range rs.CPUTempList {
+	// 	cpuTemp, cpuTempState, node := lambdaStateDiscovery(r)
+	// 	fmt.Printf("\n NodeAddress: %s CPU Temperature: %dC and Temperature State: %s\n", node, cpuTemp, cpuTempState)
+	//fmt.Println(r.CPUTemp)
+	// url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
+	// vid := "POWER_OFF"
+	// if r.State == "on" {
+	// 	vid = "POWER_ON"
+	// }
+	// v := core.NewEvent(
+	// 	lib.Event_DISCOVERY,
+	// 	url,
+	// 	&core.DiscoveryEvent{
+	// 		Module:  pp.Name(),
+	// 		URL:     url,
+	// 		ValueID: vid,
+	// 	},
+	// )
+	// 	// pp.dchan <- v
+	// }
+
 }
-
-// func (t *Test) discoverCPUTemp(srvName string, ns []string, idmap map[string]lib.NodeID) {
-
-// 	// generate node list for testing
-// 	c := "4"
-// 	//ns := make([]string, 0)
-// 	// ns := map[string][]string{}
-
-// 	// for i := 0; i < 150; i++ {
-// 	// 	n := "10.15.244." + strconv.Itoa(i)
-// 	// 	ns[c] = append(ns[c], n)
-// 	// }
-// 	// ns := getNodesAddress(c)
-// 	// ip := GetNodeIPAddress()
-// 	// aggregators := []string{ip + ":8002"}
-// 	//var wg sync.WaitGroup
-// 	//wg.Add(len(aggregators))l
-// 	srvIP := t.cfg.Servers[srvName].GetIp()
-// 	srvPort := t.cfg.Servers[srvName].GetPort()
-// 	// aggregatorURL := "http://" + srvIp + "/redfish/v1/AggregationService/Chassis/" + c + "/Thermal"
-// 	aggregatorURL := fmt.Sprintf("http://%v:%v/redfish/v1/AggregationService/Chassis/%v/Thermal", srvIP, srvPort, c)
-
-// 	aggregateCPUTemp(aggregatorURL, ns)
-
-// 	// for _, aggregator := range aggregators {
-// 	// 	//go func() {
-// 	// 	//	defer wg.Done()
-// 	// 	// URL construction: chassis ip, port, identity
-// 	// 	// change hard coded "ip" with "srv.Ip" and "port" with strconv.Itoa(int(srv.Port))
-// 	// 	aggregatorURL := "http://" + aggregator + "/redfish/v1/AggregationService/Chassis/" + c + "/Thermal"
-// 	// 	aggregateCPUTemp(aggregatorURL, ns)
-// 	// 	//}()
-// 	// }
-// 	//wg.Wait()
-
-// }
