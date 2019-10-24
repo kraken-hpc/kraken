@@ -87,8 +87,8 @@ func (*RFD) NewConfig() proto.Message {
 		IpUrl:  "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
 		Servers: map[string]*pb.RFDiscoveryServer{
-			"testServer": {
-				Name: "testServer",
+			"rfdiscoveryServer": {
+				Name: "rfdiscoveryServer",
 				Ip:   "localhost",
 				Port: 8269,
 			},
