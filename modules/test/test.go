@@ -183,7 +183,7 @@ func (t *Test) discoverAll() {
 
 func (t *Test) fakeDiscover(aggregatorName string, nodeList []lib.Node) {
 
-	var idMap map[string]lib.NodeID
+	idMap := make(map[string]lib.NodeID)
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(t.cfg.GetIpUrl())
