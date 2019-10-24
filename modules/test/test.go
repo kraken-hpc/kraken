@@ -93,6 +93,7 @@ func (*Test) NewConfig() proto.Message {
 				Port: 8269,
 			},
 		},
+		PollingInterval: "5s",
 	}
 	return r
 }
@@ -132,7 +133,9 @@ func (t *Test) Entry() {
 	t.dchan <- ev
 
 	// setup a ticker for polling discovery
-	dur, _ := time.ParseDuration("10s")
+	dur, _ := time.ParseDuration(t.cfg.GetPollingInterval())
+	t.api.Logf(lib.LLERROR, "********* P O L L I N G  I N T E R V A L: %v", dur)
+	//dur, _ := time.ParseDuration("10s")
 	t.pollTicker = time.NewTicker(dur)
 
 	// main loop
