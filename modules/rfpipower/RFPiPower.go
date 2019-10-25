@@ -421,9 +421,9 @@ func init() {
 	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
 		"PXE_NONE": reflect.ValueOf(pipb.RPi3_NONE),
 	}
-	discovers["/Services/pipower/State"] = map[string]reflect.Value{
+	discovers["/Services/rfpipower/State"] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("pipower", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("rfpipower", module.Name(), module.Entry, nil)
 
 	// Register it all
 	core.Registry.RegisterModule(module)
