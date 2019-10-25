@@ -224,7 +224,7 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 }
 
 // GetValues gets multiple values in one call
-func (n *Node) GetValues(urls []string) (v map[string]reflect.Value) {
+func (n *Node) GetValues(urls []string) (v map[string]reflect.Value, e error) {
 	v = make(map[string]reflect.Value)
 	for _, url := range urls {
 		t, e := n.GetValue(url)

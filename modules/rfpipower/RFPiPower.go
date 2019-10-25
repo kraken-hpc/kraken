@@ -354,9 +354,12 @@ func (pp *RFPiPower) handleMutation(m lib.Event) {
 		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
-	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
+	vs, e := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
+	if e != nil {
+		pp.api.Logf(lib.LLERROR, "error getting values: %v", e)
+	}
 	if len(vs) != 2 {
 		pp.api.Logf(lib.LLERROR, "incomplete RPi3 data for power control: %v", vs)
 		return
