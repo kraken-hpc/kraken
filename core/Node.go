@@ -230,6 +230,8 @@ func (n *Node) GetValues(urls []string) (v map[string]reflect.Value, e error) {
 		t, e := n.GetValue(url)
 		if e == nil {
 			v[url] = t
+		} else {
+			e = fmt.Errorf("Error occurred while getting value %v: %v", url, e)
 		}
 	}
 	return
