@@ -102,11 +102,12 @@ func (n *Node) String() string {
 
 // JSON returns a JSON representation of the node
 func (n *Node) JSON() []byte {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	n.exportExtensions()
 	n.exportServices()
-	n.mutex.RLock()
 	b, _ := MarshalJSON(n.pb)
-	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return b
@@ -114,23 +115,25 @@ func (n *Node) JSON() []byte {
 
 // Binary returns a Binary representation of the node
 func (n *Node) Binary() []byte {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	n.exportExtensions()
 	n.exportServices()
 	// If we're doing our job, this should never error.
-	n.mutex.RLock()
 	b, _ := proto.Marshal(n.pb)
-	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return b
 }
 
 func (n *Node) Message() proto.Message {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
 	n.exportExtensions()
 	n.exportServices()
-	n.mutex.RLock()
 	m := proto.Clone(n.pb)
-	n.mutex.RUnlock()
 	n.importExtensions()
 	n.importServices()
 	return m
@@ -482,8 +485,8 @@ func newNode() *Node {
 	return n
 }
 
+// Assume n.mutex is locked
 func (n *Node) importExtensions() {
-	n.mutex.Lock()
 	for _, ext := range n.pb.Extensions {
 		// any that error just get thrown out
 		var x proto.Message
@@ -495,38 +498,35 @@ func (n *Node) importExtensions() {
 			n.exts[ext.GetTypeUrl()] = x
 		}
 	}
-	n.mutex.Unlock()
 	// now we clear the field
 	n.pb.Extensions = []*any.Any{}
 }
 
+// Assume n.mutex is locked
 func (n *Node) exportExtensions() {
-	n.mutex.Lock()
+	n.pb.Extensions = []*any.Any{}
 	for _, ext := range n.exts {
-		any, e := ptypes.MarshalAny(ext)
-		if e == nil {
+		if any, e := ptypes.MarshalAny(ext); e == nil {
 			n.pb.Extensions = append(n.pb.Extensions, any)
 		}
 	}
-	n.mutex.Unlock()
 }
 
+// Assume n.mutex is locked
 func (n *Node) importServices() {
-	n.mutex.Lock()
 	for _, srv := range n.pb.Services {
 		si := NewServiceInstanceFromMessage(srv)
 		n.srvs[si.ID()] = si
 	}
 	n.pb.Services = []*pb.ServiceInstance{}
-	n.mutex.Unlock()
 }
 
+// Assume n.mutex is locked
 func (n *Node) exportServices() {
-	n.mutex.Lock()
+	n.pb.Services = []*pb.ServiceInstance{}
 	for _, si := range n.srvs {
 		n.pb.Services = append(n.pb.Services, si.Message())
 	}
-	n.mutex.Unlock()
 }
 
 //FIXME: hack to get the default extension, need a better way:
