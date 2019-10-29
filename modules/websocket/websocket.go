@@ -88,8 +88,8 @@ func (p *Payload) String() string {
 }
 
 type Action struct {
-	Command   Command       `json:"command"`
-	EventType lib.EventType `json:"type"`
+	Command   Command `json:"command"`
+	EventType string  `json:"type"`
 	Client    *Client
 }
 
@@ -307,11 +307,11 @@ func (h *Hub) run() {
 		case action := <-h.action:
 			switch action.Command {
 			case SUBSCRIBE:
-				h.api.Logf(lib.LLDDDEBUG, "Subscribing to: %v", lib.EventTypeString[action.EventType])
-				action.Client.subscribeEvent(action.EventType)
+				h.api.Logf(lib.LLDDDEBUG, "Subscribing to: %v", action.EventType)
+				action.Client.subscribeEvent(lib.EventTypeValue[action.EventType])
 			case UNSUBSCRIBE:
-				h.api.Logf(lib.LLDDDEBUG, "Unsubscribing to: %v", lib.EventTypeString[action.EventType])
-				action.Client.unsubscribeEvent(action.EventType)
+				h.api.Logf(lib.LLDDDEBUG, "Unsubscribing from: %v", action.EventType)
+				action.Client.unsubscribeEvent(lib.EventTypeValue[action.EventType])
 			default:
 				h.api.Logf(lib.LLDDEBUG, "Hub received action that has unknown command: %v", action.Command)
 			}
