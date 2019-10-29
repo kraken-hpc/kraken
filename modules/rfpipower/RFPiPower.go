@@ -289,8 +289,8 @@ func (pp *RFPiPower) fire(c string, ns []string, cmd string, idmap map[string]st
 
 	srv, ok := pp.cfg.Servers[c]
 	if !ok {
-
 		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
+		return
 	}
 
 	payLoad, _ := json.Marshal(nodesInfo{
