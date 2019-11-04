@@ -707,8 +707,7 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		sse.query.Update(rp.Node)
 	} else {
 		// Filter node extensions based off of extension context
-		extensions := rp.Node.GetExtensionURLs()
-		for _, ext := range extensions {
+		for _, ext := range rp.Node.GetExtensionURLs() {
 			if kExt, ok := Registry.Extensions[ext]; ok {
 				if kExt.Context() == lib.ExtensionContext_PARENT {
 					rp.Node.DelExtension(ext)
