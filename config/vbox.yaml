@@ -12,7 +12,6 @@ extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/VBox
   - github.com/hpc/kraken/extensions/PXE
-  - github.com/hpc/kraken/extensions/Temp
 
 # included modules
 modules:

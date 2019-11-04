@@ -59,9 +59,6 @@
         },
         {
           "@type": "type.googleapis.com/proto.PXE"
-        },
-        {
-          "@type": "type.googleapis.com/proto.Temp"
         }
       ]
     }

@@ -496,14 +496,14 @@ type ServiceManager interface {
 type ExtensionContext uint8
 
 const (
-	ExtensionContext_PARENT ExtensionContext = 0 // Prevents child hello packets from overwriting what a parent has for that node's dsc
-	ExtensionContext_CHILD  ExtensionContext = 1 // Child defines this extension and sends it up in hello packets
+	ExtensionContext_PARENT ExtensionContext = 0 // prevents child hello packets from overwriting what a parent has for that node's dsc
+	ExtensionContext_CHILD  ExtensionContext = 1 // child defines this extension and sends it up in hello packets
 )
 
 type Extension interface {
 	New() proto.Message        // should return a proto.Message object with initialized default values
 	Name() string              // this needs to be a name unique to all extensions; used as a map key
-	Context() ExtensionContext // specifies whether the parent, child, or all can update the extension
+	Context() ExtensionContext // specifies whether the parent or child can update the extension
 }
 
 type Module interface {
