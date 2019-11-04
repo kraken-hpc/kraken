@@ -706,11 +706,15 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	if n.getParent() {
 		sse.query.Update(rp.Node)
 	} else {
-		// Filter node extensions based off of context
+		// Filter node extensions based off of extension context
 		sse.log.Log(DEBUG, "updating dsc for node")
 		extensions := rp.Node.GetExtensionURLs()
 		sse.log.Logf(DEBUG, "all extensions from hello packet: %+v", extensions)
-
+		evs := rp.Node.GetValues(extensions)
+		sse.log.Logf(DEBUG, "values for all these extensiosn: %+v", evs)
+		// for _, ext := range extensions {
+		// 	rp.Node.get
+		// }
 		sse.query.UpdateDsc(rp.Node)
 	}
 }
