@@ -711,9 +711,10 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		extensions := rp.Node.GetExtensionURLs()
 		sse.log.Logf(DEBUG, "all extensions from hello packet: %+v", extensions)
 		evs := rp.Node.GetValues(extensions)
-		for i, ev := range evs {
-			sse.log.Logf(DEBUG, "value: %+v", lib.ValueToString(ev))
-			sse.log.Logf(DEBUG, "context for that extension: %+v", Registry.Extensions[i].Context())
+		for _, ext := range extensions {
+			if kExt, ok := Registry.Extensions[ext]; ok {
+				sse.log.Logf(DEBUG, "url: %+v\nvalue: %+v\ncontext: %+v", ext, lib.ValueToString(evs[ext]), kExt.Context())
+			}
 		}
 		sse.log.Logf(DEBUG, "extensions in registry: %+v", Registry.Extensions)
 		// for _, ext := range extensions {
