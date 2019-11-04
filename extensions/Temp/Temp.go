@@ -37,7 +37,7 @@ func (r Temp) Name() string {
 }
 
 func (Temp) Context() lib.ExtensionContext {
-	return lib.ExtensionContext_PARENT
+	return lib.ExtensionContext_CHILD
 }
 
 func init() {
