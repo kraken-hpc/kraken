@@ -711,7 +711,9 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		extensions := rp.Node.GetExtensionURLs()
 		sse.log.Logf(DEBUG, "all extensions from hello packet: %+v", extensions)
 		evs := rp.Node.GetValues(extensions)
-		sse.log.Logf(DEBUG, "values for all these extensiosn: %+v", evs)
+		for _, ev := range evs {
+			sse.log.Logf(DEBUG, "value: %+v", lib.ValueToString(ev))
+		}
 		// for _, ext := range extensions {
 		// 	rp.Node.get
 		// }
