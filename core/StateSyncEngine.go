@@ -707,16 +707,19 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		sse.query.Update(rp.Node)
 	} else {
 		// Filter node extensions based off of extension context
-		sse.log.Log(DEBUG, "updating dsc for node")
+		sse.log.Logf(DEBUG, "updating dsc for node: %+v", rp.Node.JSON())
 		extensions := rp.Node.GetExtensionURLs()
 		sse.log.Logf(DEBUG, "all extensions from hello packet: %+v", extensions)
 		evs := rp.Node.GetValues(extensions)
 		for _, ext := range extensions {
 			if kExt, ok := Registry.Extensions[ext]; ok {
 				sse.log.Logf(DEBUG, "url: %+v\nvalue: %+v\ncontext: %+v", ext, lib.ValueToString(evs[ext]), kExt.Context())
+				if kExt.Context() == lib.ExtensionContext_PARENT {
+					rp.Node.DelExtension(ext)
+				}
 			}
 		}
-		sse.log.Logf(DEBUG, "extensions in registry: %+v", Registry.Extensions)
+		sse.log.Logf(DEBUG, "final Node: %+v", rp.Node.JSON())
 		// for _, ext := range extensions {
 		// 	rp.Node.get
 		// }
