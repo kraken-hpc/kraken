@@ -36,6 +36,10 @@ func (r PXE) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (PXE) Context() lib.ExtensionContext {
+	return lib.ExtensionContext_PARENT
+}
+
 func init() {
 	core.Registry.RegisterExtension(PXE{})
 }

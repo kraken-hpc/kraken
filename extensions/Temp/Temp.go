@@ -7,39 +7,39 @@
  * See LICENSE file for details.
  */
 
-package vbox
+package temp
 
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/extensions/VBox/proto"
+	pb "github.com/hpc/kraken/extensions/Temp/proto"
 	"github.com/hpc/kraken/lib"
 )
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/VBox.proto
+//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/Temp.proto
 
 /////////////////
-// VBox Object /
+// Temp Object /
 ///////////////
 
-var _ lib.Extension = VBox{}
+var _ lib.Extension = Temp{}
 
-type VBox struct{}
+type Temp struct{}
 
-func (VBox) New() proto.Message {
-	return &pb.VBox{}
+func (Temp) New() proto.Message {
+	return &pb.Temp{}
 }
 
-func (r VBox) Name() string {
+func (r Temp) Name() string {
 	a, _ := ptypes.MarshalAny(r.New())
 	return a.GetTypeUrl()
 }
 
-func (VBox) Context() lib.ExtensionContext {
+func (Temp) Context() lib.ExtensionContext {
 	return lib.ExtensionContext_PARENT
 }
 
 func init() {
-	core.Registry.RegisterExtension(VBox{})
+	core.Registry.RegisterExtension(Temp{})
 }

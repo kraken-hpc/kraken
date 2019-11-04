@@ -36,6 +36,10 @@ func (r RPi3) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (RPi3) Context() lib.ExtensionContext {
+	return lib.ExtensionContext_PARENT
+}
+
 func init() {
 	core.Registry.RegisterExtension(RPi3{})
 }

@@ -36,6 +36,10 @@ func (r Powerman) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (Powerman) Context() lib.ExtensionContext {
+	return lib.ExtensionContext_PARENT
+}
+
 func init() {
 	core.Registry.RegisterExtension(Powerman{})
 }
