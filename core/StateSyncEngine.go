@@ -707,7 +707,7 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		sse.query.Update(rp.Node)
 	} else {
 		// Filter node extensions based off of extension context
-		sse.log.Logf(DEBUG, "updating dsc for node: %+v", rp.Node.JSON())
+		sse.log.Logf(DEBUG, "updating dsc for node: %+v", string(rp.Node.JSON()))
 		extensions := rp.Node.GetExtensionURLs()
 		sse.log.Logf(DEBUG, "all extensions from hello packet: %+v", extensions)
 		evs := rp.Node.GetValues(extensions)
@@ -719,7 +719,7 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 				}
 			}
 		}
-		sse.log.Logf(DEBUG, "final Node: %+v", rp.Node.JSON())
+		sse.log.Logf(DEBUG, "final Node: %+v", string(rp.Node.JSON()))
 		// for _, ext := range extensions {
 		// 	rp.Node.get
 		// }
