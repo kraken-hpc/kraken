@@ -714,6 +714,7 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 		for _, ev := range evs {
 			sse.log.Logf(DEBUG, "value: %+v", lib.ValueToString(ev))
 		}
+		sse.log.Logf(DEBUG, "extensions in registry: %+v", Registry.Extensions)
 		// for _, ext := range extensions {
 		// 	rp.Node.get
 		// }
