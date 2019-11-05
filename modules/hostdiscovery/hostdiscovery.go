@@ -41,6 +41,8 @@ type CPUTempObj struct {
 const (
 	// HostThermalStateURL points to Thermal extension
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
+	// HostThermalTempURL points to CPU Temperature extension
+	HostThermalTempURL = "type.googleapis.com/proto.HostThermal/CPU_Temperature"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostdiscovery/State"
 )
@@ -178,7 +180,7 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	hostCPUTemp := hostDisc.GetCPUTemp()
 	//_ = hostDisc.GetCPUTemp()
 
-	vid, _ := lambdaStateDiscovery(hostCPUTemp)
+	vid, cpuTemp := lambdaStateDiscovery(hostCPUTemp)
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
 
 	v := core.NewEvent(
@@ -188,6 +190,17 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 			Module:  hostDisc.Name(),
 			URL:     url,
 			ValueID: vid,
+		},
+	)
+	hostDisc.dchan <- v
+	tempURL := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalTempURL)
+	v = core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
+			Module:  hostDisc.Name(),
+			URL:     tempURL,
+			ValueID: strconv.Itoa(cpuTemp),
 		},
 	)
 	hostDisc.dchan <- v
@@ -286,7 +299,7 @@ func (hostDisc *HostDisc) GetNodeIPAddress() string {
 }
 
 // Discovers state of the CPU based on CPU temperature thresholds
-func lambdaStateDiscovery(v CPUTempObj) (string, string) {
+func lambdaStateDiscovery(v CPUTempObj) (string, int) {
 	cpuTemp := v.CPUTemp
 	cpuTempState := thpb.HostThermal_CPU_TEMP_NONE
 
@@ -297,7 +310,7 @@ func lambdaStateDiscovery(v CPUTempObj) (string, string) {
 	} else if cpuTemp > 3000 && cpuTemp < 60000 {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_NORMAL
 	}
-	return cpuTempState.String(), v.HostAddress
+	return cpuTempState.String(), cpuTemp
 
 }
 
