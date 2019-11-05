@@ -145,7 +145,7 @@ func main() {
 				lib.Event_DISCOVERY,
 				url,
 				&core.DiscoveryEvent{
-					ID:  k.ID(),
+					ID:      k.ID(),
 					URL:     url,
 					ValueID: stateToVID[ds[d]],
 				},

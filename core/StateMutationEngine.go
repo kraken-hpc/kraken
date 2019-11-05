@@ -1338,7 +1338,6 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we need to hold the path mutex for the rest of this function
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-
 	sme.activeMutex.Lock()
 	sme.active[node] = p
 	sme.activeMutex.Unlock()
@@ -1626,6 +1625,7 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		sme.Log(ERROR, e.Error())
 		return
 	}
+	sme.log.Logf(lib.LLDEBUG, "(node: %v) sme got value from url: %v", node, val)
 
 	// this is a discovery on a completed chain
 	if m.cur >= len(m.chain) {

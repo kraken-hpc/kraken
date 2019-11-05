@@ -1,0 +1,17 @@
+/* HostFrequencyScaler.proto: describes host specific CPU frquency scaling policy objects
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>, Kevin Pelzel <kevinpelzel22@gmail.com>;J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+message HostFrequencyScaler {
+    string boottime_freq_scaler = 1; // host CPU frequency scaler at host boot time
+    string highto_low_freq_scaler = 2; // host CPU frequency scaler for reducing cpu frequency from high to low
+    
+}

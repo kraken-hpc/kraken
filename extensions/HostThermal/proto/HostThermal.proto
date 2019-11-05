@@ -13,10 +13,10 @@
 message HostThermal {
      enum hostThermalState {
         CPU_TEMP_NONE = 0;
-        CPU_TEMP_NORMAL = 1;
-        CPU_TEMP_HIGH = 2;
-        CPU_TEMP_CRITICAL = 3;
-        //TEMP_WAIT = 1; // Thermal request sent to node
+        CPU_TEMP_UNKNOWN = 1;
+        CPU_TEMP_NORMAL = 2;
+        CPU_TEMP_HIGH = 3;
+        CPU_TEMP_CRITICAL = 4;
         
     }
     hostThermalState state = 1;

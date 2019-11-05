@@ -15,12 +15,11 @@ extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/RPi3
   - github.com/hpc/kraken/extensions/HostThermal
-  - github.com/hpc/kraken/extensions/RFAggregatorServer
+  - github.com/hpc/kraken/extensions/HostFrequencyScaler
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/websocket
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
   - github.com/hpc/kraken/modules/hostthermaldiscovery
-  - github.com/hpc/kraken/modules/cpuburn
+  - github.com/hpc/kraken/modules/hostfrequencyscaling

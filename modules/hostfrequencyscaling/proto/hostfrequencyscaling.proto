@@ -1,0 +1,27 @@
+/* hostfrequencyscaling.proto: describes the hostfrequencyscaling object
+ *
+ * Authors: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+ 
+ message HostFreqScalingConfig {
+     map<string, HostFreqScalingPolicy> freq_scal_policies = 1;
+     string freq_sensor_url = 2;
+     string boottime_freq_policy = 3;
+     string highto_low_freq_policy = 4;
+    
+}
+ 
+ message HostFreqScalingPolicy {
+    string scaling_governor = 1;
+    string scaling_min_freq = 2;
+    string scaling_max_freq = 3;
+    string node_arch = 4;
+    string node_platform = 5;
+}

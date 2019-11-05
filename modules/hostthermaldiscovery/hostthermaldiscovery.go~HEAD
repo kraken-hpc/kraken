@@ -7,6 +7,8 @@
  * See LICENSE file for details.
  */
 
+//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
+
 package hostthermaldiscovery
 
 import (
