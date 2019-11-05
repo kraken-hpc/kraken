@@ -1,4 +1,4 @@
-/* HostDiscovery.go: This module performs CPU Thermal discovery of HPC nodes through in-band (through OS).
+/* HostDiscovery.go: This module performs CPU Thermal discovery of HPC nodes through in-band (through OS) mechanism.
  *
  * Author: Ghazanfar Ali, ghazanfar.ali@ttu.edu; Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -41,7 +41,7 @@ type CPUTempObj struct {
 const (
 	// HostThermalStateURL points to Thermal extension
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
-	// HostThermalTempURL points to CPU Temperature extension
+	// HostThermalTempURL points to CPU Temperature    extension
 	HostThermalTempURL = "type.googleapis.com/proto.HostThermal/CPU_Temperature"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostdiscovery/State"
@@ -51,27 +51,6 @@ var _ lib.Module = (*HostDisc)(nil)
 var _ lib.ModuleWithConfig = (*HostDisc)(nil)
 var _ lib.ModuleWithDiscovery = (*HostDisc)(nil)
 var _ lib.ModuleSelfService = (*HostDisc)(nil)
-
-// // HTTP Request time out in milliseconds
-// var nodeReqTimeout = 250
-
-// // PayLoad struct for collection of nodes
-// type PayLoad struct {
-// 	NodesAddressList []string `json:"nodesaddresslist"`
-// 	Timeout          int      `json:"timeout"`
-// }
-
-// // nodeCPUTemp is structure for node temp
-// type nodeCPUTemp struct {
-// 	TimeStamp   time.Time
-// 	HostAddress string
-// 	CPUTemp     int
-// }
-
-// //CPUTempCollection is array of CPU Temperature responses
-// type CPUTempCollection struct {
-// 	CPUTempList []nodeCPUTemp `json:"cputemplist"`
-// }
 
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
@@ -174,15 +153,14 @@ func (hostDisc *HostDisc) Entry() {
 	}
 }
 
-// discoverAll is used to do polling discovery of power state
-// Note: this is probably not extremely efficient for large systems
+// discoverHostCPUTemp is used to acquire CPU thermal locally.
 func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	hostCPUTemp := hostDisc.GetCPUTemp()
-	//_ = hostDisc.GetCPUTemp()
 
 	vid, cpuTemp := lambdaStateDiscovery(hostCPUTemp)
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
 
+	// Generating discovery event for CPU Thermal state
 	v := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -193,6 +171,8 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 		},
 	)
 	hostDisc.dchan <- v
+
+	// Generating discovery event for CPU Thermal state
 	tempURL := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalTempURL)
 	v = core.NewEvent(
 		lib.Event_DISCOVERY,
@@ -205,28 +185,6 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	)
 	hostDisc.dchan <- v
 
-	// ns, e := hostDisc.api.QueryReadAll()
-	// if e != nil {
-	// 	hostDisc.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
-	// 	return
-	// }
-	// bySrv := make(map[string][]lib.Node)
-
-	// // get ip addresses for nodes
-	// for _, n := range ns {
-	// 	v, e := n.GetValue(hostDisc.cfg.GetAggUrl())
-	// 	if e != nil {
-	// 		hostDisc.api.Logf(lib.LLERROR, "problem getting agg name for nodes")
-	// 	}
-	// 	aggName := v.String()
-	// 	if aggName != "" {
-	// 		bySrv[aggName] = append(bySrv[aggName], n)
-	// 	}
-	// }
-
-	// for aggName, nodes := range bySrv {
-	// 	hostDisc.aggCPUTempDiscover(aggName, nodes)
-	// }
 }
 
 // GetCPUTemp returns CPU temperature
@@ -313,81 +271,3 @@ func lambdaStateDiscovery(v CPUTempObj) (string, int) {
 	return cpuTempState.String(), cpuTemp
 
 }
-
-// Discover CPU temperatures of nodes associated to an aggregator
-// func (hostDisc *HostDisc) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
-
-// 	idMap := make(map[string]lib.NodeID)
-// 	var ipList []string
-// 	for _, n := range nodeList {
-// 		v, _ := n.GetValue(hostDisc.cfg.GetIpUrl())
-// 		ip := IPv4.BytesToIP(v.Bytes()).String()
-// 		ipList = append(ipList, ip)
-// 		idMap[ip] = n.ID()
-// 	}
-// 	srvs := hostDisc.cfg.GetServers()
-// 	srvIP := srvs[aggregatorName].GetIp()
-// 	srvPort := srvs[aggregatorName].GetPort()
-// 	srvName := srvs[aggregatorName].GetName()
-
-// 	aggregatorURL := fmt.Sprintf("http://%v:%v/redfish/v1/AggregationService/Chassis/%v/Thermal", srvIP, srvPort, srvName)
-// 	rs := hostDisc.aggregateCPUTemp(aggregatorURL, ipList)
-
-// 	for _, r := range rs.CPUTempList {
-// 		vid, ip := lambdaStateDiscovery(r)
-// 		url := lib.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
-// 		v := core.NewEvent(
-// 			lib.Event_DISCOVERY,
-// 			url,
-// 			&core.DiscoveryEvent{
-// 				Module:  hostDisc.Name(),
-// 				URL:     url,
-// 				ValueID: vid,
-// 			},
-// 		)
-// 		hostDisc.dchan <- v
-// 	}
-
-// }
-
-// // REST API call to relevant aggregator
-// func (hostDisc *HostDisc) aggregateCPUTemp(aggregatorAddress string, ns []string) CPUTempCollection {
-
-// 	var rs CPUTempCollection
-
-// 	payLoad, e := json.Marshal(PayLoad{
-// 		NodesAddressList: ns,
-// 		Timeout:          nodeReqTimeout,
-// 	})
-// 	if e != nil {
-// 		hostDisc.api.Logf(lib.LLERROR, "http PUT API request failed: %v", e)
-// 		return rs
-// 	}
-
-// 	httpClient := &http.Client{}
-// 	req, err := http.NewRequest(http.MethodPut, aggregatorAddress, bytes.NewBuffer(payLoad))
-// 	if err != nil {
-// 		hostDisc.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
-// 		return rs
-// 	}
-
-// 	resp, err := httpClient.Do(req)
-// 	if err != nil {
-// 		hostDisc.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
-// 		return rs
-// 	}
-
-// 	defer resp.Body.Close()
-// 	body, e := ioutil.ReadAll(resp.Body)
-// 	if e != nil {
-// 		hostDisc.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
-// 		return rs
-// 	}
-
-// 	e = json.Unmarshal(body, &rs)
-// 	if e != nil {
-// 		hostDisc.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
-// 		return rs
-// 	}
-// 	return rs
-// }
