@@ -175,24 +175,23 @@ func (hostDisc *HostDisc) Entry() {
 // discoverAll is used to do polling discovery of power state
 // Note: this is probably not extremely efficient for large systems
 func (hostDisc *HostDisc) discoverHostCPUTemp() {
-	//hostCPUTemp := hostDisc.GetCPUTemp()
-	_ = hostDisc.GetCPUTemp()
-	/*
-		vid, _ := lambdaStateDiscovery(hostCPUTemp)
-		url := "node self URL ?"
-		//vid, ip := lambdaStateDiscovery(hostCPUTemp)
-		//url := lib.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
-		v := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url,
-			&core.DiscoveryEvent{
-				Module:  hostDisc.Name(),
-				URL:     url,
-				ValueID: vid,
-			},
-		)
-		hostDisc.dchan <- v
-	*/
+	hostCPUTemp := hostDisc.GetCPUTemp()
+	//_ = hostDisc.GetCPUTemp()
+
+	vid, _ := lambdaStateDiscovery(hostCPUTemp)
+	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
+
+	v := core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
+			Module:  hostDisc.Name(),
+			URL:     url,
+			ValueID: vid,
+		},
+	)
+	hostDisc.dchan <- v
+
 	// ns, e := hostDisc.api.QueryReadAll()
 	// if e != nil {
 	// 	hostDisc.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
