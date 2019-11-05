@@ -486,6 +486,7 @@ func (sse *StateSyncEngine) binaryToNode(buf []byte) (rp recvPacket, e error) {
 
 func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 	node, e := sse.query.Read(n.getID())
+	sse.Logf(lib.LLDEBUG, "sending hello packet: \n%v", string(node.JSON()))
 	if e != nil {
 		sse.Logf(ERROR, "couldn't get node info, deleting from pool: %v", e)
 		sse.delNeighbor(n.getID())
@@ -691,7 +692,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 		}
 	}
 	if n.due() {
-		sse.Logf(DEBUG, "sending hello: %s", n.getID().String())
+		sse.Logf(DEBUG, "sending hello to: %s", n.getID().String())
 		sse.send(n)
 		sse.sortQueue()
 	}
@@ -726,7 +727,7 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	}
 	n.recv()
 	sse.sortQueue()
-	sse.Logf(DEBUG, "got a hello from: %s", rp.From.String())
+	sse.Logf(DEBUG, "got a hello from: %s\n%v", rp.From.String(), string(rp.Node.JSON()))
 	if n.getParent() {
 		_, e := sse.query.Update(rp.Node)
 		if e != nil {

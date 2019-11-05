@@ -525,7 +525,7 @@ func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []l
 		utype = StateChange_CFG_UPDATE
 	}
 	for _, v := range diff {
-		evs = append(evs, NewStateChangeEvent(utype, v, reflect.Value{}))
+		evs = append(evs, NewStateChangeEvent(utype, v, reflect.ValueOf(r)))
 	}
 	go n.Emit(evs)
 	return

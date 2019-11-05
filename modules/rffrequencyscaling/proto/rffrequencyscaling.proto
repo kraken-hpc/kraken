@@ -1,0 +1,33 @@
+/* rffrequencyscaling.proto: describes the rfcpufreqscaling object
+ *
+ * Authors: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+ 
+ message RFCPUFreqScalingConfig {
+     map<string, RFCPUFreqScalingServer> servers = 1;
+     map<string, RFCPUFreqScalingPolicy> freq_scal_policies = 2;
+     string ip_url = 3;
+     string agg_url = 4;
+     string check_interval = 5;
+}
+ 
+ message RFCPUFreqScalingServer {
+     string name = 1;
+     string ip    = 2;
+     string port = 3;
+     int32 req_timeout = 4;
+ }
+ message RFCPUFreqScalingPolicy {
+    string scaling_governor = 1;
+    int32 scaling_min_freq = 2;
+    int32 scaling_max_freq = 3;
+    string node_arch = 4;
+    string node_platform = 5;
+}

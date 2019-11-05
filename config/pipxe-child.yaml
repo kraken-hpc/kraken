@@ -1,8 +1,8 @@
 # kraken-build.go: describes a build for a BitScope Raspberry Pi cluster
 targets:
-  'linux-arm64': # this identifies the build, will be appended to the binary name
-    os: 'linux' # os must match a supported GOOS
-    arch: 'arm64' # arch must match a supported GOARCH
+  'linux-arm64':  # this identifies the build, will be appended to the binary name
+    os: 'linux'     # os must match a supported GOOS
+    arch: 'arm64'   # arch must match a supported GOARCH
   'linux-amd64':
     os: 'linux'
     arch: 'amd64'
@@ -15,15 +15,9 @@ extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/RPi3
   - github.com/hpc/kraken/extensions/HostThermal
-  - github.com/hpc/kraken/extensions/HostFrequencyScaler
-  - github.com/hpc/kraken/extensions/RFAggregatorServer
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/websocket
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
   - github.com/hpc/kraken/modules/hostthermaldiscovery
-  - github.com/hpc/kraken/modules/hostfrequencyscaling
-  - github.com/hpc/kraken/modules/cpuburn
-  - github.com/hpc/kraken/modules/rfpiemulator
