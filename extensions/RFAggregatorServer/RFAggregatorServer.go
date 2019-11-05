@@ -1,6 +1,6 @@
 /* RFAggregatorServer.go: extension adds fields related to aggregator servers.
  *
- * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>, J. Lowell Wofford <lowell@lanl.gov>
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>, Kevin Pelzel <kevinpelzel22@gmail.com>;J. Lowell Wofford <lowell@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Triad National Security, LLC
