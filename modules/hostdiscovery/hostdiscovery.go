@@ -14,7 +14,6 @@ package hostdiscovery
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"reflect"
@@ -174,11 +173,8 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 
 // GetCPUTemp returns CPU temperature
 func (hostDisc *HostDisc) GetCPUTemp() CPUTempObj {
-	// count++
-	// println(count)
+
 	hostIP := hostDisc.GetNodeIPAddress()
-	//fmt.Println(hostIP)
-	//log.Println("\nCPU temperature\n")
 
 	// Its a mockup CPU temperature
 	cpuTempObj := CPUTempObj{}
@@ -186,18 +182,9 @@ func (hostDisc *HostDisc) GetCPUTemp() CPUTempObj {
 	cpuTempObj.HostAddress = hostIP
 
 	tempVal := hostDisc.ReadCPUTemp()
-	//tempVal := randTemperature(1, 100)
 	cpuTempObj.CPUTemp = tempVal
 
-	// jsonObj, err := json.Marshal(cpuTempObj)
-
-	log.Println(fmt.Sprintf("Node CPU Thermal: %v", cpuTempObj))
-
-	// if err != nil {
-	// 	log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
-	// }
 	return cpuTempObj
-
 }
 
 // ReadCPUTemp function reads the CPU thermal sensor
