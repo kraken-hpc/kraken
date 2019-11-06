@@ -20,5 +20,4 @@ message HostThermal {
         
     }
     CPU_TEMP_STATE state = 1;
-    uint32 CPU_Temperature = 2;
 }
