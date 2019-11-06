@@ -41,8 +41,6 @@ type CPUTempObj struct {
 const (
 	// HostThermalStateURL points to Thermal extension
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
-	// HostThermalTempURL points to CPU Temperature    extension
-	HostThermalTempURL = "type.googleapis.com/proto.HostThermal/CPU_Temperature"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostdiscovery/State"
 )
@@ -94,14 +92,14 @@ func (hostDisc *HostDisc) SetDiscoveryChan(c chan<- lib.Event) { hostDisc.dchan 
 func init() {
 	module := &HostDisc{}
 	discovers := make(map[string]map[string]reflect.Value)
-	dtest := make(map[string]reflect.Value)
+	hostThermDisc := make(map[string]reflect.Value)
 
-	dtest[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
-	dtest[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
-	dtest[thpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_HIGH)
-	dtest[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
+	hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
+	hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
+	hostThermDisc[thpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_HIGH)
+	hostThermDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
 
-	discovers[HostThermalStateURL] = dtest
+	discovers[HostThermalStateURL] = hostThermDisc
 
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
@@ -157,7 +155,7 @@ func (hostDisc *HostDisc) Entry() {
 func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	hostCPUTemp := hostDisc.GetCPUTemp()
 
-	vid, cpuTemp := lambdaStateDiscovery(hostCPUTemp)
+	vid, _ := lambdaStateDiscovery(hostCPUTemp)
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
 
 	// Generating discovery event for CPU Thermal state
@@ -168,19 +166,6 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 			Module:  hostDisc.Name(),
 			URL:     url,
 			ValueID: vid,
-		},
-	)
-	hostDisc.dchan <- v
-
-	// Generating discovery event for CPU Thermal state
-	tempURL := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalTempURL)
-	v = core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  hostDisc.Name(),
-			URL:     tempURL,
-			ValueID: strconv.Itoa(cpuTemp),
 		},
 	)
 	hostDisc.dchan <- v
