@@ -1,8 +1,8 @@
 # kraken-build.go: describes a build for a BitScope Raspberry Pi cluster
 targets:
-  'linux-arm64':  # this identifies the build, will be appended to the binary name
-    os: 'linux'     # os must match a supported GOOS
-    arch: 'arm64'   # arch must match a supported GOARCH
+  'linux-arm64': # this identifies the build, will be appended to the binary name
+    os: 'linux' # os must match a supported GOOS
+    arch: 'arm64' # arch must match a supported GOARCH
   'linux-amd64':
     os: 'linux'
     arch: 'amd64'
