@@ -14,9 +14,10 @@ targets:
 extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/RPi3
-
+  - github.com/hpc/kraken/extensions/HostThermal
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
+  - github.com/hpc/kraken/modules/hostdiscovery
