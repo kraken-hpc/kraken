@@ -479,8 +479,9 @@ func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, 
 			utype = StateChange_CFG_UPDATE
 		}
 		for _, u := range diff {
-			// TODO: should this include the updated value(s)?
-			evs = append(evs, NewStateChangeEvent(utype, u, reflect.Value{}))
+			_, url := lib.NodeURLSplit(u)
+			v, _ := r.GetValue(url)
+			evs = append(evs, NewStateChangeEvent(utype, u, reflect.ValueOf(v)))
 		}
 		go n.Emit(evs)
 	}
