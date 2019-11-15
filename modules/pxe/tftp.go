@@ -42,7 +42,10 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		px.api.Logf(lib.LLDEBUG, "got TFTP request from unknown node: %s", ip.String())
 		return fmt.Errorf("got TFTP request from unknown node: %s", ip.String())
 	}
-	vs := n.GetValues([]string{"/Arch", "/Platform"})
+	vs, e := n.GetValues([]string{"/Arch", "/Platform"})
+	if e != nil {
+		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	lfile := filepath.Join(
 		px.cfg.TftpDir,
 		vs["/Arch"].String(),

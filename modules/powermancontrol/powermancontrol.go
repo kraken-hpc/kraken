@@ -226,7 +226,10 @@ func (p *PMC) handleMutation(m lib.Event) {
 
 	me := m.Data().(*core.MutationEvent)
 	// extract the mutating node's name and server
-	vs := me.NodeCfg.GetValues([]string{p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
+	vs, e := me.NodeCfg.GetValues([]string{p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
+	if e != nil {
+		p.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	if len(vs) != 2 {
 		p.api.Logf(lib.LLERROR, "could not get NID and/or PMC Server for node: %s", me.NodeCfg.ID().String())
 		return
@@ -433,7 +436,10 @@ func (p *PMC) discoverAll() {
 
 	// build lists
 	for _, n := range ns {
-		vs := n.GetValues([]string{"/Platform", p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
+		vs, e := n.GetValues([]string{"/Platform", p.cfg.GetNameUrl(), p.cfg.GetServerUrl()})
+		if e != nil {
+			p.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		}
 		if len(vs) != 3 {
 			p.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete PMC info", n.ID().String())
 			continue

@@ -232,7 +232,10 @@ func (pp *VBM) handleMutation(m lib.Event) {
 	}
 	me := m.Data().(*core.MutationEvent)
 	// extract the mutating node's name and server
-	vs := me.NodeCfg.GetValues([]string{pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
+	vs, e := me.NodeCfg.GetValues([]string{pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
+	if e != nil {
+		pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	if len(vs) != 2 {
 		pp.api.Logf(lib.LLERROR, "could not get NID and/or VBM Server for node: %s", me.NodeCfg.ID().String())
 		return
@@ -467,7 +470,10 @@ func (pp *VBM) discoverAll() {
 
 	// build lists
 	for _, n := range ns {
-		vs := n.GetValues([]string{"/Platform", pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
+		vs, e := n.GetValues([]string{"/Platform", pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
+		if e != nil {
+			pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		}
 		if len(vs) != 3 {
 			pp.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete VBM info", n.ID().String())
 			continue

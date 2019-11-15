@@ -136,7 +136,10 @@ func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-ex
 		px.mutex.Unlock()
 		return
 	}
-	v := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	v, e := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	if e != nil {
+		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
 	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	delete(px.nodeBy[queryByIP], ip.String())
@@ -146,7 +149,10 @@ func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-ex
 
 // NodeCreate creates a new node in our node pool -- concurrency safe
 func (px *PXE) NodeCreate(n lib.Node) (e error) {
-	v := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	v, e := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
+	if e != nil {
+		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	if len(v) != 2 {
 		return fmt.Errorf("missing ip or mac for node, aborting")
 	}
