@@ -322,7 +322,10 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 	}
 	me := m.Data().(*core.MutationEvent)
 	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
-	vs := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
+	vs, e := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
+	if e != nil {
+		pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+	}
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
 	if len(vs) != 2 {
