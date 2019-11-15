@@ -68,7 +68,7 @@ func (s *State) Read(nid lib.NodeID) (r lib.Node, e error) {
 // Update updates a node in the state
 func (s *State) Update(n lib.Node) (r lib.Node, e error) {
 	idstr := n.ID().String()
-	if v, ok := s.nodes[idstr]; ok {
+	if _, ok := s.nodes[idstr]; ok {
 		s.nodes[idstr] = n.(*Node)
 		r = s.nodes[idstr]
 		return
