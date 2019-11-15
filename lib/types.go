@@ -73,7 +73,7 @@ type Node interface {
 	// Primary way to access data
 	GetValue(url string) (v reflect.Value, e error)
 	SetValue(url string, value reflect.Value) (v reflect.Value, e error)
-	GetValues(urls []string) (v map[string]reflect.Value)
+	GetValues(urls []string) (v map[string]reflect.Value, e error)
 	SetValues(valmap map[string]reflect.Value) (v map[string]reflect.Value)
 
 	GetExtensionURLs() []string
