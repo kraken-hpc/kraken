@@ -222,7 +222,6 @@ func (sme *StateMutationEngine) DumpGraph() {
 }
 
 // Converts a slice of sme mutation nodes to a protobuf MutationNodeList
-// LOCKS: graphMutex (R)
 func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 	for _, mn := range nodes {
 		var nmn pb.MutationNode
@@ -230,25 +229,22 @@ func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r p
 		label := ""
 
 		var reqKeys []string
-		for k := range mn.spec.Requires() {
+		var reqs = mn.spec.Requires()
+		for k := range reqs {
 			reqKeys = append(reqKeys, k)
 		}
 		sort.Strings(reqKeys)
 
 		for _, reqKey := range reqKeys {
-			sme.graphMutex.RLock()
-			if _, ok := sme.mutators[reqKey]; ok {
-				// Add value to label name
-				trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
-				trimKey = strings.Replace(trimKey, "/", "", -1)
-				if label == "" {
-					label = fmt.Sprintf("%s: %s", trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
-				} else {
-					label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(mn.spec.Requires()[reqKey]))
-				}
+			reqValue := reqs[reqKey]
+			// Add req to label
+			trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
+			trimKey = strings.Replace(trimKey, "/", "", -1)
+			if label == "" {
+				label = fmt.Sprintf("%s: %s", trimKey, lib.ValueToString(reqValue))
+			} else {
+				label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(reqValue))
 			}
-			sme.graphMutex.RUnlock()
-
 		}
 
 		nmn.Label = label
