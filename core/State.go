@@ -70,7 +70,7 @@ func (s *State) Update(n lib.Node) (r lib.Node, e error) {
 	idstr := n.ID().String()
 	if v, ok := s.nodes[idstr]; ok {
 		s.nodes[idstr] = n.(*Node)
-		r = v
+		r = s.nodes[idstr]
 		return
 	}
 	e = fmt.Errorf("could not update node, id does not exist: %s", idstr)
