@@ -13,8 +13,9 @@
  message PMCConfig {
      map<string, PMCServer> servers = 1;
      string polling_interval = 2;
-     string name_url = 3;
-     string server_url = 4;
+     string fire_interval = 3;
+     string name_url = 4;
+     string server_url = 5;
  }
  
  message PMCServer {

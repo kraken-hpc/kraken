@@ -24,6 +24,8 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -36,14 +38,19 @@ import (
 
 const (
 	PMCBase        string = "/powermancontrol"
-	PMCOn          string = PMCBase + "/poweron"
-	PMCOff         string = PMCBase + "/poweroff"
-	PMCStat        string = PMCBase + "/nodeStatus"
+	PMCSet         string = PMCBase + "/setstate"
+	PMCStat        string = PMCBase + "/nodestatus"
 	PlatformString string = "powerman"
 )
 
+// pmcNode is the response from powermanapi
+type pmcNode struct {
+	Name  string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+}
+
 // ppmut helps us succinctly define our mutations
-type ppmut struct {
+type pmcmut struct {
 	f       cpb.Node_PhysState // from
 	t       cpb.Node_PhysState // to
 	timeout string             // timeout
@@ -52,28 +59,29 @@ type ppmut struct {
 
 // our mutation definitions
 // also we discover anything we can migrate to
-var muts = map[string]ppmut{
-	"UKtoOFF": ppmut{
+// Timeouts are a minute because powerman really can take that long to execute a command
+var muts = map[string]pmcmut{
+	"UKtoOFF": pmcmut{
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_POWER_OFF,
-		timeout: "10s",
+		timeout: "1m",
 	},
-	"OFFtoON": ppmut{
+	"OFFtoON": pmcmut{
 		f:       cpb.Node_POWER_OFF,
 		t:       cpb.Node_POWER_ON,
-		timeout: "10s",
+		timeout: "1m",
 	},
-	"ONtoOFF": ppmut{
+	"ONtoOFF": pmcmut{
 		f:       cpb.Node_POWER_ON,
 		t:       cpb.Node_POWER_OFF,
-		timeout: "10s",
+		timeout: "1m",
 	},
-	"HANGtoOFF": ppmut{
+	"HANGtoOFF": pmcmut{
 		f:       cpb.Node_PHYS_HANG,
 		t:       cpb.Node_POWER_OFF,
-		timeout: "20s", // we need a longer timeout, because we let it sit cold for a few seconds
+		timeout: "1m", // we need a longer timeout, because we let it sit cold for a few seconds
 	},
-	"UKtoHANG": ppmut{ // this one should never happen; just making sure HANG gets connected in our graph
+	"UKtoHANG": pmcmut{ // this one should never happen; just making sure HANG gets connected in our graph
 		f:       cpb.Node_PHYS_UNKNOWN,
 		t:       cpb.Node_PHYS_HANG,
 		timeout: "0s",
@@ -99,6 +107,9 @@ type PMC struct {
 	mchan      <-chan lib.Event
 	dchan      chan<- lib.Event
 	pollTicker *time.Ticker
+	fireTicker *time.Ticker
+	queueMutex *sync.Mutex
+	queue      map[string][3]string // map[<nodename>][<srvName>, <mutation>, <nodeidstr>]
 }
 
 /*
@@ -127,6 +138,7 @@ func (p *PMC) NewConfig() proto.Message {
 			},
 		},
 		PollingInterval: "30s",
+		FireInterval:    "2s",
 	}
 	return r
 }
@@ -139,6 +151,12 @@ func (p *PMC) UpdateConfig(cfg proto.Message) (e error) {
 			p.pollTicker.Stop()
 			dur, _ := time.ParseDuration(p.cfg.GetPollingInterval())
 			p.pollTicker = time.NewTicker(dur)
+			return
+		}
+		if p.fireTicker != nil {
+			p.fireTicker.Stop()
+			dur, _ := time.ParseDuration(p.cfg.GetFireInterval())
+			p.fireTicker = time.NewTicker(dur)
 			return
 		}
 	}
@@ -185,13 +203,19 @@ func (p *PMC) Entry() {
 		},
 	)
 
-	dur, _ := time.ParseDuration(p.cfg.GetPollingInterval())
-	p.pollTicker = time.NewTicker(dur)
+	pDur, _ := time.ParseDuration(p.cfg.GetPollingInterval())
+	p.pollTicker = time.NewTicker(pDur)
+
+	fDur, _ := time.ParseDuration(p.cfg.GetFireInterval())
+	p.fireTicker = time.NewTicker(fDur)
 
 	for {
 		select {
 		case <-p.pollTicker.C:
 			go p.discoverAll()
+			break
+		case <-p.fireTicker.C: // send any commands that are waiting in queue
+			go p.fireChanges()
 			break
 		case m := <-p.mchan:
 			if m.Type() != lib.Event_STATE_MUTATION {
@@ -208,6 +232,8 @@ func (p *PMC) Entry() {
 func (p *PMC) Init(api lib.APIClient) {
 	p.api = api
 	p.cfg = p.NewConfig().(*pb.PMCConfig)
+	p.queueMutex = &sync.Mutex{}
+	p.queue = make(map[string][3]string)
 }
 
 // Stop should perform a graceful exit
@@ -242,16 +268,15 @@ func (p *PMC) handleMutation(m lib.Event) {
 	case core.MutationEvent_MUTATE:
 		switch me.Mutation[1] {
 		case "UKtoOFF": // this just forces discover
-			go p.nodeDiscover(srv, name, me.NodeCfg.ID())
-			break
+			fallthrough
 		case "OFFtoON":
-			go p.powerOn(srv, name, me.NodeCfg.ID())
-			break
+			fallthrough
 		case "ONtoOFF":
-			go p.powerOff(srv, name, me.NodeCfg.ID())
-			break
+			fallthrough
 		case "HANGtoOFF":
-			go p.powerOff(srv, name, me.NodeCfg.ID())
+			p.queueMutex.Lock()
+			p.queue[name] = [3]string{srv, me.Mutation[1], me.NodeCfg.ID().String()}
+			p.queueMutex.Unlock()
 			break
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
@@ -260,168 +285,93 @@ func (p *PMC) handleMutation(m lib.Event) {
 		}
 		break
 	case core.MutationEvent_INTERRUPT:
-		// nothing to do
+		p.queueMutex.Lock()
+		delete(p.queue, name)
+		p.queueMutex.Unlock()
 		break
 	}
 }
 
-func (p *PMC) nodeDiscover(srvName, name string, id lib.NodeID) {
-	srv, ok := p.cfg.Servers[srvName]
-	if !ok {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
-		return
-	}
-	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
+func (p *PMC) fireChanges() {
+	on := map[string][]string{}
+	off := map[string][]string{}
+	stat := map[string][]string{}
 
-	url := "http://" + addr + PMCStat + "/" + name
-	resp, e := http.Get(url)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
-		return
-	}
-	body, e := ioutil.ReadAll(resp.Body)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
-		return
-	}
+	idmap := map[string]string{}
 
-	var rs struct {
-		State string
-	}
-
-	e = json.Unmarshal(body, &rs)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
-		return
-	}
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
-	v := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  p.Name(),
-			URL:     url,
-			ValueID: rs.State,
-		},
-	)
-	p.dchan <- v
-}
-
-func (p *PMC) powerOn(srvName, name string, id lib.NodeID) {
-	srv, ok := p.cfg.Servers[srvName]
-	if !ok {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
-		return
-	}
-	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
-
-	url := "http://" + addr + PMCOn + "/" + name
-	resp, e := http.Get(url)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
-		return
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
-		return
-	}
-	body, e := ioutil.ReadAll(resp.Body)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
-		return
-	}
-
-	var rs struct {
-		Shell struct {
-			Command   string
-			Directory string
-			ExitCode  int
-			Output    string
+	p.queueMutex.Lock()
+	for k, v := range p.queue {
+		nodeName := k
+		srvName := v[0]
+		mutation := v[1]
+		nodeID := v[2]
+		idmap[nodeName] = nodeID
+		switch mutation {
+		case "UKtoOFF": // this actually just forces discovery
+			stat[srvName] = append(stat[srvName], nodeName)
+			break
+		case "OFFtoON":
+			on[srvName] = append(on[srvName], nodeName)
+			break
+		case "ONtoOFF":
+			fallthrough
+		case "HANGtoOFF":
+			off[srvName] = append(off[srvName], nodeName)
+			break
 		}
 	}
-
-	e = json.Unmarshal(body, &rs)
-	if e != nil {
-		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
-		return
+	p.queue = make(map[string][3]string)
+	p.queueMutex.Unlock()
+	for srv, nodes := range on {
+		p.fire(srv, nodes, PMCSet+"/poweron", idmap)
 	}
-	if rs.Shell.ExitCode != 0 {
-		p.api.Logf(lib.LLERROR, "powermancontrol command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
-		return
+	for srv, nodes := range off {
+		p.fire(srv, nodes, PMCSet+"/poweroff", idmap)
 	}
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
-	v := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  p.Name(),
-			URL:     url,
-			ValueID: "POWER_ON",
-		},
-	)
-	p.dchan <- v
+	for srv, nodes := range stat {
+		p.fire(srv, nodes, PMCStat, idmap)
+	}
 }
 
-func (p *PMC) powerOff(srvName, name string, id lib.NodeID) {
-	srv, ok := p.cfg.Servers[srvName]
+func (p *PMC) fire(pSrv string, nodes []string, cmd string, idmap map[string]string) {
+	srv, ok := p.cfg.Servers[pSrv]
 	if !ok {
-		p.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		p.api.Logf(lib.LLERROR, "cannot control power for unknown server: %s", pSrv)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
-
-	url := "http://" + addr + PMCOff + "/" + name
+	nlist := strings.Join(nodes, ",")
+	url := "http://" + addr + cmd + "/" + nlist
 	resp, e := http.Get(url)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error dialing api: %v", e)
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		p.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
-		return
-	}
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
 		return
 	}
-
-	var rs struct {
-		Shell struct {
-			Command   string
-			Directory string
-			ExitCode  int
-			Output    string
-		}
-	}
-
+	rs := []pmcNode{}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
 		p.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
-	if rs.Shell.ExitCode != 0 {
-		p.api.Logf(lib.LLERROR, "powermancontrol command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
-		return
+	for _, r := range rs {
+		url := lib.NodeURLJoin(idmap[r.Name], "/PhysState")
+		v := core.NewEvent(
+			lib.Event_DISCOVERY,
+			url,
+			&core.DiscoveryEvent{
+				Module:  p.Name(),
+				URL:     url,
+				ValueID: r.State,
+			},
+		)
+		p.dchan <- v
 	}
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
-	v := core.NewEvent(
-		lib.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			Module:  p.Name(),
-			URL:     url,
-			ValueID: "POWER_OFF",
-		},
-	)
-	p.dchan <- v
 }
 
 func (p *PMC) discoverAll() {
@@ -431,8 +381,6 @@ func (p *PMC) discoverAll() {
 		p.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
 		return
 	}
-	idmap := make(map[string]lib.NodeID)
-	bySrv := make(map[string][]string)
 
 	// build lists
 	for _, n := range ns {
@@ -449,16 +397,10 @@ func (p *PMC) discoverAll() {
 		}
 		name := vs[p.cfg.GetNameUrl()].String()
 		srv := vs[p.cfg.GetServerUrl()].String()
-		idmap[name] = n.ID()
-		bySrv[srv] = append(bySrv[srv], name)
+		// This will force a discover
+		p.queue[name] = [3]string{srv, "UKtoOFF", n.ID().String()}
 	}
 
-	// This is not very efficient, but we assume that this module won't be used for huge amounts of nodes
-	for s, ns := range bySrv {
-		for _, n := range ns {
-			p.nodeDiscover(s, n, idmap[n])
-		}
-	}
 }
 
 // initialization
