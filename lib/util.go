@@ -286,6 +286,8 @@ func ValueToString(v reflect.Value) (s string) {
 		s = fmt.Sprintf("%d", v.Int())
 	case reflect.Bool:
 		s = fmt.Sprintf("%t", v.Bool())
+	case reflect.Struct:
+		s = fmt.Sprintf("%v", v.Interface())
 	default:
 		s = fmt.Sprintf("%v", v)
 	}
