@@ -390,6 +390,6 @@ func init() {
 	// Register it all
 	core.Registry.RegisterModule(module)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(module, discovers)
-	core.Registry.RegisterMutations(module, mutations)
+	core.Registry.RegisterDiscoverable(si, discovers)
+	core.Registry.RegisterMutations(si, mutations)
 }

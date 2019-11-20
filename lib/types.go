@@ -428,6 +428,8 @@ type Logger interface {
  */
 
 type StateSyncEngine interface {
+	Module
+	ServiceInstance
 	EventEmitter
 }
 
