@@ -73,6 +73,12 @@ func (i IPv4OverEthernet) Name() string {
 	return a.GetTypeUrl()
 }
 
+// Returns an empty map because none of these values are immutable
+func (i IPv4OverEthernet) EnumerableValues() map[string][]string {
+	var emptyMap map[string][]string
+	return emptyMap
+}
+
 // BytesToIP converts 4 bytes to a net.IP
 // returns nil if you don't give it 4 bytes
 func BytesToIP(b []byte) (ip net.IP) {

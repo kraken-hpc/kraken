@@ -124,3 +124,10 @@ func (r *KrakenRegistry) Resolve(url string) (proto.Message, error) {
 	}
 	return nil, fmt.Errorf("proto not found")
 }
+
+func (r *KrakenRegistry) GetExtEnums(url string) (map[string][]string, error) {
+	if e, ok := r.Extensions[url]; ok {
+		return e.EnumerableValues(), nil
+	}
+	return nil, fmt.Errorf("proto not found")
+}

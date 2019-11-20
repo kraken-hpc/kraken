@@ -36,6 +36,13 @@ func (r RPi3) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (r RPi3) EnumerableValues() map[string][]string {
+	enumMap := make(map[string][]string)
+	enumMap["pxe"] = []string{pb.RPi3_NONE.String(), pb.RPi3_WAIT.String(), pb.RPi3_INIT.String(), pb.RPi3_COMP.String()}
+	enumMap["model"] = []string{pb.RPi3_ThreeB.String(), pb.RPi3_ThreeBPlus.String()}
+	return enumMap
+}
+
 func init() {
 	core.Registry.RegisterExtension(RPi3{})
 }
