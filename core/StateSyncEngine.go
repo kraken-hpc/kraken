@@ -223,7 +223,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		lib.Event_DISCOVERY,
 		url,
 		&DiscoveryEvent{
-			Module:  "sse",
+			ID:      "sse",
 			URL:     url,
 			ValueID: "SYNC",
 		},
@@ -647,7 +647,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 				lib.Event_DISCOVERY,
 				url,
 				&DiscoveryEvent{
-					Module:  "sse",
+					ID:      "sse",
 					URL:     url,
 					ValueID: "ERROR",
 				},
@@ -672,7 +672,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 					lib.Event_DISCOVERY,
 					url,
 					&DiscoveryEvent{
-						Module:  "sse",
+						ID:      "sse",
 						URL:     url,
 						ValueID: "ERROR",
 					},

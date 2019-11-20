@@ -194,7 +194,6 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 				lib.Event_DISCOVERY,
 				url1,
 				&core.DiscoveryEvent{
-					Module:  px.Name(),
 					URL:     url1,
 					ValueID: "INIT",
 				},
@@ -204,7 +203,6 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 				lib.Event_DISCOVERY,
 				url1,
 				&core.DiscoveryEvent{
-					Module:  px.Name(),
 					URL:     url2,
 					ValueID: "NODE_INIT",
 				},

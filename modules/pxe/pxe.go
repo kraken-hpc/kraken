@@ -247,7 +247,6 @@ func (px *PXE) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  px.Name(),
 			URL:     url,
 			ValueID: "RUN",
 		},
@@ -300,7 +299,6 @@ func (px *PXE) handleMutation(m *core.MutationEvent) {
 				lib.Event_DISCOVERY,
 				url,
 				&core.DiscoveryEvent{
-					Module:  px.Name(),
 					URL:     url,
 					ValueID: "WAIT",
 				},
@@ -316,7 +314,6 @@ func (px *PXE) handleMutation(m *core.MutationEvent) {
 				lib.Event_DISCOVERY,
 				url,
 				&core.DiscoveryEvent{
-					Module:  px.Name(),
 					URL:     url,
 					ValueID: "COMP",
 				},

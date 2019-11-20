@@ -188,7 +188,6 @@ func (pp *VBM) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  pp.Name(),
 			URL:     url,
 			ValueID: "RUN",
 		},
@@ -320,7 +319,6 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  pp.Name(),
 			URL:     url,
 			ValueID: vid,
 		},
@@ -384,7 +382,6 @@ func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  pp.Name(),
 			URL:     url,
 			ValueID: "POWER_ON",
 		},
@@ -448,7 +445,6 @@ func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  pp.Name(),
 			URL:     url,
 			ValueID: "POWER_OFF",
 		},

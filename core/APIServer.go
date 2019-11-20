@@ -34,13 +34,13 @@ import (
 // This should probably live elsewhere
 // This maps directly to a pb.DiscoveryControl
 type DiscoveryEvent struct {
-	Module  string
+	ID      string // ID of a service instance
 	URL     string // fully qualified, with node
 	ValueID string
 }
 
 func (de *DiscoveryEvent) String() string {
-	return fmt.Sprintf("(%s) %s == %s", de.Module, de.URL, de.ValueID)
+	return fmt.Sprintf("(%s) %s == %s", de.ID, de.URL, de.ValueID)
 }
 
 //////////////////////
@@ -362,7 +362,7 @@ func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {
 			break
 		}
 		dv := &DiscoveryEvent{
-			Module:  dc.GetModule(),
+			ID:      dc.GetId(),
 			URL:     dc.GetUrl(),
 			ValueID: dc.GetValueId(),
 		}
