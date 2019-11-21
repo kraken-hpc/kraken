@@ -57,7 +57,7 @@ message MutationControl {
 }
 
 message DiscoveryEvent {
-    string module = 1;
+    string id = 1;
     string url = 2;
     string value_id = 3;
 }

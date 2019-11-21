@@ -13,10 +13,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/ptypes/any"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
@@ -68,6 +70,7 @@ type ContextRPC struct {
 /////////////////
 
 var _ lib.Module = (*Kraken)(nil)
+var _ lib.ServiceInstance = (*Kraken)(nil)
 
 // A Kraken is a mythical giant squid-beast.
 type Kraken struct {
@@ -115,6 +118,24 @@ func NewKraken(id string, ip string, parents []string, llevel lib.LoggerLevel) *
 	k.log.SetLoggerLevel(llevel)
 	return k
 }
+
+// implement lib.ServiceInstance
+// this is a little artificial, but it's a special case
+// many of these would never becaused because it's not actually managed
+// by ServiceManager
+func (sse *Kraken) ID() string                   { return sse.Name() }
+func (*Kraken) State() lib.ServiceState          { return lib.Service_RUN }
+func (*Kraken) SetState(lib.ServiceState)        {}
+func (*Kraken) GetState() lib.ServiceState       { return lib.Service_RUN }
+func (sse *Kraken) Module() string               { return sse.Name() }
+func (*Kraken) Exe() string                      { return "" }
+func (*Kraken) Cmd() *exec.Cmd                   { return nil }
+func (*Kraken) SetCmd(*exec.Cmd)                 {}
+func (*Kraken) Stop()                            {}
+func (*Kraken) SetCtl(chan<- lib.ServiceControl) {}
+func (*Kraken) Config() *any.Any                 { return nil }
+func (*Kraken) UpdateConfig(*any.Any)            {}
+func (*Kraken) Message() *pb.ServiceInstance     { return nil }
 
 func (k *Kraken) Name() string { return "kraken" }
 

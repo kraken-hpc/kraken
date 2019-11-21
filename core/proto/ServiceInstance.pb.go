@@ -48,7 +48,7 @@ func (x ServiceInstance_ServiceState) String() string {
 	return proto.EnumName(ServiceInstance_ServiceState_name, int32(x))
 }
 func (ServiceInstance_ServiceState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_ServiceInstance_6e8ce0a08d2daa01, []int{0, 0}
+	return fileDescriptor_ServiceInstance_876f327f391189d8, []int{0, 0}
 }
 
 type ServiceInstance struct {
@@ -66,7 +66,7 @@ func (m *ServiceInstance) Reset()         { *m = ServiceInstance{} }
 func (m *ServiceInstance) String() string { return proto.CompactTextString(m) }
 func (*ServiceInstance) ProtoMessage()    {}
 func (*ServiceInstance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_ServiceInstance_6e8ce0a08d2daa01, []int{0}
+	return fileDescriptor_ServiceInstance_876f327f391189d8, []int{0}
 }
 func (m *ServiceInstance) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ServiceInstance.Unmarshal(m, b)
@@ -127,10 +127,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("ServiceInstance.proto", fileDescriptor_ServiceInstance_6e8ce0a08d2daa01)
+	proto.RegisterFile("ServiceInstance.proto", fileDescriptor_ServiceInstance_876f327f391189d8)
 }
 
-var fileDescriptor_ServiceInstance_6e8ce0a08d2daa01 = []byte{
+var fileDescriptor_ServiceInstance_876f327f391189d8 = []byte{
 	// 256 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x8e, 0xcf, 0x4b, 0xfb, 0x40,
 	0x14, 0xc4, 0xbf, 0xf9, 0xd9, 0xe6, 0xf5, 0x4b, 0x0d, 0x0f, 0x95, 0x55, 0x2f, 0xa1, 0x5e, 0x72,

@@ -110,7 +110,6 @@ func (d *Dummy) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  d.Name(),
 			URL:     url,
 			ValueID: "Run",
 		},
@@ -143,7 +142,6 @@ func (d *Dummy) Entry() {
 					lib.Event_DISCOVERY,
 					url,
 					&core.DiscoveryEvent{
-						Module:  d.Name(),
 						URL:     url,
 						ValueID: val[1],
 					},
@@ -225,6 +223,8 @@ func init() {
 	module := &Dummy{}
 	core.Registry.RegisterModule(module)
 	pdsc := make(map[string]reflect.Value)
+	si := core.NewServiceInstance("dummy", module.Name(), module.Entry, nil)
+
 	for k, v := range muts {
 		pdsc[v[1]] = reflect.ValueOf(v[1])
 		mutations[k] = core.NewStateMutation(
@@ -241,15 +241,14 @@ func init() {
 			map[string]reflect.Value{},
 			lib.StateMutationContext_SELF,
 			time.Second*time.Duration(timeouts[k]),
-			[3]string{module.Name(), "/Platform", "fail"},
+			[3]string{si.ID(), "/Platform", "fail"},
 		)
 	}
 	discovers["/Platform"] = pdsc
 	discovers["/Services/dummy/State"] = map[string]reflect.Value{
 		"Run": reflect.ValueOf(corepb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("dummy", module.Name(), module.Entry, nil)
 	si.SetState(lib.Service_STOP)
-	core.Registry.RegisterDiscoverable(module, discovers)
-	core.Registry.RegisterMutations(module, mutations)
+	core.Registry.RegisterDiscoverable(si, discovers)
+	core.Registry.RegisterMutations(si, mutations)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
 }

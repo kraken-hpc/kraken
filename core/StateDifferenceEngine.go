@@ -428,10 +428,10 @@ func (n *StateDifferenceEngine) Run() {
 		case v := <-dchan: // got a discovery
 			data := v.Data().(*DiscoveryEvent)
 			_, url := lib.NodeURLSplit(data.URL)
-			val, ok := Registry.Discoverables[data.Module][url][data.ValueID]
-			n.Logf(DDEBUG, "processing discovery: mod (%s) url (%s) id(%s)", data.Module, url, data.ValueID)
+			val, ok := Registry.Discoverables[data.ID][url][data.ValueID]
+			n.Logf(DDEBUG, "processing discovery: si (%s) url (%s) id(%s)", data.ID, url, data.ValueID)
 			if !ok {
-				n.Logf(ERROR, "got discover, but can't lookup value: mod (%s) url (%s) id(%s)", data.Module, url, data.ValueID)
+				n.Logf(ERROR, "got discover, but can't lookup value: si (%s) url (%s) id(%s)", data.ID, url, data.ValueID)
 				break
 			}
 			vset, e := n.SetValueDsc(data.URL, val)

@@ -142,7 +142,7 @@ func main() {
 				lib.Event_DISCOVERY,
 				url,
 				&core.DiscoveryEvent{
-					Module:  k.Name(),
+					ID:  k.ID(),
 					URL:     url,
 					ValueID: stateToVID[ds[d]],
 				},

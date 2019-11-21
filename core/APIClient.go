@@ -266,7 +266,7 @@ func (a *APIClient) MutationInit(id string, module string) (c <-chan lib.Event, 
 	return
 }
 
-func (a *APIClient) DiscoveryInit() (c chan<- lib.Event, e error) {
+func (a *APIClient) DiscoveryInit(id string) (c chan<- lib.Event, e error) {
 	var stream pb.API_DiscoveryInitClient
 	var conn *grpc.ClientConn
 	if conn, e = grpc.Dial(a.sock, grpc.WithInsecure()); e != nil {
@@ -286,7 +286,7 @@ func (a *APIClient) DiscoveryInit() (c chan<- lib.Event, e error) {
 				continue
 			}
 			d := &pb.DiscoveryEvent{
-				Module:  de.Module,
+				Id:      id,
 				Url:     de.URL,
 				ValueId: de.ValueID,
 			}

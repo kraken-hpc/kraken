@@ -197,7 +197,6 @@ func (p *PMC) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  p.Name(),
 			URL:     url,
 			ValueID: "RUN",
 		},
@@ -365,7 +364,6 @@ func (p *PMC) fire(pSrv string, nodes []string, cmd string, idmap map[string]str
 			lib.Event_DISCOVERY,
 			url,
 			&core.DiscoveryEvent{
-				Module:  p.Name(),
 				URL:     url,
 				ValueID: r.State,
 			},
@@ -409,6 +407,7 @@ func init() {
 	mutations := make(map[string]lib.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	drstate := make(map[string]reflect.Value)
+	si := core.NewServiceInstance("powermancontrol", module.Name(), module.Entry, nil)
 
 	for m := range muts {
 		dur, _ := time.ParseDuration(muts[m].timeout)
@@ -423,7 +422,7 @@ func init() {
 			excs,
 			lib.StateMutationContext_CHILD,
 			dur,
-			[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
+			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 		)
 		drstate[cpb.Node_PhysState_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
@@ -433,11 +432,10 @@ func init() {
 	}
 	discovers["/Services/powermancontrol/State"] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("powermancontrol", module.Name(), module.Entry, nil)
 
 	// Register it all
 	core.Registry.RegisterModule(module)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(module, discovers)
-	core.Registry.RegisterMutations(module, mutations)
+	core.Registry.RegisterDiscoverable(si, discovers)
+	core.Registry.RegisterMutations(si, mutations)
 }

@@ -191,7 +191,7 @@ func ModuleExecute(id, module, sock string) {
 	// Setup discovery stream if we need it
 	md, ok := m.(lib.ModuleWithDiscovery)
 	if ok {
-		cc, e := api.DiscoveryInit()
+		cc, e := api.DiscoveryInit(id)
 		if e != nil {
 			api.Logf(ERROR, "failed to create discovery stream: %v\n", e)
 			return

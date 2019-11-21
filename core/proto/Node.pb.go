@@ -45,7 +45,7 @@ func (x Node_RunState) String() string {
 	return proto.EnumName(Node_RunState_name, int32(x))
 }
 func (Node_RunState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_Node_25ed6fd7f5f828e1, []int{1, 0}
+	return fileDescriptor_Node_ec64d56b18b9ea83, []int{1, 0}
 }
 
 type Node_PhysState int32
@@ -80,7 +80,7 @@ func (x Node_PhysState) String() string {
 	return proto.EnumName(Node_PhysState_name, int32(x))
 }
 func (Node_PhysState) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_Node_25ed6fd7f5f828e1, []int{1, 1}
+	return fileDescriptor_Node_ec64d56b18b9ea83, []int{1, 1}
 }
 
 type NodeList struct {
@@ -94,7 +94,7 @@ func (m *NodeList) Reset()         { *m = NodeList{} }
 func (m *NodeList) String() string { return proto.CompactTextString(m) }
 func (*NodeList) ProtoMessage()    {}
 func (*NodeList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_Node_25ed6fd7f5f828e1, []int{0}
+	return fileDescriptor_Node_ec64d56b18b9ea83, []int{0}
 }
 func (m *NodeList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_NodeList.Unmarshal(m, b)
@@ -140,7 +140,7 @@ func (m *Node) Reset()         { *m = Node{} }
 func (m *Node) String() string { return proto.CompactTextString(m) }
 func (*Node) ProtoMessage()    {}
 func (*Node) Descriptor() ([]byte, []int) {
-	return fileDescriptor_Node_25ed6fd7f5f828e1, []int{1}
+	return fileDescriptor_Node_ec64d56b18b9ea83, []int{1}
 }
 func (m *Node) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Node.Unmarshal(m, b)
@@ -230,9 +230,9 @@ func init() {
 	proto.RegisterEnum("proto.Node_PhysState", Node_PhysState_name, Node_PhysState_value)
 }
 
-func init() { proto.RegisterFile("Node.proto", fileDescriptor_Node_25ed6fd7f5f828e1) }
+func init() { proto.RegisterFile("Node.proto", fileDescriptor_Node_ec64d56b18b9ea83) }
 
-var fileDescriptor_Node_25ed6fd7f5f828e1 = []byte{
+var fileDescriptor_Node_ec64d56b18b9ea83 = []byte{
 	// 415 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x5c, 0x51, 0xcf, 0x6f, 0xd3, 0x30,
 	0x18, 0x25, 0xbf, 0x36, 0xe7, 0x6b, 0xc9, 0xac, 0x4f, 0x1b, 0x32, 0xe5, 0x52, 0x7a, 0xea, 0x85,

@@ -303,8 +303,8 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 
 		// Combine discoverables and mutators into discoverables map
 		discoverables := make(map[string]string)
-		for _, moduleMap := range Registry.Discoverables {
-			for key := range moduleMap {
+		for _, siMap := range Registry.Discoverables {
+			for key := range siMap {
 				discoverables[key] = ""
 			}
 		}
@@ -930,7 +930,7 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 		lib.Event_DISCOVERY,
 		url,
 		&DiscoveryEvent{
-			Module:  d[0],
+			ID:      d[0],
 			URL:     url,
 			ValueID: d[2],
 		},
@@ -1240,8 +1240,8 @@ func (sme *StateMutationEngine) emitMutation(cfg lib.Node, dsc lib.Node, sm lib.
 func (sme *StateMutationEngine) dscNodeMeld(cfg, dsc lib.Node) (r lib.Node) {
 	r = NewNodeFromMessage(cfg.Message().(*pb.Node)) // might be a bit expensive
 	diff := []string{}
-	for m := range Registry.Discoverables {
-		for u := range Registry.Discoverables[m] {
+	for si := range Registry.Discoverables {
+		for u := range Registry.Discoverables[si] {
 			diff = append(diff, u)
 		}
 	}

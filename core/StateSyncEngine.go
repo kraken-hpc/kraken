@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net"
+	"os/exec"
 	"reflect"
 	"strconv"
 	"sync"
@@ -27,6 +28,7 @@ import (
 	"github.com/hpc/kraken/lib"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -165,6 +167,24 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 	return sse
 }
 
+// implement lib.ServiceInstance
+// this is a little artificial, but it's a special case
+// many of these would never becaused because it's not actually managed
+// by ServiceManager
+func (sse *StateSyncEngine) ID() string                   { return sse.Name() }
+func (*StateSyncEngine) State() lib.ServiceState          { return lib.Service_RUN }
+func (*StateSyncEngine) SetState(lib.ServiceState)        {}
+func (*StateSyncEngine) GetState() lib.ServiceState       { return lib.Service_RUN }
+func (sse *StateSyncEngine) Module() string               { return sse.Name() }
+func (*StateSyncEngine) Exe() string                      { return "" }
+func (*StateSyncEngine) Cmd() *exec.Cmd                   { return nil }
+func (*StateSyncEngine) SetCmd(*exec.Cmd)                 {}
+func (*StateSyncEngine) Stop()                            {}
+func (*StateSyncEngine) SetCtl(chan<- lib.ServiceControl) {}
+func (*StateSyncEngine) Config() *any.Any                 { return nil }
+func (*StateSyncEngine) UpdateConfig(*any.Any)            {}
+func (*StateSyncEngine) Message() *pb.ServiceInstance     { return nil }
+
 // implement lib.Module
 func (*StateSyncEngine) Name() string { return "sse" }
 
@@ -203,7 +223,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		lib.Event_DISCOVERY,
 		url,
 		&DiscoveryEvent{
-			Module:  "sse",
+			ID:      "sse",
 			URL:     url,
 			ValueID: "SYNC",
 		},
@@ -627,7 +647,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 				lib.Event_DISCOVERY,
 				url,
 				&DiscoveryEvent{
-					Module:  "sse",
+					ID:      "sse",
 					URL:     url,
 					ValueID: "ERROR",
 				},
@@ -652,7 +672,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 					lib.Event_DISCOVERY,
 					url,
 					&DiscoveryEvent{
-						Module:  "sse",
+						ID:      "sse",
 						URL:     url,
 						ValueID: "ERROR",
 					},
