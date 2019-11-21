@@ -335,6 +335,7 @@ func init() {
 	mutations := make(map[string]lib.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	dpxe := make(map[string]reflect.Value)
+	si := core.NewServiceInstance("pxe", module.Name(), module.Entry, nil)
 
 	for m := range muts {
 		dur, _ := time.ParseDuration(muts[m].timeout)
@@ -349,7 +350,7 @@ func init() {
 			excs,
 			lib.StateMutationContext_CHILD,
 			dur,
-			[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
+			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 		)
 		dpxe[pxepb.PXE_State_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
@@ -369,7 +370,7 @@ func init() {
 		excs,
 		lib.StateMutationContext_CHILD,
 		time.Second*90,
-		[3]string{module.Name(), "/PhysState", "PHYS_HANG"},
+		[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 	)
 	dpxe["INIT"] = reflect.ValueOf(pxepb.PXE_INIT)
 
@@ -382,7 +383,6 @@ func init() {
 	}
 	discovers[SrvStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
-	si := core.NewServiceInstance("pxe", module.Name(), module.Entry, nil)
 
 	// Register it all
 	core.Registry.RegisterModule(module)
