@@ -36,7 +36,7 @@ func (r Powerman) Name() string {
 	return a.GetTypeUrl()
 }
 
-// Returns an empty map because none of these values are immutable
+// Returns an empty map because none of these values are enumerable
 func (r Powerman) EnumerableValues() map[string][]string {
 	var emptyMap map[string][]string
 	return emptyMap
