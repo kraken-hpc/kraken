@@ -316,12 +316,12 @@ func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_Servic
 // MutationInit handles establishing the mutation stream
 // This just caputures (filtered) mutation events and sends them over the stream
 func (s *APIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.API_MutationInitServer) (e error) {
-	module := sir.GetModule()
+	sid := sir.GetId()
 	echan := make(chan lib.Event)
-	list := NewEventListener("MutationFor:"+module, lib.Event_STATE_MUTATION,
+	list := NewEventListener("MutationFor:"+sid, lib.Event_STATE_MUTATION,
 		func(e lib.Event) bool {
 			d := e.Data().(*MutationEvent)
-			if d.Mutation[0] == module {
+			if d.Mutation[0] == sid {
 				return true
 			}
 			return false
