@@ -3,7 +3,7 @@
 #
 
 # Pull base image.
-FROM centos:latest
+FROM centos:7
 
 LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
   org.label-schema.docker.cmd="docker run -dt -p 6818:6818 -p 3222:22 -h c1 --name layer1 --security-opt='seccomp=unconfined' kraken/layer1-supervisord:1.0" \
@@ -12,20 +12,17 @@ LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
   maintainer="Paul Peltz Jr."
 
 # Variables to use for Slurm install
-#ARG SLURM_VERSION=slurm-18.08.3
-#ARG SLURM_DOWNLOAD_MD5=a52d8f857ec5a58b2605b643a99dcc71
-#ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-18.08.3.tar.bz2
-ARG SLURM_VERSION=slurm-17.11.9-2
-ARG SLURM_DOWNLOAD_MD5=f0d0fbc730a0f7d1fa02081e2c514ee8
-ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-17.11.9-2.tar.bz2
+ARG SLURM_VERSION=slurm-18.08.8
+ARG SLURM_DOWNLOAD_MD5=ca5d91345415363a60b40c26631c7572
+ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-18.08.8.tar.bz2
 ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl git"
 ARG SLURMD_PACKAGES="slurm-${SLURM_VERSION}* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
 
 # Variables for services to run persistently within the layer1
 ARG RUNNING_SERVICE_PACKAGES="munge openssh-server ntp rsyslog"
 
-# Use local repos
-COPY repos/*.repo /etc/yum.repos.d/
+# Use local repos, uncomment to use local repositories
+#COPY repos/*.repo /etc/yum.repos.d/
 
 # Install epel-release and tools for Supervisor.
 RUN set -e \
