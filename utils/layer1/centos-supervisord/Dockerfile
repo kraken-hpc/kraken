@@ -21,8 +21,8 @@ ARG SLURMD_PACKAGES="slurm-${SLURM_VERSION}* slurm-slurmd-* slurm-example-config
 # Variables for services to run persistently within the layer1
 ARG RUNNING_SERVICE_PACKAGES="munge openssh-server ntp rsyslog"
 
-# Use local repos
-COPY repos/*.repo /etc/yum.repos.d/
+# Use local repos, uncomment to use local repositories
+#COPY repos/*.repo /etc/yum.repos.d/
 
 # Install epel-release and tools for Supervisor.
 RUN set -e \
