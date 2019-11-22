@@ -12,17 +12,17 @@ LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
   maintainer="Paul Peltz Jr."
 
 # Variables to use for Slurm install
-ARG SLURM_VERSION=slurm-18.08.8
+ARG SLURM_VERSION=18.08.8
 ARG SLURM_DOWNLOAD_MD5=ca5d91345415363a60b40c26631c7572
-ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-18.08.8.tar.bz2
+ARG SLURM_DOWNLOAD_URL=https://download.schedmd.com/slurm/slurm-${SLURM_VERSION}.tar.bz2
 ARG SLURM_BUILD_PACKAGES="rpm-build bzip2 gcc make munge-devel wget readline-devel openssl openssl-devel pam-devel perl-ExtUtils-MakeMaker mysql-devel perl git"
 ARG SLURMD_PACKAGES="slurm-${SLURM_VERSION}* slurm-slurmd-* slurm-example-configs* slurm-pam_slurm*"
 
 # Variables for services to run persistently within the layer1
 ARG RUNNING_SERVICE_PACKAGES="munge openssh-server ntp rsyslog"
 
-# Use local repos, uncomment to use local repositories
-#COPY repos/*.repo /etc/yum.repos.d/
+# Use local repos
+COPY repos/*.repo /etc/yum.repos.d/
 
 # Install epel-release and tools for Supervisor.
 RUN set -e \
@@ -45,8 +45,8 @@ RUN set -e \
   && mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS} \
   && cd /root/rpmbuild/SOURCES/ \
   && wget "$SLURM_DOWNLOAD_URL" \
-  && echo "$SLURM_DOWNLOAD_MD5" "$SLURM_VERSION".tar.bz2 | md5sum -c - \
-  && rpmbuild -tb "$SLURM_VERSION".tar.bz2 \
+  && echo "$SLURM_DOWNLOAD_MD5" "slurm-$SLURM_VERSION".tar.bz2 | md5sum -c - \
+  && rpmbuild -tb "slurm-$SLURM_VERSION".tar.bz2 \
   && cd /root/rpmbuild/RPMS/x86_64 \
   && yum -y install $SLURMD_PACKAGES \
   && cd \
