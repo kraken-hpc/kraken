@@ -34,7 +34,7 @@ import (
 type CPUTempObj struct {
 	TimeStamp   time.Time
 	HostAddress string
-	CPUTemp     int
+	CPUTemp     int32
 }
 
 const (
@@ -51,7 +51,7 @@ var _ lib.ModuleSelfService = (*HostDisc)(nil)
 
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
-	prevTemp   int
+	prevTemp   int32
 	api        lib.APIClient
 	cfg        *pb.HostDiscoveryConfig
 	dchan      chan<- lib.Event
@@ -66,6 +66,16 @@ func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
 		PollingInterval: "10s",
 		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
+		ThermalThresholds: map[string]*pb.HostThermalThresholds{
+			"CPUThermalThresholds": {
+				LowerNormal:   3000,
+				UpperNormal:   60000,
+				LowerHigh:     60000,
+				UpperHigh:     70000,
+				LowerCritical: 3000,
+				UpperCritical: 70000,
+			},
+		},
 	}
 	return r
 }
@@ -161,7 +171,7 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	}
 	hostDisc.prevTemp = hostCPUTemp.CPUTemp
 
-	vid, _ := lambdaStateDiscovery(hostCPUTemp)
+	vid, _ := hostDisc.lambdaStateDiscovery(hostCPUTemp)
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
 
 	// Generating discovery event for CPU Thermal state
@@ -195,7 +205,7 @@ func (hostDisc *HostDisc) GetCPUTemp() CPUTempObj {
 }
 
 // ReadCPUTemp function reads the CPU thermal sensor
-func (hostDisc *HostDisc) ReadCPUTemp() int {
+func (hostDisc *HostDisc) ReadCPUTemp() int32 {
 
 	tempSensorPath := hostDisc.cfg.GetTempSensorPath()
 
@@ -211,7 +221,7 @@ func (hostDisc *HostDisc) ReadCPUTemp() int {
 		return 0
 	}
 
-	return cpuTempInt
+	return int32(cpuTempInt)
 }
 
 // GetNodeIPAddress returns non local loop IP address
@@ -237,15 +247,25 @@ func (hostDisc *HostDisc) GetNodeIPAddress() string {
 }
 
 // Discovers state of the CPU based on CPU temperature thresholds
-func lambdaStateDiscovery(v CPUTempObj) (string, int) {
+func (hostDisc *HostDisc) lambdaStateDiscovery(v CPUTempObj) (string, int32) {
 	cpuTemp := v.CPUTemp
 	cpuTempState := thpb.HostThermal_CPU_TEMP_NONE
 
-	if cpuTemp <= 3000 || cpuTemp >= 70000 {
+	cpuThermalThresholds := hostDisc.cfg.GetThermalThresholds()
+	lowerNormal := cpuThermalThresholds["CPUThermalThresholds"].GetLowerNormal()
+	upperNormal := cpuThermalThresholds["CPUThermalThresholds"].GetUpperNormal()
+
+	lowerHigh := cpuThermalThresholds["CPUThermalThresholds"].GetLowerHigh()
+	upperHigh := cpuThermalThresholds["CPUThermalThresholds"].GetUpperHigh()
+
+	lowerCritical := cpuThermalThresholds["CPUThermalThresholds"].GetLowerCritical()
+	upperCritical := cpuThermalThresholds["CPUThermalThresholds"].GetUpperCritical()
+
+	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_CRITICAL
-	} else if cpuTemp >= 60000 && cpuTemp < 70000 {
+	} else if cpuTemp >= lowerHigh && cpuTemp < upperHigh {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_HIGH
-	} else if cpuTemp > 3000 && cpuTemp < 60000 {
+	} else if cpuTemp > lowerNormal && cpuTemp < upperNormal {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_NORMAL
 	}
 	return cpuTempState.String(), cpuTemp
