@@ -3,7 +3,7 @@
  * Author: Ghazanfar Ali, ghazanfar.ali@ttu.edu; Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
- * Copyright (c) 2018, Triad National Security, LLC
+ * Copyright (c) 2019, Triad National Security, LLC
  * See LICENSE file for details.
  */
 
@@ -142,7 +142,7 @@ func init() {
 	// Register it all
 	core.Registry.RegisterModule(module)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(module, discovers)
+	core.Registry.RegisterDiscoverable(si, discovers)
 }
 
 // Init is used to intialize an executable module prior to entrypoint
@@ -163,7 +163,7 @@ func (rfd *RFD) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  rfd.Name(),
+
 			URL:     url,
 			ValueID: "RUN",
 		},
@@ -272,7 +272,7 @@ L:
 			lib.Event_DISCOVERY,
 			url,
 			&core.DiscoveryEvent{
-				Module:  rfd.Name(),
+
 				URL:     url,
 				ValueID: vid,
 			},
