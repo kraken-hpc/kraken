@@ -65,6 +65,7 @@ func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hostdisco
 func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
 		PollingInterval: "10s",
+		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
 	}
 	return r
 }
@@ -196,7 +197,8 @@ func (hostDisc *HostDisc) GetCPUTemp() CPUTempObj {
 // ReadCPUTemp function reads the CPU thermal sensor
 func (hostDisc *HostDisc) ReadCPUTemp() int {
 
-	tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
+	tempSensorPath := hostDisc.cfg.GetTempSensorPath()
+
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
