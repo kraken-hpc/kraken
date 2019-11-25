@@ -43,13 +43,10 @@ var _ lib.ModuleWithConfig = (*RFD)(nil)
 var _ lib.ModuleWithDiscovery = (*RFD)(nil)
 var _ lib.ModuleSelfService = (*RFD)(nil)
 
-// HTTP Request time out in milliseconds
-var nodeReqTimeout = 250
-
 // PayLoad struct for collection of nodes
 type PayLoad struct {
 	NodesAddressList []string `json:"nodesaddresslist"`
-	Timeout          int      `json:"timeout"`
+	Timeout          int32    `json:"timeout"`
 }
 
 // nodeCPUTemp is structure for node temp
@@ -82,9 +79,10 @@ func (*RFD) NewConfig() proto.Message {
 		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
 		Servers: map[string]*pb.RFDiscoveryServer{
 			"rfdiscoveryServer": {
-				Name: "rfdiscoveryServer",
-				Ip:   "localhost",
-				Port: 8269,
+				Name:       "rfdiscoveryServer",
+				Ip:         "localhost",
+				Port:       8269,
+				ReqTimeout: 250,
 			},
 		},
 		PollingInterval: "10s",
@@ -252,7 +250,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
 func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) CPUTempCollection {
 
 	var rs CPUTempCollection
-
+	nodeReqTimeout := rfd.cfg.GetServers()["c4"].GetReqTimeout()
 	payLoad, e := json.Marshal(PayLoad{
 		NodesAddressList: ns,
 		Timeout:          nodeReqTimeout,
