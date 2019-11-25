@@ -12,4 +12,5 @@ package proto;
 
 message HostDiscoveryConfig {
     string polling_interval = 1;
+    string temp_sensor_path = 2;
 }
