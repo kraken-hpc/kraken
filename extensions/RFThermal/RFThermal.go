@@ -1,4 +1,4 @@
-/* Thermal.go: extension adds enumerated states for tracking thermal conditions of node components.
+/* RFThermal.go: extension adds enumerated states for tracking thermal conditions of node components.
  *
  * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>;Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -7,35 +7,35 @@
  * See LICENSE file for details.
  */
 
-package thermal
+package rfthermal
 
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/extensions/Thermal/proto"
+	pb "github.com/hpc/kraken/extensions/RFThermal/proto"
 	"github.com/hpc/kraken/lib"
 )
 
 //go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/Thermal.proto
 
 /////////////////
-// Thermal Object /
+// RFThermal Object /
 ///////////////
 
-var _ lib.Extension = Thermal{}
+var _ lib.Extension = RFThermal{}
 
-type Thermal struct{}
+type RFThermal struct{}
 
-func (Thermal) New() proto.Message {
-	return &pb.Thermal{}
+func (RFThermal) New() proto.Message {
+	return &pb.RFThermal{}
 }
 
-func (r Thermal) Name() string {
+func (r RFThermal) Name() string {
 	a, _ := ptypes.MarshalAny(r.New())
 	return a.GetTypeUrl()
 }
 
 func init() {
-	core.Registry.RegisterExtension(Thermal{})
+	core.Registry.RegisterExtension(RFThermal{})
 }

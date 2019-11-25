@@ -26,14 +26,14 @@ import (
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/extensions/IPv4"
-	thpb "github.com/hpc/kraken/extensions/Thermal/proto"
+	thpb "github.com/hpc/kraken/extensions/RFThermal/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/rfdiscovery/proto"
 )
 
 const (
 	// ThermalStateURL points to Thermal extension
-	ThermalStateURL = "type.googleapis.com/proto.Thermal/State"
+	ThermalStateURL = "type.googleapis.com/proto.RFThermal/State"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/rfdiscovery/State"
 )
@@ -56,7 +56,7 @@ type PayLoad struct {
 type nodeCPUTemp struct {
 	TimeStamp   time.Time
 	HostAddress string
-	CPUTemp     int
+	CPUTemp     int32
 }
 
 //CPUTempCollection is array of CPU Temperature responses
@@ -88,6 +88,16 @@ func (*RFD) NewConfig() proto.Message {
 			},
 		},
 		PollingInterval: "10s",
+		RfThermalThresholds: map[string]*pb.RFThermalThresholds{
+			"RFCPUThermalThresholds": {
+				LowerNormal:   3000,
+				UpperNormal:   60000,
+				LowerHigh:     60000,
+				UpperHigh:     70000,
+				LowerCritical: 3000,
+				UpperCritical: 70000,
+			},
+		},
 	}
 	return r
 }
@@ -117,10 +127,10 @@ func init() {
 	discovers := make(map[string]map[string]reflect.Value)
 	dtest := make(map[string]reflect.Value)
 
-	dtest[thpb.Thermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_NONE)
-	dtest[thpb.Thermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_NORMAL)
-	dtest[thpb.Thermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_HIGH)
-	dtest[thpb.Thermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.Thermal_CPU_TEMP_CRITICAL)
+	dtest[thpb.RFThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_NONE)
+	dtest[thpb.RFThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_NORMAL)
+	dtest[thpb.RFThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_HIGH)
+	dtest[thpb.RFThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_CRITICAL)
 
 	discovers[ThermalStateURL] = dtest
 
@@ -222,7 +232,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
 	rs := rfd.aggregateCPUTemp(aggregatorURL, ipList)
 
 	for _, r := range rs.CPUTempList {
-		vid, ip := lambdaStateDiscovery(r)
+		vid, ip := rfd.lambdaStateDiscovery(r)
 		url := lib.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
 		v := core.NewEvent(
 			lib.Event_DISCOVERY,
@@ -281,16 +291,26 @@ func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) CPUTempC
 }
 
 // Discovers state of the CPU based on CPU temperature thresholds
-func lambdaStateDiscovery(v nodeCPUTemp) (string, string) {
+func (rfd *RFD) lambdaStateDiscovery(v nodeCPUTemp) (string, string) {
 	cpuTemp := v.CPUTemp
-	cpuTempState := thpb.Thermal_CPU_TEMP_NONE
+	cpuTempState := thpb.RFThermal_CPU_TEMP_NONE
 
-	if cpuTemp <= 3000 || cpuTemp >= 70000 {
-		cpuTempState = thpb.Thermal_CPU_TEMP_CRITICAL
-	} else if cpuTemp >= 60000 && cpuTemp < 70000 {
-		cpuTempState = thpb.Thermal_CPU_TEMP_HIGH
-	} else if cpuTemp > 3000 && cpuTemp < 60000 {
-		cpuTempState = thpb.Thermal_CPU_TEMP_NORMAL
+	cpuThermalThresholds := rfd.cfg.GetRfThermalThresholds()
+	lowerNormal := cpuThermalThresholds["RFCPUThermalThresholds"].GetLowerNormal()
+	upperNormal := cpuThermalThresholds["RFCPUThermalThresholds"].GetUpperNormal()
+
+	lowerHigh := cpuThermalThresholds["RFCPUThermalThresholds"].GetLowerHigh()
+	upperHigh := cpuThermalThresholds["RFCPUThermalThresholds"].GetUpperHigh()
+
+	lowerCritical := cpuThermalThresholds["RFCPUThermalThresholds"].GetLowerCritical()
+	upperCritical := cpuThermalThresholds["RFCPUThermalThresholds"].GetUpperCritical()
+
+	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
+		cpuTempState = thpb.RFThermal_CPU_TEMP_CRITICAL
+	} else if cpuTemp >= lowerHigh && cpuTemp < upperHigh {
+		cpuTempState = thpb.RFThermal_CPU_TEMP_HIGH
+	} else if cpuTemp > lowerNormal && cpuTemp < upperNormal {
+		cpuTempState = thpb.RFThermal_CPU_TEMP_NORMAL
 	}
 	return cpuTempState.String(), v.HostAddress
 
