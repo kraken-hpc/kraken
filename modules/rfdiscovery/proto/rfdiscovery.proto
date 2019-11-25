@@ -22,7 +22,7 @@ message RFDiscoveryConfig {
 message RFDiscoveryServer {
     string name = 1;
     string ip    = 2;
-    int32 port = 3;
+    string port = 3;
     int32 req_timeout = 4;
 }
 

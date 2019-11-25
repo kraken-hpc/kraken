@@ -16,7 +16,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"time"
@@ -78,10 +80,10 @@ func (*RFD) NewConfig() proto.Message {
 		IpUrl:  "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
 		Servers: map[string]*pb.RFDiscoveryServer{
-			"rfdiscoveryServer": {
-				Name:       "rfdiscoveryServer",
-				Ip:         "localhost",
-				Port:       8269,
+			"c4": {
+				Name:       "c4",
+				Ip:         "10.15.247.200",
+				Port:       "8000",
 				ReqTimeout: 250,
 			},
 		},
@@ -226,8 +228,16 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
 	srvPort := srvs[aggregatorName].GetPort()
 	srvName := srvs[aggregatorName].GetName()
 
-	aggregatorURL := fmt.Sprintf("http://%v:%v/redfish/v1/AggregationService/Chassis/%v/Thermal", srvIP, srvPort, srvName)
-	rs := rfd.aggregateCPUTemp(aggregatorURL, ipList)
+	path := fmt.Sprintf("redfish/v1/AggregationService/Chassis/%v/Thermal", srvName)
+
+	aggregatorURL := &url.URL{
+		Scheme: "http",
+		User:   url.UserPassword("", ""),
+		Host:   net.JoinHostPort(srvIP, srvPort),
+		Path:   path,
+	}
+
+	rs := rfd.aggregateCPUTemp(aggregatorURL.String(), ipList)
 
 	for _, r := range rs.CPUTempList {
 		vid, ip := rfd.lambdaStateDiscovery(r)
