@@ -36,13 +36,6 @@ func (r PXE) Name() string {
 	return a.GetTypeUrl()
 }
 
-func (r PXE) EnumerableValues() map[string][]string {
-	enumMap := make(map[string][]string)
-	enumMap["state"] = []string{pb.PXE_NONE.String(), pb.PXE_WAIT.String(), pb.PXE_INIT.String(), pb.PXE_COMP.String()}
-	enumMap["method"] = []string{pb.PXE_PXE.String(), pb.PXE_iPXE.String()}
-	return enumMap
-}
-
 func init() {
 	core.Registry.RegisterExtension(PXE{})
 }

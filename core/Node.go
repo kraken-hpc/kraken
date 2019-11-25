@@ -264,21 +264,11 @@ func (n *Node) GetExtensionURLs() (r []string) {
 	return exts
 }
 
-// GetExtensionEnums returns [<extensionUrl>/<extensionKey>][]<extensionValueOptions>
-func (n *Node) GetExtensionEnums() map[string][]string {
+// GetExtension returns the exts map
+func (n *Node) GetExtensions() (r map[string]proto.Message) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
-	r := make(map[string][]string)
-	for u := range n.exts {
-		enums, e := Registry.GetExtEnums(u)
-		if e != nil {
-			break
-		}
-		for enumKey, enumValues := range enums {
-			r[lib.URLPush(u, enumKey)] = enumValues
-		}
-	}
-	return r
+	return n.exts
 }
 
 // AddExtension adds a new extension to the node.  It will fail if marshal fails, or if it's a dupe.

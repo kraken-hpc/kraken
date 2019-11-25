@@ -36,12 +36,6 @@ func (r VBox) Name() string {
 	return a.GetTypeUrl()
 }
 
-func (r VBox) EnumerableValues() map[string][]string {
-	enumMap := make(map[string][]string)
-	enumMap["pxe"] = []string{pb.VBox_NONE.String(), pb.VBox_WAIT.String(), pb.VBox_INIT.String(), pb.VBox_COMP.String()}
-	return enumMap
-}
-
 func init() {
 	core.Registry.RegisterExtension(VBox{})
 }

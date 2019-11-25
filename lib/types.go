@@ -77,7 +77,7 @@ type Node interface {
 	SetValues(valmap map[string]reflect.Value) (v map[string]reflect.Value)
 
 	GetExtensionURLs() []string
-	GetExtensionEnums() map[string][]string
+	GetExtensions() map[string]proto.Message
 	AddExtension(proto.Message) error
 	DelExtension(url string)
 	HasExtension(url string) bool
@@ -494,9 +494,8 @@ type ServiceManager interface {
  */
 
 type Extension interface {
-	New() proto.Message                    // should return a proto.Message object with initialized default values
-	Name() string                          // this needs to be a name unique to all extensions; used as a map key
-	EnumerableValues() map[string][]string // Returns all possible emutable values for that exention
+	New() proto.Message // should return a proto.Message object with initialized default values
+	Name() string       // this needs to be a name unique to all extensions; used as a map key
 }
 
 type Module interface {

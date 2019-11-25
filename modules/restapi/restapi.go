@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -170,17 +170,26 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 		Options []string `json:"options"`
 	}
 	var extSlice []extension
+	extMap := nself.GetExtensions()
 
-	enums := nself.GetExtensionEnums()
-	for enumURL, enumOptions := range enums {
-		_, enumName := lib.URLShift(enumURL)
-		enumName = strings.Replace(enumName, "proto.", "", 1)
-		enum := extension{
-			Name:    enumName,
-			Url:     enumURL,
-			Options: enumOptions,
+	for k, v := range extMap {
+		properties := proto.GetProperties(reflect.ValueOf(v).Elem().Type())
+		for _, p := range properties.Prop {
+			enumValueMap := proto.EnumValueMap(p.Enum)
+			if len(enumValueMap) > 0 {
+				enumOptions := make([]string, 0, len(enumValueMap))
+				for key := range enumValueMap {
+					enumOptions = append(enumOptions, key)
+				}
+
+				enum := extension{
+					Name:    p.Enum,
+					Url:     lib.URLPush(k, p.Enum),
+					Options: enumOptions,
+				}
+				extSlice = append(extSlice, enum)
+			}
 		}
-		extSlice = append(extSlice, enum)
 	}
 
 	var physKeys []string

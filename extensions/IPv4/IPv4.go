@@ -73,11 +73,6 @@ func (i IPv4OverEthernet) Name() string {
 	return a.GetTypeUrl()
 }
 
-// Returns nil because none of these values are enumerable
-func (i IPv4OverEthernet) EnumerableValues() map[string][]string {
-	return nil
-}
-
 // BytesToIP converts 4 bytes to a net.IP
 // returns nil if you don't give it 4 bytes
 func BytesToIP(b []byte) (ip net.IP) {

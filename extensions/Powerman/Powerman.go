@@ -36,11 +36,6 @@ func (r Powerman) Name() string {
 	return a.GetTypeUrl()
 }
 
-// Returns nil because none of these values are enumerable
-func (r Powerman) EnumerableValues() map[string][]string {
-	return nil
-}
-
 func init() {
 	core.Registry.RegisterExtension(Powerman{})
 }
