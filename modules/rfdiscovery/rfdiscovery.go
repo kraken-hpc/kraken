@@ -237,7 +237,33 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
 		Path:   path,
 	}
 
-	rs := rfd.aggregateCPUTemp(aggregatorURL.String(), ipList)
+	respc, errc := make(chan CPUTempCollection), make(chan error)
+
+	// Make http rest calls to aggregator in go routine
+	go func(aggregator string, IPList []string) {
+		resp, err := rfd.aggregateCPUTemp(aggregator, IPList)
+		if err != nil {
+			errc <- err
+			return
+		}
+		respc <- resp
+	}(aggregatorURL.String(), ipList)
+
+	var rs CPUTempCollection
+	var reqError string
+	// define label "L" break to break from external forever "for" loop
+L:
+	for {
+		select {
+		case res := <-respc:
+			rs = res
+			break L
+		case e := <-errc:
+			reqError = e.Error()
+			rfd.api.Logf(lib.LLERROR, "Request to RFAggregator failed: %v", reqError)
+			break L
+		}
+	}
 
 	for _, r := range rs.CPUTempList {
 		vid, ip := rfd.lambdaStateDiscovery(r)
@@ -257,7 +283,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
 }
 
 // REST API call to relevant aggregator
-func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) CPUTempCollection {
+func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) (CPUTempCollection, error) {
 
 	var rs CPUTempCollection
 	nodeReqTimeout := rfd.cfg.GetServers()["c4"].GetReqTimeout()
@@ -267,35 +293,36 @@ func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) CPUTempC
 	})
 	if e != nil {
 		rfd.api.Logf(lib.LLERROR, "http PUT API request failed: %v", e)
-		return rs
+		return rs, e
 	}
 
 	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, aggregatorAddress, bytes.NewBuffer(payLoad))
 	if err != nil {
 		rfd.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
-		return rs
+		return rs, err
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		rfd.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
-		return rs
+		return rs, err
 	}
 
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
 		rfd.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
-		return rs
+		return rs, e
 	}
 
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
 		rfd.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
-		return rs
+		return rs, e
 	}
-	return rs
+	return rs, nil
+
 }
 
 // Discovers state of the CPU based on CPU temperature thresholds

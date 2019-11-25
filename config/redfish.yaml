@@ -14,7 +14,7 @@ targets:
 extensions:
   - github.com/hpc/kraken/extensions/IPv4
   - github.com/hpc/kraken/extensions/RPi3
-  - github.com/hpc/kraken/extensions/Thermal
+  - github.com/hpc/kraken/extensions/RFThermal
   - github.com/hpc/kraken/extensions/RFAggregatorServer
 
 # included modules
