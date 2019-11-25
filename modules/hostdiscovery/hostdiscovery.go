@@ -51,6 +51,7 @@ var _ lib.ModuleSelfService = (*HostDisc)(nil)
 
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
+	prevTemp   int
 	api        lib.APIClient
 	cfg        *pb.HostDiscoveryConfig
 	dchan      chan<- lib.Event
@@ -153,6 +154,11 @@ func (hostDisc *HostDisc) Entry() {
 // discoverHostCPUTemp is used to acquire CPU thermal locally.
 func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	hostCPUTemp := hostDisc.GetCPUTemp()
+	if hostCPUTemp.CPUTemp == hostDisc.prevTemp {
+		// no change in temperature so no need to generate discovery event
+		return
+	}
+	hostDisc.prevTemp = hostCPUTemp.CPUTemp
 
 	vid, _ := lambdaStateDiscovery(hostCPUTemp)
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalStateURL)
