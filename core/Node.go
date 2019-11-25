@@ -264,6 +264,13 @@ func (n *Node) GetExtensionURLs() (r []string) {
 	return exts
 }
 
+// GetExtension returns the exts map
+func (n *Node) GetExtensions() (r map[string]proto.Message) {
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
+	return n.exts
+}
+
 // AddExtension adds a new extension to the node.  It will fail if marshal fails, or if it's a dupe.
 func (n *Node) AddExtension(m proto.Message) (e error) {
 	any, e := ptypes.MarshalAny(m)

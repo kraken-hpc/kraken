@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -107,6 +108,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/dsc/node/{id}", r.updateNodeDsc).Methods("PUT")
 	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
+	r.router.HandleFunc("/enumerables", r.getAllEnums).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -152,6 +154,75 @@ func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 	b, _ := core.MarshalJSON(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
+}
+
+func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	nself, e := r.api.QueryRead(r.api.Self().String())
+	if e != nil {
+		w.Write([]byte(e.Error()))
+		return
+	}
+
+	type extension struct {
+		Name    string   `json:"name"`
+		Url     string   `json:"url"`
+		Options []string `json:"options"`
+	}
+	var extSlice []extension
+	extMap := nself.GetExtensions()
+
+	for k, v := range extMap {
+		properties := proto.GetProperties(reflect.ValueOf(v).Elem().Type())
+		for _, p := range properties.Prop {
+			enumValueMap := proto.EnumValueMap(p.Enum)
+			if len(enumValueMap) > 0 {
+				enumOptions := make([]string, 0, len(enumValueMap))
+				for key := range enumValueMap {
+					enumOptions = append(enumOptions, key)
+				}
+
+				enum := extension{
+					Name:    p.Enum,
+					Url:     lib.URLPush(k, p.Enum),
+					Options: enumOptions,
+				}
+				extSlice = append(extSlice, enum)
+			}
+		}
+	}
+
+	var physKeys []string
+	for k := range cpb.Node_PhysState_value {
+		physKeys = append(physKeys, k)
+	}
+	physState := extension{
+		Name:    "PhysState",
+		Url:     "physState",
+		Options: physKeys,
+	}
+	extSlice = append(extSlice, physState)
+
+	var runKeys []string
+	for k := range cpb.Node_RunState_value {
+		runKeys = append(runKeys, k)
+	}
+	runState := extension{
+		Name:    "RunState",
+		Url:     "runState",
+		Options: runKeys,
+	}
+	extSlice = append(extSlice, runState)
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	jExt, e := json.Marshal(extSlice)
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "error marshalling json: %v", e)
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(e.Error()))
+		return
+	}
+	w.Write(jExt)
 }
 
 func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {

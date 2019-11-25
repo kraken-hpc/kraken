@@ -77,6 +77,7 @@ type Node interface {
 	SetValues(valmap map[string]reflect.Value) (v map[string]reflect.Value)
 
 	GetExtensionURLs() []string
+	GetExtensions() map[string]proto.Message
 	AddExtension(proto.Message) error
 	DelExtension(url string)
 	HasExtension(url string) bool
