@@ -120,7 +120,7 @@ func init() {
 	// Register it all
 	core.Registry.RegisterModule(module)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
-	core.Registry.RegisterDiscoverable(module, discovers)
+	core.Registry.RegisterDiscoverable(si, discovers)
 }
 
 // Init is used to intialize an executable module prior to entrypoint
@@ -141,7 +141,7 @@ func (hostDisc *HostDisc) Entry() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  hostDisc.Name(),
+
 			URL:     url,
 			ValueID: "RUN",
 		},
@@ -179,7 +179,7 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
-			Module:  hostDisc.Name(),
+
 			URL:     url,
 			ValueID: vid,
 		},
