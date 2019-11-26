@@ -78,7 +78,7 @@ func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfdiscovery" }
 func (*RFD) NewConfig() proto.Message {
 	r := &pb.RFDiscoveryConfig{
 		IpUrl:  "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/ApiServer",
+		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/RfAggregator",
 		Servers: map[string]*pb.RFDiscoveryServer{
 			"c4": {
 				Name:       "c4",
