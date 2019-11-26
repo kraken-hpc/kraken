@@ -17,18 +17,25 @@
 ###
 
 usage() {
-        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] <arch>"
+        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] [-k <kraken_build_dir>] <arch>"
         echo "  <arch> should be the GOARCH we want to build (e.g. arm64, amd64...)"
         echo "  <out_file> is the file the image should be written to.  Default is: initramfs.<date>.<img>.cpio.gz"
-        echo "  <base_dir> is an option base directory containing file/directory structure"
+        echo "  <base_dir> is an optional base directory containing file/directory structure"
+        echo "  <kraken_build_dir> is specifies an alternate path to where to look for built kraken binaries"
         echo "             that should be added to the image"
 }
 
-opts=$(getopt o:b: $*)
+opts=$(getopt o:b:k: $*)
 if [ $? != 0 ]; then
     usage
     exit
 fi
+
+if [ -z ${GOPATH+x} ]; then
+        echo "GOPATH isn't set, using $HOME/go"
+        GOPATH=$HOME/go
+fi
+KRAKEN_BUILDDIR=$GOPATH/src/github.com/hpc/kraken/build
 
 set -- $opts
 for i; do
@@ -41,6 +48,10 @@ for i; do
         -b)
             echo "Using base dir $2"
             BASEDIR="$2"
+            shift; shift;;
+        -k)
+            echo "Using kraken build dir $2"
+            KRAKEN_BUILDDIR=$2
             shift; shift;;
         --)
             shift; break;;
@@ -55,17 +66,12 @@ fi
 STARTDIR=$PWD
 ARCH=$1
 
-if [ -z ${GOPATH+x} ]; then
-        echo "GOPATH isn't set, using $HOME/go"
-        GOPATH=$HOME/go
-fi
-
 # make a temporary directory for our base
 TMPDIR=$(mktemp -d)
 echo "Using tmpdir: $TMPDIR"
 mkdir -p $TMPDIR/base/bin
 
-KRAKEN=$GOPATH/src/github.com/hpc/kraken/build/kraken-linux-$ARCH
+KRAKEN="$KRAKEN_BUILDDIR/kraken-linux-$ARCH"
 if [ ! -f $KRAKEN ]; then
     echo "$KRAKEN doesn't exist, built it before running this"
     rm -rf $TMPDIR
