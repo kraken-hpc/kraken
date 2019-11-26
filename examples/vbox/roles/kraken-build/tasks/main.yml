@@ -10,15 +10,17 @@
     dest: "{{ kr_src_dir }}"
     version: "{{ kr_repo_version }}"
 
-- name: Install kraken-build
-  shell: "go install {{ kr_url }}"
+- name: Build kraken-build
+  shell: "go build {{ kr_build }}.go"
   args:
     creates: "{{ kr_build }}"
+    chdir: "{{ kr_src_dir }}"
 
 - name: Build kraken
-  shell: "{{ kr_build }} {{ kr_build_args }} -dir {{ kr_build_dir }} -config {{ kr_conf_file }}"
+  shell: "./{{ kr_build }} {{ kr_build_args }} -dir {{ kr_build_dir }} -config {{ kr_conf_file }}"
   args:
     creates: "{{ kr_build_dir }}/{{ kr_target }}"
+    chdir: "{{ kr_src_dir }}"
 
 - name: Symlink local kraken
   file:
