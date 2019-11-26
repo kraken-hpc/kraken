@@ -306,7 +306,7 @@ func (a *APIClient) EventInit(id string, module string) (c <-chan lib.Event, e e
 					lib.Event_DISCOVERY,
 					ec.GetUrl(),
 					&DiscoveryEvent{
-						Module:  ec.GetModule(),
+						ID:      id,
 						URL:     ec.GetUrl(),
 						ValueID: ec.GetValue(),
 					})

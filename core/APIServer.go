@@ -400,7 +400,7 @@ func (s *APIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.API_EventIni
 		case lib.Event_DISCOVERY:
 			dev := v.Data().(*DiscoveryEvent)
 			ec = &pb.EventControl{
-				Module:  dev.Module,
+				Module:  dev.ID,
 				Id:      "",
 				Type:    pb.EventControl_Discovery,
 				SCCType: -1,
