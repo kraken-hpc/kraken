@@ -56,17 +56,6 @@ var muts = map[string]pxmut{
 		reqs:    reqs,
 		timeout: "10s",
 	},
-	"INITtoCOMP": {
-		f: rpipb.RPi3_INIT,
-		t: rpipb.RPi3_COMP,
-		reqs: map[string]reflect.Value{
-			"/Arch":      reflect.ValueOf("aarch64"),
-			"/Platform":  reflect.ValueOf("rpi3"),
-			"/PhysState": reflect.ValueOf(cpb.Node_POWER_ON),
-			"/RunState":  reflect.ValueOf(cpb.Node_SYNC),
-		},
-		timeout: "180s",
-	},
 }
 
 // modify these if you want different requires for mutations
@@ -313,20 +302,6 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 			)
 			px.dchan <- ev
 		case "WAITtoINIT": // we're initializing, but don't do anything (more for discovery/timeout)
-		case "INITtoCOMP": // done mutating a node, deregister
-			v, _ := m.NodeCfg.GetValue(px.cfg.IpUrl)
-			ip := IPv4.BytesToIP(v.Bytes())
-			px.NodeDelete(queryByIP, ip.String())
-			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), PxeURL)
-			ev := core.NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				&core.DiscoveryEvent{
-					URL:     url,
-					ValueID: "COMP",
-				},
-			)
-			px.dchan <- ev
 		}
 	case core.MutationEvent_INTERRUPT: // on any interrupt, we remove the node
 		v, e := m.NodeCfg.GetValue(px.cfg.IpUrl)
