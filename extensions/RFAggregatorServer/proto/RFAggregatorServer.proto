@@ -11,6 +11,5 @@
  package proto;
 
 message RFAggregatorServer {
-    string api_server = 1; // rf aggregator name
-    
+    string rf_aggregator = 1; // rf aggregator name
 }
