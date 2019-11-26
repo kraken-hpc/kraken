@@ -165,9 +165,9 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 	}
 
 	type extension struct {
-		Name    string   `json:"name"`
-		Url     string   `json:"url"`
-		Options []string `json:"options"`
+		Name    string           `json:"name"`
+		Url     string           `json:"url"`
+		Options map[int32]string `json:"options"` // 0:"NONE"
 	}
 	var extSlice []extension
 	extMap := nself.GetExtensions()
@@ -177,9 +177,9 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 		for _, p := range properties.Prop {
 			enumValueMap := proto.EnumValueMap(p.Enum)
 			if len(enumValueMap) > 0 {
-				enumOptions := make([]string, 0, len(enumValueMap))
-				for key := range enumValueMap {
-					enumOptions = append(enumOptions, key)
+				enumOptions := make(map[int32]string, len(enumValueMap))
+				for key, val := range enumValueMap {
+					enumOptions[val] = key
 				}
 
 				enum := extension{
@@ -192,25 +192,17 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	var physKeys []string
-	for k := range cpb.Node_PhysState_value {
-		physKeys = append(physKeys, k)
-	}
 	physState := extension{
 		Name:    "PhysState",
 		Url:     "physState",
-		Options: physKeys,
+		Options: cpb.Node_PhysState_name,
 	}
 	extSlice = append(extSlice, physState)
 
-	var runKeys []string
-	for k := range cpb.Node_RunState_value {
-		runKeys = append(runKeys, k)
-	}
 	runState := extension{
 		Name:    "RunState",
 		Url:     "runState",
-		Options: runKeys,
+		Options: cpb.Node_RunState_name,
 	}
 	extSlice = append(extSlice, runState)
 
