@@ -1,4 +1,4 @@
-/* HostDiscovery.go: This module performs CPU Thermal discovery of HPC nodes through in-band (through OS) mechanism.
+/* HostThermalDiscovery.go: This module performs CPU Thermal discovery of HPC nodes through in-band (through OS) mechanism.
  *
  * Author: Ghazanfar Ali, ghazanfar.ali@ttu.edu; Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -9,7 +9,7 @@
 
 //go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
 
-package hostdiscovery
+package hostthermaldiscovery
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ import (
 	cpb "github.com/hpc/kraken/core/proto"
 	thpb "github.com/hpc/kraken/extensions/HostThermal/proto"
 	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/hostdiscovery/proto"
+	pb "github.com/hpc/kraken/modules/hostthermaldiscovery/proto"
 )
 
 //CPUTempObj is strututure for node CPU temperature
@@ -41,7 +41,7 @@ const (
 	// HostThermalStateURL points to Thermal extension
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
 	// ModuleStateURL refers to module state
-	ModuleStateURL = "/Services/hostdiscovery/State"
+	ModuleStateURL = "/Services/hostthermaldiscovery/State"
 )
 
 var _ lib.Module = (*HostDisc)(nil)
@@ -59,7 +59,7 @@ type HostDisc struct {
 }
 
 // Name returns the FQDN of the module
-func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hostdiscovery" }
+func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hostthermaldiscovery" }
 
 // NewConfig returns a fully initialized default config
 func (*HostDisc) NewConfig() proto.Message {

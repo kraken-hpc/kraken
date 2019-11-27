@@ -20,4 +20,4 @@ modules:
   - github.com/hpc/kraken/modules/restapi
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
-  - github.com/hpc/kraken/modules/hostdiscovery
+  - github.com/hpc/kraken/modules/hostthermaldiscovery
