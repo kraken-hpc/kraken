@@ -72,7 +72,7 @@ type RFD struct {
 }
 
 // Name returns the FQDN of the module
-func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfdiscovery" }
+func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfthermaldiscovery" }
 
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {
