@@ -9,6 +9,7 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/websocket v1.4.1
 	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/kr/pty v1.1.8
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
