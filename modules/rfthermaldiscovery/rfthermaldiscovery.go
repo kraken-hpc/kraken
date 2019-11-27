@@ -1,4 +1,4 @@
-/* RFDiscovery.go: performs monitoring of HPC nodes via Redfish API using the RFAggregator (REST API server).
+/* rfthermaldiscovery.go: performs monitoring of HPC nodes via Redfish API using the RFAggregator (REST API server).
  *
  * Author: Ghazanfar Ali, ghazanfar.ali@ttu.edu; Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -9,7 +9,7 @@
 
 //go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
 
-package rfdiscovery
+package rfthermaldiscovery
 
 import (
 	"bytes"
@@ -30,14 +30,14 @@ import (
 	"github.com/hpc/kraken/extensions/IPv4"
 	thpb "github.com/hpc/kraken/extensions/RFThermal/proto"
 	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/rfdiscovery/proto"
+	pb "github.com/hpc/kraken/modules/rfthermaldiscovery/proto"
 )
 
 const (
 	// ThermalStateURL points to Thermal extension
 	ThermalStateURL = "type.googleapis.com/proto.RFThermal/State"
 	// ModuleStateURL refers to module state
-	ModuleStateURL = "/Services/rfdiscovery/State"
+	ModuleStateURL = "/Services/rfthermaldiscovery/State"
 )
 
 var _ lib.Module = (*RFD)(nil)

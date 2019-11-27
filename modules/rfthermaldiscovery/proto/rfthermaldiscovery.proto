@@ -1,4 +1,4 @@
-/* rfdiscovery.proto: describes the rfdiscovery object
+/* rfthermaldiscovery.proto: describes the rfdiscovery object
  *
  * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
