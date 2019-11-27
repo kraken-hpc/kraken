@@ -147,6 +147,20 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	host, _, _ := net.SplitHostPort(req.Host)
 	nself, _ := r.api.QueryRead(r.api.Self().String())
+
+	services := nself.GetServices()
+	found := false
+	for _, srv := range services {
+		if srv.Module() == "websocket" {
+			found = true
+		}
+	}
+	if !found {
+		r.api.Logf(lib.LLERROR, "Got websocket request, but websocket module isn't running")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	var wsConfig wpb.WebSocketConfig
 	if err := proto.Unmarshal(nself.GetService("websocket").Config().GetValue(), &wsConfig); err != nil {
 		r.api.Logf(lib.LLERROR, "Error getting websocket config. Is the websocket module running?: %v\n", err)
