@@ -99,6 +99,9 @@ cp -v $KRAKEN $TMPDIR/base/bin/kraken
     cd $TMPDIR/base/bin
     echo "Build uinit..."
     GOARCH=$ARCH CGO_ENABLED=0 go build "${KRAKEN_SOURCEDIR}/utils/layer0/uinit/uinit.go"
+    
+    echo "Build rfemulator..."
+    GOARCH=$ARCH CGO_ENABLED=0 go build $GOPATH/src/github.com/hpc/kraken/utils/layer0/rfemulator/RFEmulator-pull.go
 )
 
 # copy base_dir over tmpdir if it's set

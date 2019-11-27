@@ -159,6 +159,11 @@ func main() {
 			Background: true,
 			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID, "-log", logLevel},
 		},
+
+		{
+			Cmd:        "/bin/RFEmulator-pull",
+			Background: true,
+		},
 		{
 			Cmd:        "/bbin/elvish",
 			Background: false,
