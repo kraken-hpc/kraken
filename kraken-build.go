@@ -388,10 +388,9 @@ func main() {
 	log.Printf("using kraken at: %s", krakenDir)
 
 	// Do we want to build source for u-root?
-	var ufromTemplates []string
 	if *uroot != "" {
 		log.Printf("generating kraken source tree for u-root into \"%s\"", *uroot)
-		ufromTemplates, e = uKraken(*uroot, krakenDir)
+		_, e = uKraken(*uroot, krakenDir)
 		if e != nil {
 			log.Fatalf("could not create source tree for u-root: %v", e)
 		}
@@ -407,28 +406,6 @@ func main() {
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?
 	os.Mkdir(tmpDir, 0755)
 
-	// Create u-root kraken build dir if flag passed
-	var ubldDir string // Build dir for kraken u-root command
-	var usrcDir string // Source dir for kraken u-root compiled templates
-	if *uroot != "" {
-		ubldDir = filepath.Join(*uroot, "build")
-		usrcDir = filepath.Join(*uroot, "kraken")
-
-		// Make sure usrcDir exists
-		if _, e = os.Stat(usrcDir); os.IsNotExist(e) {
-			if e = os.Mkdir(usrcDir, 0755); e != nil {
-				os.Mkdir(usrcDir, 0755)
-			}
-		}
-
-		// Make sure ubldDir exists
-		if _, e = os.Stat(ubldDir); os.IsNotExist(e) {
-			if e = os.Mkdir(ubldDir, 0755); e != nil {
-				log.Fatalf("could not create u-root kraken build directory: %v", e)
-			}
-		}
-	}
-
 	// setup build environment
 	log.Println("setting up build environment")
 
@@ -441,27 +418,6 @@ func main() {
 	// build
 	for t := range cfg.Targets {
 		log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
-
-		// Kraken for u-root
-		if *uroot != "" {
-			// Build
-			log.Printf("building kraken for u-root")
-			if e = buildKraken(usrcDir, ufromTemplates, cfg.Targets[t], *verbose); e != nil {
-				log.Printf("failed to build %s for u-root: %v", t, e)
-				continue
-			}
-
-			// Move binary to proper location
-			upathMain := filepath.Join(usrcDir, "main")
-			upathBuildDir := filepath.Join(*uroot, "build")
-			upathKraken := filepath.Join(upathBuildDir, "kraken-"+t)
-			if e = os.Rename(upathMain, upathKraken); e != nil {
-				log.Printf("rename failed: %v", e)
-				continue
-			}
-		}
-
-		// Kraken proper
 		if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
 			log.Printf("failed to build %s: %v", t, e)
 			continue
@@ -483,9 +439,6 @@ func main() {
 
 	if !*noCleanup { // cleanup now
 		os.RemoveAll(tmpDir)
-		if *uroot != "" {
-			os.RemoveAll(usrcDir)
-		}
 	} else {
 		log.Printf("leaving temp directory: %s", tmpDir)
 	}
