@@ -244,20 +244,42 @@ func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 	// Copy needed files from krakenDir to outDir
 	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "vendor", "go.mod", "go.sum"}
 	for _, file := range files {
-		if *verbose {
-			log.Printf("copying \"%s\" to \"%s\"", file, outDir)
-		}
-		inFile := path.Join(krakenDir, file)
-		outFile := path.Join(outDir, file)
-		e = cp.Copy(inFile, outFile)
-		if e != nil {
-			return
-		}
+		// Rename "kraken" dir to "kraken-tpl" to distinguish it as the template dir.
+		// u-root is expecting the binary for the command to be named the same as the
+		// command root folder.
+		if file == "kraken" {
+			// Rename kraken -> kraken-tpl
+			if *verbose {
+				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, file+"-tpl", outDir)
+			}
+			inFile := path.Join(krakenDir, file)
+			outFile := path.Join(outDir, file+"-tpl")
+			e = cp.Copy(inFile, outFile)
+			if e != nil {
+				return
+			}
 
-		// Avoid import errors in generated source by modifying include path
-		e = DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
-		if e != nil {
-			return
+			// Avoid import errors in generated source by modifying include path
+			e = DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
+			if e != nil {
+				return
+			}
+		} else {
+			if *verbose {
+				log.Printf("copying \"%s\" to \"%s\"", file, outDir)
+			}
+			inFile := path.Join(krakenDir, file)
+			outFile := path.Join(outDir, file)
+			e = cp.Copy(inFile, outFile)
+			if e != nil {
+				return
+			}
+
+			// Avoid import errors in generated source by modifying include path
+			e = DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
+			if e != nil {
+				return
+			}
 		}
 	}
 
