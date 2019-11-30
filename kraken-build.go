@@ -227,7 +227,7 @@ func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 	}
 
 	// Create src dir (within outDir) for template compilation output
-	srcDir := filepath.Join(outDir, "src") // make an option to change where this is?
+	srcDir := filepath.Join(outDir, "kraken") // make an option to change where this is?
 	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
@@ -245,15 +245,17 @@ func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "vendor", "go.mod", "go.sum"}
 	for _, file := range files {
 		// Rename "kraken" dir to "kraken-tpl" to distinguish it as the template dir.
-		// u-root is expecting the binary for the command to be named the same as the
-		// command root folder.
+		// The "kraken" dir will contain the kraken source files generated from the
+		// templates.
 		if file == "kraken" {
+			krakenTplDir := file + "-tpl"
+
 			// Rename kraken -> kraken-tpl
 			if *verbose {
-				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, file+"-tpl", outDir)
+				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, krakenTplDir, outDir)
 			}
 			inFile := path.Join(krakenDir, file)
-			outFile := path.Join(outDir, file+"-tpl")
+			outFile := path.Join(outDir, krakenTplDir)
 			e = cp.Copy(inFile, outFile)
 			if e != nil {
 				return
@@ -282,6 +284,14 @@ func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 			}
 		}
 	}
+
+	// Rename "main.go" to "kraken.go"
+	pathMainGo := path.Join(srcDir, "main.go")
+	pathKrakenGo := path.Join(srcDir, "kraken.go")
+	if *verbose {
+		log.Printf("renaming \"%s\" to \"%s", pathMainGo, pathKrakenGo)
+	}
+	e = os.Rename(pathMainGo, pathKrakenGo)
 
 	return
 }
@@ -402,7 +412,7 @@ func main() {
 	var usrcDir string // Source dir for kraken u-root compiled templates
 	if *uroot != "" {
 		ubldDir = filepath.Join(*uroot, "build")
-		usrcDir = filepath.Join(*uroot, "src")
+		usrcDir = filepath.Join(*uroot, "kraken")
 
 		// Make sure usrcDir exists
 		if _, e = os.Stat(usrcDir); os.IsNotExist(e) {
@@ -447,6 +457,7 @@ func main() {
 			upathKraken := filepath.Join(upathBuildDir, "kraken-"+t)
 			if e = os.Rename(upathMain, upathKraken); e != nil {
 				log.Printf("rename failed: %v", e)
+				continue
 			}
 		}
 
