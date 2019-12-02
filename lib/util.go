@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
 // MessageDiff compares a & b, returns a slice of differing field names
@@ -143,7 +145,15 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 		}
 		v, e = ResolveURL(sub, context.Index(i))
 	case reflect.Struct: // root should be a field name
-		if f := context.FieldByName(root); !f.IsValid() {
+		if context.Type() == reflect.TypeOf(any.Any{}) {
+			any := context.Interface().(any.Any)
+			var da ptypes.DynamicAny
+			if err := ptypes.UnmarshalAny(&any, &da); err != nil {
+				e = fmt.Errorf("failed to unmarshal any.Any object, %v", err)
+				return
+			}
+			v, e = ResolveURL(root, reflect.ValueOf(da.Message).Elem())
+		} else if f := context.FieldByName(root); !f.IsValid() {
 			e = fmt.Errorf("field not found in struct, %s", root)
 		} else {
 			v, e = ResolveURL(sub, f)
