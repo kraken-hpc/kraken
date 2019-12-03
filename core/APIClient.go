@@ -281,34 +281,37 @@ func (a *APIClient) EventInit(id string, module string) (c <-chan lib.Event, e e
 			}
 			switch ec.GetType() {
 			case pb.EventControl_Mutation:
-				cfg := NewNodeFromMessage(ec.GetCfg())
-				dsc := NewNodeFromMessage(ec.GetDsc())
+				event := ec.GetMutationControl()
+				cfg := NewNodeFromMessage(event.GetCfg())
+				dsc := NewNodeFromMessage(event.GetDsc())
 				cc <- NewEvent(
 					lib.Event_STATE_MUTATION,
 					cfg.ID().String(),
 					&MutationEvent{
-						Type:     ec.GetMCType(),
+						Type:     event.GetType(),
 						NodeCfg:  cfg,
 						NodeDsc:  dsc,
-						Mutation: [2]string{ec.GetModule(), ec.GetId()},
+						Mutation: [2]string{event.GetModule(), event.GetId()},
 					})
 			case pb.EventControl_StateChange:
+				event := ec.GetStateChangeControl()
 				cc <- NewEvent(
 					lib.Event_STATE_CHANGE,
-					ec.GetUrl(),
+					event.GetUrl(),
 					&StateChangeEvent{
-						Type:  ec.GetSCCType(),
-						URL:   ec.GetUrl(),
-						Value: reflect.ValueOf(ec.GetValue()),
+						Type:  event.GetType(),
+						URL:   event.GetUrl(),
+						Value: reflect.ValueOf(event.GetValue()),
 					})
 			case pb.EventControl_Discovery:
+				event := ec.GetDiscoveryEvent()
 				cc <- NewEvent(
 					lib.Event_DISCOVERY,
-					ec.GetUrl(),
+					event.GetUrl(),
 					&DiscoveryEvent{
-						ID:      id,
-						URL:     ec.GetUrl(),
-						ValueID: ec.GetValue(),
+						ID:      event.GetId(),
+						URL:     event.GetUrl(),
+						ValueID: event.GetValueId(),
 					})
 			}
 		}

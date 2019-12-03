@@ -17,11 +17,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
-	rpb "github.com/hpc/kraken/modules/restapi/proto"
+	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/websocket/proto"
 
 	"github.com/golang/protobuf/proto"
@@ -37,6 +40,9 @@ var _ lib.Module = (*WebSocket)(nil)
 var _ lib.ModuleSelfService = (*WebSocket)(nil)
 var _ lib.ModuleWithConfig = (*WebSocket)(nil)
 var _ lib.ModuleWithAllEvents = (*WebSocket)(nil)
+var _ lib.ModuleWithDiscovery = (*WebSocket)(nil)
+
+const WsStateURL = "/Services/websocket/State"
 
 type Command uint8
 
@@ -51,6 +57,7 @@ type WebSocket struct {
 	router *mux.Router
 	srv    *http.Server
 	echan  <-chan lib.Event
+	dchan  chan<- lib.Event
 	hub    *Hub
 	ticker *time.Ticker
 	mutex  *sync.Mutex
@@ -95,17 +102,29 @@ type Action struct {
 
 func (w *WebSocket) Entry() {
 	nself, _ := w.api.QueryRead(w.api.Self().String())
-	var restConfig rpb.RestAPIConfig
-	if err := proto.Unmarshal(nself.GetService("restapi").Config().GetValue(), &restConfig); err != nil {
-		w.api.Logf(lib.LLERROR, "Error getting restapi config. Is the restapi module running?: %v\n", err)
-		return
+
+	rAddr, e := nself.GetValue("/Services/restapi/Config/Addr")
+	if e != nil {
+		w.api.Logf(lib.LLERROR, "error getting restapi address")
 	}
-	w.srvIp = net.ParseIP(restConfig.GetAddr())
+	w.srvIp = net.ParseIP(rAddr.String())
 
 	w.setupRouter()
 	go w.startServer()
 	w.hub = w.newHub()
 	go w.hub.run()
+
+	url := lib.NodeURLJoin(w.api.Self().String(), WsStateURL)
+	ev := core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
+			URL:     url,
+			ValueID: "RUN",
+		},
+	)
+	w.dchan <- ev
+
 	for {
 		// create a timer that will send queued websocket messages
 		dur, _ := time.ParseDuration(w.cfg.GetTick())
@@ -177,6 +196,8 @@ func (w *WebSocket) Name() string { return "github.com/hpc/kraken/modules/websoc
 // this is generally done by the API
 func (w *WebSocket) SetEventsChan(c <-chan lib.Event) { w.echan = c }
 
+func (w *WebSocket) SetDiscoveryChan(c chan<- lib.Event) { w.dchan = c }
+
 func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 	if wc, ok := cfg.(*pb.WebSocketConfig); ok {
 		w.cfg = wc
@@ -227,6 +248,14 @@ func (w *WebSocket) setupRouter() {
 }
 
 func (w *WebSocket) startServer() {
+	url := &url.URL{
+		Host: net.JoinHostPort(w.srvIp.String(), strconv.Itoa(int(w.cfg.Port))),
+	}
+	if url.Hostname() == "" || url.Port() == "" {
+		w.api.Logf(lib.LLERROR, "Hostname or Port is empty! Hostname: %v Port: %v Host: %v", url.Hostname(), url.Port(), url.Host)
+		return
+	}
+
 	for {
 		w.srv = &http.Server{
 			Handler: handlers.CORS(
@@ -234,7 +263,7 @@ func (w *WebSocket) startServer() {
 				handlers.AllowedOrigins([]string{"*"}),
 				handlers.AllowedMethods([]string{"PUT", "GET", "POST", "DELETE"}),
 			)(w.router),
-			Addr:         fmt.Sprintf("%s:%d", w.srvIp, w.cfg.Port),
+			Addr:         url.Host,
 			WriteTimeout: 15 * time.Second,
 			ReadTimeout:  15 * time.Second,
 		}
@@ -263,6 +292,13 @@ func init() {
 		module.Entry,
 		nil,
 	)
+
+	discovers := make(map[string]map[string]reflect.Value)
+	discovers[WsStateURL] = map[string]reflect.Value{
+		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
+
+	core.Registry.RegisterDiscoverable(si, discovers)
+
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
 		si.ID(): si,
 	})

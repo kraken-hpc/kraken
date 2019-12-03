@@ -65,8 +65,9 @@
          CFG_READ    = 4; //unused
          CFG_UPDATE  = 5;
      }
-     string url = 1;
-     string value = 2;
+     Type type = 1;
+     string url = 2;
+     string value = 3;
  }
  
  message EventControl {
@@ -76,14 +77,11 @@
          Discovery   = 2;
      }
      Type type = 1;
-     StateChangeControl.Type SCCType = 2;
-     MutationControl.Type MCType = 3;
-     string module = 4;
-     string id = 5;
-     Node cfg = 6;
-     Node dsc = 7;
-     string url = 8;
-     string value = 9;
+     oneof event{
+        StateChangeControl stateChangeControl =2;
+        MutationControl mutationControl = 3;
+        DiscoveryEvent discoveryEvent =4;
+     }
  }
  
  message DiscoveryEvent {

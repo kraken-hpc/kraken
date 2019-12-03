@@ -373,42 +373,41 @@ func (s *APIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.API_EventIni
 		case lib.Event_STATE_MUTATION:
 			smev := v.Data().(*MutationEvent)
 			ec = &pb.EventControl{
-				Module:  smev.Mutation[0],
-				Id:      smev.Mutation[1],
-				Type:    pb.EventControl_Mutation,
-				SCCType: -1,
-				MCType:  smev.Type,
-				Cfg:     smev.NodeCfg.Message().(*pb.Node),
-				Dsc:     smev.NodeDsc.Message().(*pb.Node),
-				Url:     "",
-				Value:   "",
+				Type: pb.EventControl_Mutation,
+				Event: &pb.EventControl_MutationControl{
+					MutationControl: &pb.MutationControl{
+						Module: smev.Mutation[0],
+						Id:     smev.Mutation[1],
+						Type:   smev.Type,
+						Cfg:    smev.NodeCfg.Message().(*pb.Node),
+						Dsc:    smev.NodeDsc.Message().(*pb.Node),
+					},
+				},
 			}
 		case lib.Event_STATE_CHANGE:
 			scev := v.Data().(*StateChangeEvent)
 			s.Logf(lib.LLDEBUG, "api server got state change event: %+v\n%v", scev, scev.Value)
 			ec = &pb.EventControl{
-				Module:  "",
-				Id:      "",
-				Type:    pb.EventControl_StateChange,
-				SCCType: scev.Type,
-				MCType:  -1,
-				Cfg:     nil,
-				Dsc:     nil,
-				Url:     scev.URL,
-				Value:   lib.ValueToString(scev.Value),
+				Type: pb.EventControl_StateChange,
+				Event: &pb.EventControl_StateChangeControl{
+					StateChangeControl: &pb.StateChangeControl{
+						Type:  scev.Type,
+						Url:   scev.URL,
+						Value: lib.ValueToString(scev.Value),
+					},
+				},
 			}
 		case lib.Event_DISCOVERY:
 			dev := v.Data().(*DiscoveryEvent)
 			ec = &pb.EventControl{
-				Module:  dev.ID,
-				Id:      "",
-				Type:    pb.EventControl_Discovery,
-				SCCType: -1,
-				MCType:  -1,
-				Cfg:     nil,
-				Dsc:     nil,
-				Url:     dev.URL,
-				Value:   dev.ValueID,
+				Type: pb.EventControl_Discovery,
+				Event: &pb.EventControl_DiscoveryEvent{
+					DiscoveryEvent: &pb.DiscoveryEvent{
+						Id:      dev.ID,
+						Url:     dev.URL,
+						ValueId: dev.ValueID,
+					},
+				},
 			}
 		default:
 			s.Logf(lib.LLERROR, "Couldn't convert Event into mutation, statechange, or discovery: %+v", v)

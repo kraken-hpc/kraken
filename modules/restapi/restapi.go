@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -31,7 +32,6 @@ import (
 
 	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/restapi/proto"
-	wpb "github.com/hpc/kraken/modules/websocket/proto"
 )
 
 var _ lib.Module = (*RestAPI)(nil)
@@ -148,11 +148,14 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	host, _, _ := net.SplitHostPort(req.Host)
 	nself, _ := r.api.QueryRead(r.api.Self().String())
 
+	// Check if websocket module is running
 	services := nself.GetServices()
 	found := false
 	for _, srv := range services {
-		if srv.Module() == "websocket" {
-			found = true
+		if srv.Module() == "github.com/hpc/kraken/modules/websocket" {
+			if srv.State() == lib.Service_RUN {
+				found = true
+			}
 		}
 	}
 	if !found {
@@ -161,17 +164,32 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var wsConfig wpb.WebSocketConfig
-	if err := proto.Unmarshal(nself.GetService("websocket").Config().GetValue(), &wsConfig); err != nil {
-		r.api.Logf(lib.LLERROR, "Error getting websocket config. Is the websocket module running?: %v\n", err)
+	wsPort, e := nself.GetValue("/Services/websocket/Config/Port")
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "Error getting websocket port")
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	wsPort := wsConfig.GetPort()
-	json := fmt.Sprintf(`{"websocket": {"host": "%v", "port": "%v", "url": "%v"}}`, host, wsPort, "/ws")
-	var resp = []byte(json)
+
+	var response struct {
+		Host string `json:"host"`
+		Port string `json:"port"`
+		URL  string `json:"url"`
+	}
+
+	response.Host = host
+	response.Port = strconv.FormatInt(wsPort.Int(), 10)
+	response.URL = "/ws"
+
+	json, err := json.Marshal(response)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(resp)
-	r.api.Logf(lib.LLDDDEBUG, "Websocket redirecting to: %v", json)
+	w.Write(json)
+	r.api.Logf(lib.LLDDDEBUG, "Websocket redirecting to: %v", string(json))
 }
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
