@@ -31,7 +31,7 @@ These steps are assuming that Kraken is running and is built with the websocket 
 
 3. Once a websocket connection is established you can send a subscription request to subscribe to an event stream. Here's another javascript example:
     ```javascript
-    this.websocket.send(JSON.stringify({ command: 'SUBSCRIBE', type: 'STATE_CHANGE' }))
-    this.websocket.send(JSON.stringify({ command: 'SUBSCRIBE', type: 'STATE_MUTATION' }))
-    this.websocket.send(JSON.stringify({ command: 'SUBSCRIBE', type: 'DISCOVERY' }))
+    this.websocket.send("{ \"command\": \"SUBSCRIBE\", \"type\": \"STATE_CHANGE\" }")
+    this.websocket.send("{ \"command\": \"SUBSCRIBE\", \"type\": \"STATE_MUTATION\" }")
+    this.websocket.send("{ \"command\": \"SUBSCRIBE\", \"type\": \"DISCOVERY\" }")
     ```

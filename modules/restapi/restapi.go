@@ -164,6 +164,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Get port from websocket module config
 	wsPort, e := nself.GetValue("/Services/websocket/Config/Port")
 	if e != nil {
 		r.api.Logf(lib.LLERROR, "Error getting websocket port")
@@ -176,7 +177,6 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 		Port string `json:"port"`
 		URL  string `json:"url"`
 	}
-
 	response.Host = host
 	response.Port = strconv.FormatInt(wsPort.Int(), 10)
 	response.URL = "/ws"
