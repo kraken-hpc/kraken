@@ -145,7 +145,6 @@ func (w *WebSocket) handleEvent(ev lib.Event) {
 	nodeID, url := lib.NodeURLSplit(ev.URL())
 	switch ev.Type() {
 	case lib.Event_STATE_MUTATION:
-		// w.api.Logf(lib.LLDEBUG, "got mutation event: %+v\n", ev.Data().(*core.MutationEvent).String())
 		payload = &Payload{
 			Type:   ev.Type(),
 			URL:    url,
@@ -154,7 +153,6 @@ func (w *WebSocket) handleEvent(ev lib.Event) {
 			Value:  ev.Data().(*core.MutationEvent).Mutation[1],
 		}
 	case lib.Event_STATE_CHANGE:
-		// w.api.Logf(lib.LLDEBUG, "got state change event: %+v\n", ev.Data().(*core.StateChangeEvent).Value.Interface())
 		payload = &Payload{
 			Type:   ev.Type(),
 			URL:    url,
@@ -163,7 +161,6 @@ func (w *WebSocket) handleEvent(ev lib.Event) {
 			Value:  lib.ValueToString(ev.Data().(*core.StateChangeEvent).Value),
 		}
 	case lib.Event_DISCOVERY:
-		// w.api.Logf(lib.LLDEBUG, "got discovery event: %+v\n", ev.Data().(*core.DiscoveryEvent).String())
 		payload = &Payload{
 			Type:   ev.Type(),
 			URL:    url,
