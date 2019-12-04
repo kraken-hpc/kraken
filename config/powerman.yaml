@@ -15,4 +15,5 @@ extensions:
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
+  - github.com/hpc/kraken/modules/websocket
   - github.com/hpc/kraken/modules/powermancontrol

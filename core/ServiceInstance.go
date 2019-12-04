@@ -188,6 +188,17 @@ func ModuleExecute(id, module, sock string) {
 		mm.SetMutationChan(cc)
 	}
 
+	// Setup event stream if we need it
+	me, ok := m.(lib.ModuleWithAllEvents)
+	if ok {
+		cc, e := api.EventInit(id, module)
+		if e != nil {
+			api.Logf(ERROR, "failed to create event stream: %v\n", e)
+			return
+		}
+		me.SetEventsChan(cc)
+	}
+
 	// Setup discovery stream if we need it
 	md, ok := m.(lib.ModuleWithDiscovery)
 	if ok {

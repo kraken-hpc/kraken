@@ -246,7 +246,7 @@ func (a *APIClient) MutationInit(id string, module string) (c <-chan lib.Event, 
 		for {
 			var mc *pb.MutationControl
 			if mc, e = stream.(pb.API_MutationInitClient).Recv(); e != nil {
-				fmt.Printf("got stream read error on mutation stream: %v\n", e)
+				a.Logf(lib.LLERROR, "got stream read error on mutation stream: %v\n", e)
 				return
 			}
 			cfg := NewNodeFromMessage(mc.GetCfg())
@@ -260,6 +260,60 @@ func (a *APIClient) MutationInit(id string, module string) (c <-chan lib.Event, 
 					NodeDsc:  dsc,
 					Mutation: [2]string{mc.GetModule(), mc.GetId()},
 				})
+		}
+	}()
+	c = cc
+	return
+}
+
+func (a *APIClient) EventInit(id string, module string) (c <-chan lib.Event, e error) {
+	var stream grpc.ClientStream
+	if stream, e = a.serverStream("EventInit", reflect.ValueOf(&pb.ServiceInitRequest{Id: id, Module: module})); e != nil {
+		return
+	}
+	cc := make(chan lib.Event)
+	go func() {
+		for {
+			var ec *pb.EventControl
+			if ec, e = stream.(pb.API_EventInitClient).Recv(); e != nil {
+				a.Logf(lib.LLERROR, "got stream read error on event stream: %v\n", e)
+				return
+			}
+			switch ec.GetType() {
+			case pb.EventControl_Mutation:
+				event := ec.GetMutationControl()
+				cfg := NewNodeFromMessage(event.GetCfg())
+				dsc := NewNodeFromMessage(event.GetDsc())
+				cc <- NewEvent(
+					lib.Event_STATE_MUTATION,
+					cfg.ID().String(),
+					&MutationEvent{
+						Type:     event.GetType(),
+						NodeCfg:  cfg,
+						NodeDsc:  dsc,
+						Mutation: [2]string{event.GetModule(), event.GetId()},
+					})
+			case pb.EventControl_StateChange:
+				event := ec.GetStateChangeControl()
+				cc <- NewEvent(
+					lib.Event_STATE_CHANGE,
+					event.GetUrl(),
+					&StateChangeEvent{
+						Type:  event.GetType(),
+						URL:   event.GetUrl(),
+						Value: reflect.ValueOf(event.GetValue()),
+					})
+			case pb.EventControl_Discovery:
+				event := ec.GetDiscoveryEvent()
+				cc <- NewEvent(
+					lib.Event_DISCOVERY,
+					event.GetUrl(),
+					&DiscoveryEvent{
+						ID:      event.GetId(),
+						URL:     event.GetUrl(),
+						ValueID: event.GetValueId(),
+					})
+			}
 		}
 	}()
 	c = cc

@@ -16,19 +16,28 @@
           }
         },
         {
+          "id": "websocket",
+          "module": "github.com/hpc/kraken/modules/websocket",
+          "state": "RUN",
+          "config": {
+            "@type": "type.googleapis.com/proto.WebSocketConfig",
+            "port": 3142
+          }
+        },
+        {
           "id": "vboxmanage",
           "module": "github.com/hpc/kraken/modules/vboxmanage",
           "state": "RUN",
-	  "config": {
-	    "@type": "type.googleapis.com/proto.VBMConfig",
-	    "servers": {
-	      "vbm": {
-	        "name": "vbm",
-		"ip": "192.168.57.1",
-		"port": 8269
-	      }
-	    }
-	  }
+          "config": {
+            "@type": "type.googleapis.com/proto.VBMConfig",
+            "servers": {
+              "vbm": {
+                "name": "vbm",
+                "ip": "192.168.57.1",
+                "port": 8269
+              }
+            }
+          }
         },
         {
           "id": "pxe",
@@ -39,20 +48,20 @@
       "extensions": [
         {
           "@type": "type.googleapis.com/proto.IPv4OverEthernet",
-	  "ifaces": [
-	    {
-	      "eth": {
-	        "iface": "eth2",
-		"mac": "CAAnkXQ8",
-		"mtu": 1500,
-		"control": false
-	      },
-	      "ip": {
-	        "ip": "CgsMAQ==",
-		"subnet": "////AA=="
-	      }
-	    }
-	  ]
+          "ifaces": [
+            {
+              "eth": {
+                "iface": "eth2",
+                "mac": "CAAnkXQ8",
+                "mtu": 1500,
+                "control": false
+              },
+              "ip": {
+                "ip": "CgsMAQ==",
+                "subnet": "////AA=="
+              }
+            }
+          ]
         },
         {
           "@type": "type.googleapis.com/proto.VBox"

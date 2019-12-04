@@ -16,9 +16,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -109,6 +111,7 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/graph/json", r.readGraphJSON).Methods("GET")
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
 	r.router.HandleFunc("/enumerables", r.getAllEnums).Methods("GET")
+	r.router.HandleFunc("/ws", r.webSocketRedirect).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -139,6 +142,55 @@ func (r *RestAPI) srvStop() {
 /*
  * Route handlers
  */
+
+func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	host, _, _ := net.SplitHostPort(req.Host)
+	nself, _ := r.api.QueryRead(r.api.Self().String())
+
+	// Check if websocket module is running
+	services := nself.GetServices()
+	found := false
+	for _, srv := range services {
+		if srv.Module() == "github.com/hpc/kraken/modules/websocket" {
+			if srv.State() == lib.Service_RUN {
+				found = true
+			}
+		}
+	}
+	if !found {
+		r.api.Logf(lib.LLERROR, "Got websocket request, but websocket module isn't running")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Get port from websocket module config
+	wsPort, e := nself.GetValue("/Services/websocket/Config/Port")
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "Error getting websocket port")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	var response struct {
+		Host string `json:"host"`
+		Port string `json:"port"`
+		URL  string `json:"url"`
+	}
+	response.Host = host
+	response.Port = strconv.FormatInt(wsPort.Int(), 10)
+	response.URL = "/ws"
+
+	json, err := json.Marshal(response)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(json)
+	r.api.Logf(lib.LLDDDEBUG, "Websocket redirecting to: %v", string(json))
+}
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()

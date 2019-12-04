@@ -112,7 +112,9 @@ func (v *EventDispatchEngine) sendEvents(evs []lib.Event) {
 	defer v.lock.RUnlock()
 	for _, ev := range evs {
 		for _, el := range v.lists {
-			if ev.Type() == el.Type() {
+			if el.Type() == lib.Event_ALL {
+				el.Send(ev)
+			} else if ev.Type() == el.Type() {
 				el.Send(ev)
 			}
 		}
