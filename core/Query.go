@@ -212,7 +212,7 @@ func (q *QueryEngine) Thaw() (e error) {
 
 func (q *QueryEngine) Frozen() (b bool, e error) {
 	query, r := NewQuery(
-		lib.Query_FREEZE,
+		lib.Query_FROZEN,
 		lib.QueryState_BOTH,
 		"",
 		[]reflect.Value{})
