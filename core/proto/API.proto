@@ -19,9 +19,10 @@
      oneof payload {
          Node node = 2;
          string text = 3;
-         MutationNodeList mutationNodeList = 4;
-         MutationEdgeList mutationEdgeList = 5;
-         MutationPath mutationPath = 6;
+         bool bool = 4;
+         MutationNodeList mutationNodeList = 5;
+         MutationEdgeList mutationEdgeList = 6;
+         MutationPath mutationPath = 7;
      }
  }
  

@@ -279,6 +279,20 @@ func (s *APIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *p
 	return
 }
 
+func (s *APIServer) QueryFreeze(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	e = s.query.Freeze()
+	return nil, e
+}
+func (s *APIServer) QueryThaw(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	e = s.query.Thaw()
+	return nil, e
+}
+func (s *APIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	rb, e := s.query.Frozen()
+	out.Payload = &pb.Query_Bool{Bool: rb}
+	return
+}
+
 /*
  * Service management
  */

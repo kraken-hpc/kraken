@@ -190,6 +190,37 @@ func (q *QueryEngine) ReadNodeMutationPath(url string) (mc pb.MutationPath, e er
 	return v[0].Interface().(pb.MutationPath), e
 }
 
+func (q *QueryEngine) Freeze() (e error) {
+	query, r := NewQuery(
+		lib.Query_FREEZE,
+		lib.QueryState_BOTH,
+		"",
+		[]reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return
+}
+
+func (q *QueryEngine) Thaw() (e error) {
+	query, r := NewQuery(
+		lib.Query_THAW,
+		lib.QueryState_BOTH,
+		"",
+		[]reflect.Value{})
+	_, e = q.blockingQuery(query, r)
+	return
+}
+
+func (q *QueryEngine) Frozen() (b bool, e error) {
+	query, r := NewQuery(
+		lib.Query_FREEZE,
+		lib.QueryState_BOTH,
+		"",
+		[]reflect.Value{})
+	rb, e := q.blockingQuery(query, r)
+
+	return rb[0].Interface().(bool), e
+}
+
 // Update will update a node in the Engine's Cfg store
 func (q *QueryEngine) Update(n lib.Node) (nc lib.Node, e error) {
 	query, r := NewQuery(

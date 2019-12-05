@@ -204,6 +204,26 @@ func (a *APIClient) QueryDeleteAll() (r []lib.Node, e error) {
 	}
 	return
 }
+func (a *APIClient) QueryFreeze() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("QueryFreeze", reflect.ValueOf(q))
+	return
+}
+func (a *APIClient) QueryThaw() (e error) {
+	q := &empty.Empty{}
+	_, e = a.oneshot("QueryThaw", reflect.ValueOf(q))
+	return
+}
+
+func (a *APIClient) QueryFrozen() (r bool, e error) {
+	q := &empty.Empty{}
+	rv, e := a.oneshot("QueryFrozen", reflect.ValueOf(q))
+	if e != nil {
+		return
+	}
+	r = rv.Interface().(*pb.Query).GetBool()
+	return
+}
 
 func (a *APIClient) ServiceInit(id string, module string) (c <-chan lib.ServiceControl, e error) {
 	var stream grpc.ClientStream
