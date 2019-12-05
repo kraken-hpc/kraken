@@ -1,0 +1,39 @@
+/* rfthermaldiscovery.proto: describes the rfdiscovery object
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message RFDiscoveryConfig {
+    map<string, RFDiscoveryServer> servers = 1;
+    string ip_url = 2;
+    string agg_url = 3;
+    string polling_interval = 4;
+    map<string, RFThermalThresholds> rf_thermal_thresholds = 5;
+    
+}
+
+message RFDiscoveryServer {
+    string name = 1;
+    string ip    = 2;
+    string port = 3;
+    int32 req_timeout = 4;
+}
+
+message RFThermalThresholds {
+    int32 lower_normal = 1;
+    int32 upper_normal = 2;
+
+    int32 lower_high = 3;
+    int32 upper_high = 4;
+
+    int32 lower_critical = 5;
+    int32 upper_critical = 6;
+
+}
