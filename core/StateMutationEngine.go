@@ -504,6 +504,33 @@ func (sme *StateMutationEngine) Run() {
 				go sme.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(pmp)}, e), q.ResponseChan())
 				break
+			case lib.Query_FREEZE:
+				sme.Freeze()
+				if sme.Frozen() {
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{}, nil), q.ResponseChan())
+				} else {
+					e := fmt.Errorf("sme failed to freeze")
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{}, e), q.ResponseChan())
+				}
+				break
+			case lib.Query_THAW:
+				sme.Thaw()
+				if !sme.Frozen() {
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{}, nil), q.ResponseChan())
+				} else {
+					e := fmt.Errorf("sme failed to thaw")
+					go sme.sendQueryResponse(NewQueryResponse(
+						[]reflect.Value{}, e), q.ResponseChan())
+				}
+				break
+			case lib.Query_FROZEN:
+				f := sme.Frozen()
+				go sme.sendQueryResponse(NewQueryResponse(
+					[]reflect.Value{reflect.ValueOf(f)}, nil), q.ResponseChan())
+				break
 			default:
 				sme.Logf(DEBUG, "unsupported query type: %d", q.Type())
 			}

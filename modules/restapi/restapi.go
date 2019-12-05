@@ -50,6 +50,10 @@ type GraphJson struct {
 	Edges []*cpb.MutationEdge `json:"edges"`
 }
 
+type Frozen struct {
+	Frozen bool `json:"frozen"`
+}
+
 func (r *RestAPI) Entry() {
 	r.setupRouter()
 	for {
@@ -112,6 +116,9 @@ func (r *RestAPI) setupRouter() {
 	r.router.HandleFunc("/graph/node/{id}/json", r.readNodeGraphJSON).Methods("GET")
 	r.router.HandleFunc("/enumerables", r.getAllEnums).Methods("GET")
 	r.router.HandleFunc("/ws", r.webSocketRedirect).Methods("GET")
+	r.router.HandleFunc("/sme/freeze", r.freeze).Methods("GET")
+	r.router.HandleFunc("/sme/thaw", r.thaw).Methods("GET")
+	r.router.HandleFunc("/sme/frozen", r.frozen).Methods("GET")
 }
 
 func (r *RestAPI) startServer() {
@@ -607,6 +614,68 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 	b, _ := core.MarshalJSON(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
+}
+
+func (r *RestAPI) freeze(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	e := r.api.QueryFreeze()
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "error freezing sme: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp := &Frozen{
+		Frozen: true,
+	}
+	json, err := json.Marshal(resp)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(json)
+}
+func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	e := r.api.QueryThaw()
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "error thawing sme: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp := &Frozen{
+		Frozen: false,
+	}
+	json, err := json.Marshal(resp)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(json)
+}
+func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	f, e := r.api.QueryFrozen()
+	if e != nil {
+		r.api.Logf(lib.LLERROR, "error getting state of sme: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp := &Frozen{
+		Frozen: f,
+	}
+	json, err := json.Marshal(resp)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Write(json)
 }
 
 func init() {
