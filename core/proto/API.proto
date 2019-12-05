@@ -154,6 +154,9 @@
      rpc QueryNodeMutationEdges(Query) returns (Query) {}    
      rpc QueryNodeMutationPath(Query) returns (Query) {}    
      rpc QueryDeleteAll(google.protobuf.Empty) returns (QueryMulti) {}
+     rpc QueryFreeze(google.protobuf.Empty)returns (Query) {}
+     rpc QueryThaw(google.protobuf.Empty)returns (Query) {}
+     rpc QueryFrozen(google.protobuf.Empty)returns (Query) {}    
  
      // Service management
      rpc ServiceInit(ServiceInitRequest) returns (stream ServiceControl) {}
