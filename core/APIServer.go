@@ -288,6 +288,7 @@ func (s *APIServer) QueryThaw(ctx context.Context, in *empty.Empty) (out *pb.Que
 	return
 }
 func (s *APIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+	out = &pb.Query{}
 	rb, e := s.query.Frozen()
 	fmt.Printf("response from frozen: %v %v", rb, e)
 	out.Payload = &pb.Query_Bool{Bool: rb}
