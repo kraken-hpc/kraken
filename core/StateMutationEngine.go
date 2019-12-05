@@ -527,8 +527,9 @@ func (sme *StateMutationEngine) Run() {
 				}
 				break
 			case lib.Query_FROZEN:
+				f := reflect.ValueOf(sme.Frozen())
 				go sme.sendQueryResponse(NewQueryResponse(
-					[]reflect.Value{reflect.ValueOf(sme.Frozen())}, nil), q.ResponseChan())
+					[]reflect.Value{f}, nil), q.ResponseChan())
 				break
 			default:
 				sme.Logf(DEBUG, "unsupported query type: %d", q.Type())
