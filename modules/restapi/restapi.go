@@ -50,6 +50,10 @@ type GraphJson struct {
 	Edges []*cpb.MutationEdge `json:"edges"`
 }
 
+type Frozen struct {
+	Frozen bool `json:"frozen"`
+}
+
 func (r *RestAPI) Entry() {
 	r.setupRouter()
 	for {
@@ -620,9 +624,17 @@ func (r *RestAPI) freeze(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	resp := &Frozen{
+		Frozen: true,
+	}
+	json, err := json.Marshal(resp)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	return
+	w.Write(json)
 }
 func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
@@ -632,9 +644,17 @@ func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	resp := &Frozen{
+		Frozen: false,
+	}
+	json, err := json.Marshal(resp)
+	if err != nil {
+		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	return
+	w.Write(json)
 }
 func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
@@ -645,11 +665,9 @@ func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var resp struct {
-		Frozen bool `json:"frozen"`
+	resp := &Frozen{
+		Frozen: f,
 	}
-	resp.Frozen = f
-
 	json, err := json.Marshal(resp)
 	if err != nil {
 		r.api.Logf(lib.LLERROR, "Error marshaling response")
