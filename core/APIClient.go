@@ -417,7 +417,7 @@ func (a *APIClient) oneshot(call string, in reflect.Value) (out reflect.Value, e
 	defer conn.Close()
 	c := pb.NewAPIClient(conn)
 	fv := reflect.ValueOf(c).MethodByName(call)
-	if fv.IsNil() {
+	if !fv.IsValid() {
 		e = fmt.Errorf("no such API call: %s", call)
 		return
 	}
