@@ -1220,15 +1220,13 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			// let's print something, and then pretend it *is* new
 			sme.Log(DEBUG, "what?! we got a CREATE event for a node with an existing mutation")
 			sme.activeMutex.Lock()
-			if ok {
-				m := sme.active[node]
-				m.mutex.Lock()
-				if m.timer != nil {
-					m.timer.Stop()
-				}
-				m.mutex.Unlock()
+			m := sme.active[node]
+			m.mutex.Lock()
+			if m.timer != nil {
+				m.timer.Stop()
 			}
 			delete(sme.active, node)
+			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
 		}
 		sme.startNewMutation(node)
