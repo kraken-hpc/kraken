@@ -1039,7 +1039,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 				}
 			} else {
 				// add to our rewind
-				rewind[url] = mvs[0]
+				rewind[murl] = mvs[0]
 			}
 		}
 		if found {
