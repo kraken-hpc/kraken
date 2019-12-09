@@ -941,19 +941,99 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 	d := p.chain[p.cur].mut.FailTo()
 	sme.Logf(INFO, "mutation timeout for %s, emitting: %s:%s:%s", nid.String(), d[0], d[1], d[2])
 
-	// reset all mutators to zero, except the failure mutator
-	// FIXME: setting things without discovery isn't very polite
-	node, _ := sme.query.ReadDsc(nid)
+	// try devolve first
+	val, ok := Registry.Discoverables[d[0]][d[1]][d[2]]
+	if !ok {
+		sme.Logf(ERROR, "could not find value %v:%v:%v in discoverables registry", d[0], d[1], d[2])
+		return
+	}
+
+	rewind, i, err := sme.devolve(p, d[1], val)
+
+	n, e := sme.query.ReadDsc(nid)
+	if e != nil {
+		// ok, I give up.  The node has just disappeared.
+		sme.Logf(ERROR, "%s node unexpectly disappeared", nid.String())
+		return
+	}
+	nc, e := sme.query.Read(nid)
+	if e != nil {
+		// ok, I give up.  The node has just disappeared.
+		sme.Logf(ERROR, "%s node unexpectly disappeared", nid.String())
+		return
+	}
+
+	// this is a devolution
+	if err == nil {
+		// ok, let's devolve
+		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", nid, p.cur-i)
+
+		n.SetValues(rewind)
+		p.chain = append(p.chain[:p.cur+1], p.chain[i:]...)
+		sme.advanceMutation(nid.String(), p)
+		return
+	}
+
+	// We couldn't devolve so...
+	// Create fake lib.node with our failto and all non-mutators (sme.requires).
+	// These non-mutators do not exist in the dsc (platform for example) so we have to pull from the cfg node
+	fn := NewNodeWithID(n.ID().String())
 	sme.graphMutex.RLock()
-	for m := range sme.mutators {
-		if m == d[1] {
+	for r := range sme.requires {
+		if r == d[1] {
 			continue
 		}
-		v, _ := node.GetValue(m)
-		node.SetValue(m, reflect.Zero(v.Type()))
+		v, _ := nc.GetValue(r)
+		fn.SetValue(r, v)
 	}
 	sme.graphMutex.RUnlock()
-	sme.query.UpdateDsc(node)
+	fn.SetValue(d[1], val)
+
+	// get all possible mutation nodes for this fake lib.node
+	pns := sme.nodeSearch(fn)
+
+	if len(pns) == 0 {
+		// we didn't find any possible mutation nodes so let's give up and set all mutators to zero
+		sme.Logf(DEBUG, "failed to find possible mutation node for %s. Resetting all mutators to zero", nid)
+
+		// reset all mutators to zero, except the failure mutator
+		// FIXME: setting things without discovery isn't very polite
+		node, _ := sme.query.ReadDsc(nid)
+		sme.graphMutex.RLock()
+		for m := range sme.mutators {
+			if m == d[1] {
+				continue
+			}
+			v, _ := node.GetValue(m)
+			node.SetValue(m, reflect.Zero(v.Type()))
+		}
+		sme.graphMutex.RUnlock()
+		sme.query.UpdateDsc(node)
+
+	} else {
+		// we found some possible mutation nodes for our fake lib.node. Lets just take the first one and force our lib.node to match it.
+		sme.Logf(DEBUG, "found a matching mutation node for %s. Setting mutators to equal mutation node's requires: %v", nid, pns[0].spec.Requires())
+
+		// loop through all the mutators
+		// if the mutator is the failto, skip
+		// if the mutator is in the requires of this mutation node, set it to whatever it requires
+		// if the mutator isn't either of those, set it to zero
+		sme.graphMutex.RLock()
+		for m := range sme.mutators {
+			if m == d[1] {
+				continue
+			}
+			if val, ok := pns[0].spec.Requires()[m]; ok {
+				n.SetValue(m, val)
+			} else {
+				v, _ := n.GetValue(m)
+				n.SetValue(m, reflect.Zero(v.Type()))
+			}
+		}
+		sme.graphMutex.RUnlock()
+		sme.query.UpdateDsc(n)
+
+	}
 
 	// now send a discover to whatever failed state
 	url := lib.NodeURLJoin(nid.String(), d[1])
@@ -1004,25 +1084,11 @@ func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
 	}
 }
 
-// handleUnexpected deals with unexpected events in updateMutaion
-// Logic:
-// 1) did we regress to a previous point in the chain?  devolve.
-// 2) no? can we find a direct path?
-// 3) no? give up, declare everything (except the unexpected discovery) unknown
-// LOCKS: !!! this does *not* lock the mutationPath, it assumes it is already locked by the calling function
-// (generally updateMutation)
-func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.Value) {
-	sme.activeMutex.Lock()
-	m, ok := sme.active[node]
-	sme.activeMutex.Unlock()
-	if !ok {
-		// there's no existing mutation chain
-		// shouldn't really happen
-		sme.startNewMutation(node)
-		return
-	}
-	m.cmplt = false
-
+// devolve will reverse through a mutation path until it gets to the desired url and val.
+// If it succeeds, it will return a map of urls to values that need to be set to devolve and the index of the devolve point in the mutation chain.
+// If it fails to devolve, it will return an error.
+// LOCKS: This assumes mutation path has been locked
+func (sme *StateMutationEngine) devolve(m *mutationPath, url string, val reflect.Value) (map[string]reflect.Value, int, error) {
 	rewind := make(map[string]reflect.Value)
 	// starting from the current position, look backwards in the chain
 	// have we seen this value before?  Maybe we need to reset to that point...
@@ -1047,6 +1113,34 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		}
 	}
 
+	if found {
+		return rewind, i, nil
+	}
+	e := fmt.Errorf("could not find desired url in mutation path for devolve")
+	return nil, 0, e
+}
+
+// handleUnexpected deals with unexpected events in updateMutation
+// Logic:
+// 1) did we regress to a previous point in the chain?  devolve.
+// 2) no? can we find a direct path?
+// 3) no? give up, declare everything (except the unexpected discovery) unknown
+// LOCKS: !!! this does *not* lock the mutationPath, it assumes it is already locked by the calling function
+// (generally updateMutation)
+func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.Value) {
+	sme.activeMutex.Lock()
+	m, ok := sme.active[node]
+	sme.activeMutex.Unlock()
+	if !ok {
+		// there's no existing mutation chain
+		// shouldn't really happen
+		sme.startNewMutation(node)
+		return
+	}
+	m.cmplt = false
+
+	rewind, i, err := sme.devolve(m, url, val)
+
 	// this is a bit bad.  We don't want to get our own state changes, so we change the node directly
 	nid := NewNodeIDFromURL(node)
 	n, e := sme.query.ReadDsc(nid)
@@ -1057,7 +1151,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 	}
 
 	// this is a devolution
-	if found {
+	if err == nil {
 		// ok, let's devolve
 		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
 
