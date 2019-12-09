@@ -921,6 +921,10 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", p.chain[p.cur].mut.Timeout().String())
 		sme.emitMutation(end, start, p.chain[p.cur].mut)
 		if p.chain[p.cur].mut.Timeout() != 0 {
+			if p.timer != nil {
+				// Stop old timer if it exists
+				p.timer.Stop()
+			}
 			p.timer = time.AfterFunc(p.chain[p.cur].mut.Timeout(), func() { sme.emitFail(start, p) })
 		}
 	} else {
@@ -989,6 +993,10 @@ func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
 		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
 		sme.emitMutation(m.end, m.start, m.chain[m.cur].mut)
 		if m.chain[m.cur].mut.Timeout() != 0 {
+			if m.timer != nil {
+				// Stop old timer if it exists
+				m.timer.Stop()
+			}
 			m.timer = time.AfterFunc(m.chain[m.cur].mut.Timeout(), func() { sme.emitFail(m.start, m) })
 		}
 	} else {
@@ -1212,6 +1220,14 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			// let's print something, and then pretend it *is* new
 			sme.Log(DEBUG, "what?! we got a CREATE event for a node with an existing mutation")
 			sme.activeMutex.Lock()
+			if ok {
+				m := sme.active[node]
+				m.mutex.Lock()
+				if m.timer != nil {
+					m.timer.Stop()
+				}
+				m.mutex.Unlock()
+			}
 			delete(sme.active, node)
 			sme.activeMutex.Unlock()
 		}
@@ -1221,6 +1237,9 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			sme.activeMutex.Lock()
 			m := sme.active[node]
 			m.mutex.Lock()
+			if m.timer != nil {
+				m.timer.Stop()
+			}
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
@@ -1233,6 +1252,9 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			sme.activeMutex.Lock()
 			m := sme.active[node]
 			m.mutex.Lock()
+			if m.timer != nil {
+				m.timer.Stop()
+			}
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
