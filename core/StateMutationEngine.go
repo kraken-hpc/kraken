@@ -983,7 +983,10 @@ func (sme *StateMutationEngine) emitFail(start lib.Node, p *mutationPath) {
 		if r == d[1] {
 			continue
 		}
-		v, _ := nc.GetValue(r)
+		v, e := n.GetValue(r)
+		if e != nil {
+			v, _ = nc.GetValue(r)
+		}
 		fn.SetValue(r, v)
 	}
 	sme.graphMutex.RUnlock()
