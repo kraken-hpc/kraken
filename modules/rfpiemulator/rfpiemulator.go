@@ -100,11 +100,8 @@ func ReadCPUTemp() int {
 	return cpuTempInt
 }
 
-/***********/
 
 const (
-	// HostThermalStateURL points to Thermal extension
-	//HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/rfpiemulator/State"
 )
@@ -130,8 +127,6 @@ func (*RFPiEmu) Name() string { return "github.com/hpc/kraken/modules/rfpiemulat
 func (*RFPiEmu) NewConfig() proto.Message {
 	localIP := GetNodeIPAddress()
 	r := &pb.HostDiscoveryConfig{
-		//PollingInterval: "10s",
-		//TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
 		EmulatorIp: localIP,
 		EmulatorPort: "8000"
 	}
@@ -161,15 +156,7 @@ func (rfPiEmu *RFPiEmu) SetDiscoveryChan(c chan<- lib.Event) { rfPiEmu.dchan = c
 func init() {
 	module := &RFPiEmu{}
 	discovers := make(map[string]map[string]reflect.Value)
-	// hostThermDisc := make(map[string]reflect.Value)
-
-	// hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
-	// hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
-	// hostThermDisc[thpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_HIGH)
-	// hostThermDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
-
-	// discovers[HostThermalStateURL] = hostThermDisc
-
+	
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
@@ -311,12 +298,9 @@ func randTemperature(min, max float64) float64 {
 
 // CPU power usage
 func GetCPUTemp(w http.ResponseWriter, r *http.Request) {
-	// count++
-	// println(count)
+	
 	hostIP := GetNodeIPAddress()
-	//fmt.Println(hostIP)
-	//log.Println("\nCPU temperature\n")
-
+	
 	// Its a mockup CPU temperature
 	cpuTempObj := new(CPUTempObj)
 	cpuTempObj.TimeStamp = time.Now()
