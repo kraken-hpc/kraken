@@ -1,0 +1,16 @@
+/* rfpiemulator.proto: describes the hostdiscovery object
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+ 
+ message RFEmulatorConfig {
+     string emulator_ip = 1;
+     string emulator_port = 2;
+ }
