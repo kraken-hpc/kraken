@@ -1,4 +1,4 @@
-/* rfpiemulator.proto: describes the hostdiscovery object
+/* rfpiemulator.proto: describes the configs for emulator IP and port object
  *
  * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -13,4 +13,8 @@
  message RFEmulatorConfig {
      string emulator_ip = 1;
      string emulator_port = 2;
+     string temp_sensor_path = 3;
+     string freq_sensor_path = 4;
+     string pwr_sensor_path = 5;
+
  }

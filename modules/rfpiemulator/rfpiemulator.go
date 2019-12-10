@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math"
 	"math/rand"
 	"net"
@@ -25,30 +24,33 @@ import (
 	pb "github.com/hpc/kraken/modules/rfpiemulator/proto"
 )
 
-var count int
-
+// CPUTempObj CPU Temp object
 type CPUTempObj struct {
 	TimeStamp   time.Time
 	HostAddress string
 	CPUTemp     int
 }
 
+//CPUPower CPU power object
 type CPUPower struct {
-	Socket1_CPUPowerUsage float64 `json:"socket1_cpupowerusage"`
-	Socket2_CPUPowerUsage float64 `json:"socket2_cpupowerusage"`
+	Socket1CPUPowerUsage float64 `json:"socket1cpupowerusage"`
+	Socket2CPUPowerUsage float64 `json:"socket2cpupowerusage"`
 }
 
+// MemPower socket level representation
 type MemPower struct {
-	Socket1_MemPowerUsage float64 `json:"socket1_mempowerusage"`
-	Socket2_MemPowerUsage float64 `json:"socket2_mempowerusage"`
+	Socket1MemPowerUsage float64 `json:"socket1mempowerusage"`
+	Socket2MemPowerUsage float64 `json:"socket2mempowerusage"`
 }
 
+//CPUPowerObj CPU power object
 type CPUPowerObj struct {
 	TimeStamp     time.Time
 	HostAddress   string
 	CPUPowerUsage CPUPower
 }
 
+//MemPowerObj memory object
 type MemPowerObj struct {
 	TimeStamp     time.Time `json:"timestamp"`
 	HostAddress   string    `json:"hostaddress"`
@@ -59,16 +61,7 @@ type payLoad struct {
 	ResetType string
 }
 
-func check(e error) {
-	if e != nil {
-		println(e)
-		//panic(e)
-	}
-}
-
-// Data structure for CPU Frequency Scaling
-
-// Payload for CPU performance scaling request
+// CPUPerfScalingReq Payload for CPU performance scaling request
 type CPUPerfScalingReq struct {
 	ScalingGovernor  string   `json:"scalinggovernor"`
 	ScalingMinFreq   int      `json:"scalingminfreq"`
@@ -77,7 +70,7 @@ type CPUPerfScalingReq struct {
 	Timeout          int      `json:"timeout,omitempty"`
 }
 
-// CPU performance scaling response structure
+//CPUPerfScalingResp  structure
 type CPUPerfScalingResp struct {
 	TimeStamp          time.Time `json:"timestamp"`
 	HostAddress        string    `json:"hostaddress"`
@@ -89,16 +82,6 @@ type CPUPerfScalingResp struct {
 	CPUCurFreq int `json:"cpucurfreq"`
 	CPUMinFreq int `json:"cpuminfreq"`
 	CPUMaxFreq int `json:"cpumaxfreq"`
-}
-
-func ReadCPUTemp() int {
-
-	tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
-	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
-	check(err)
-	cpuTempInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
-	check(e)
-	return cpuTempInt
 }
 
 const (
@@ -117,7 +100,6 @@ type RFPiEmu struct {
 	api      lib.APIClient
 	cfg      *pb.RFEmulatorConfig
 	dchan    chan<- lib.Event
-	//pollTicker *time.Ticker
 }
 
 // Name returns the FQDN of the module
@@ -125,10 +107,13 @@ func (*RFPiEmu) Name() string { return "github.com/hpc/kraken/modules/rfpiemulat
 
 // NewConfig returns a fully initialized default config
 func (*RFPiEmu) NewConfig() proto.Message {
-	localIP := GetNodeIPAddress()
+	localIP := rfPiEmu.GetNodeIPAddress()
 	r := &pb.RFEmulatorConfig{
-		EmulatorIp:   localIP,
-		EmulatorPort: "8000",
+		EmulatorIp:     localIP,
+		EmulatorPort:   "8000",
+		TempSensorPath: "/sys/devices/virtual/thermal/thermal_zone0/temp",
+		FreqSensorPath: "/sys/devices/system/cpu/cpufreq/policy0/",
+		PwrSensorPath:  "",
 	}
 	return r
 }
@@ -195,22 +180,22 @@ func (rfPiEmu *RFPiEmu) Entry() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Processors/power", GetProcessorPowerUsage).Methods(http.MethodGet)
-	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Memory/power", GetMemoryPowerUsage).Methods(http.MethodGet)
+	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Processors/power", rfPiEmu.GetProcessorPowerUsage).Methods(http.MethodGet)
+	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Memory/power", rfPiEmu.GetMemoryPowerUsage).Methods(http.MethodGet)
 
-	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/Thermal", GetCPUTemp).Methods(http.MethodGet)
-	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/ScaleCPUFreq", ScaleCPUFreq).Methods(http.MethodPut)
-	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Actions/Reset", NodePowerControl).Methods(http.MethodPut)
+	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/Thermal", rfPiEmu.GetCPUTemp).Methods(http.MethodGet)
+	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/ScaleCPUFreq", rfPiEmu.ScaleCPUFreq).Methods(http.MethodPut)
+	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Actions/Reset", rfPiEmu.NodePowerControl).Methods(http.MethodPut)
 
 	piIPAddr := rfPiEmu.cfg.GetEmulatorIp()
 	piPort := rfPiEmu.cfg.GetEmulatorPort()
 	piSrv := net.JoinHostPort(piIPAddr, piPort)
-	log.Fatal(http.ListenAndServe(piSrv, router))
+	err := http.ListenAndServe(piSrv, router)
+	rfPiEmu.api.Log(lib.LLERROR, "can't start rf emulator on pi node: %v", err)
 }
 
-/***********/
-
-func NodePowerControl(w http.ResponseWriter, r *http.Request) {
+// NodePowerControl performs power control of pi node
+func (rfPiEmu *RFPiEmu) NodePowerControl(w http.ResponseWriter, r *http.Request) {
 
 	var reset payLoad
 	var result []byte
@@ -218,12 +203,11 @@ func NodePowerControl(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&reset)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		rfPiEmu.api.Log(lib.LLERROR, "can't decode request: %v", err)
 	} else {
 		resetType := reset.ResetType
 		if resetType == "r" || resetType == "reboot" {
 			command := "/bbin/shutdown reboot"
-			log.Printf("\nExecuting Command: %v\n", command)
 			cmdSplit := strings.Split(command, " ")
 			cmd := exec.Command(cmdSplit[0], cmdSplit[1:]...)
 			cmd.Stdin = os.Stdin
@@ -234,15 +218,15 @@ func NodePowerControl(w http.ResponseWriter, r *http.Request) {
 			} else {
 				msg = "\nRebooting the node!\n"
 			}
-			log.Println(msg)
+			rfPiEmu.api.Log(lib.LLERROR, "%v", msg)
+
 			result, err = json.Marshal(msg)
 			if err != nil {
-				log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
+				rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 			}
 			w.Write(result)
 		} else if resetType == "h" || resetType == "halt" {
 			command := "/bbin/shutdown halt"
-			log.Printf("\nExecuting Command: %v\n", command)
 			cmdSplit := strings.Split(command, " ")
 			cmd := exec.Command(cmdSplit[0], cmdSplit[1:]...)
 			cmd.Stdin = os.Stdin
@@ -253,10 +237,10 @@ func NodePowerControl(w http.ResponseWriter, r *http.Request) {
 			} else {
 				msg = "\nPowering off the node!\n"
 			}
-			log.Println(msg)
+			rfPiEmu.api.Log(lib.LLINFO, "%v", msg)
 			result, err = json.Marshal(msg)
 			if err != nil {
-				log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
+				rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 			}
 			w.Write(result)
 		}
@@ -264,11 +248,12 @@ func NodePowerControl(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func GetNodeIPAddress() string {
+// GetNodeIPAddress returns IP address of pi node
+func (rfPiEmu *RFPiEmu) GetNodeIPAddress() string {
 
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		log.Fatalf("could not obtain host IP address: %v", err)
+		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 	}
 	ip := ""
 	for _, a := range addrs {
@@ -285,93 +270,94 @@ func GetNodeIPAddress() string {
 	/*
 		     hostname, err := os.Hostname()
 		     if err != nil {
-		     	hostname = "nil"
-			log.Fatalf("could not obtain hostname: %v", err)
+				 hostname = "nil"
+				 rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 		     }
 		     return hostname
 	*/
 }
-func randTemperature(min, max float64) float64 {
+
+// randTemperature returns random temperature to simulate CPU temperature of pi node
+func (rfPiEmu *RFPiEmu) randTemperature(min, max float64) float64 {
 	rand.Seed(time.Now().UnixNano())
 	return math.Floor((min+rand.Float64()*(max-min))*100) / 100
 }
 
-// CPU power usage
-func GetCPUTemp(w http.ResponseWriter, r *http.Request) {
+// ReadCPUTemp reads CPU temperature of pi node
+func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
+	tempSensorPath := rfPiEmu.cfg.GetTempSensorPath()
+	//tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
+	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
+	rfPiEmu.api.Log(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
 
-	hostIP := GetNodeIPAddress()
+	cpuTempInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
+	rfPiEmu.api.Log(lib.LLERROR, "ascci to int conversion error: %v", e)
+
+	return cpuTempInt
+}
+
+// GetCPUTemp acquires CPU temperature
+func (rfPiEmu *RFPiEmu) GetCPUTemp(w http.ResponseWriter, r *http.Request) {
+
+	hostIP := rfPiEmu.GetNodeIPAddress()
 
 	// Its a mockup CPU temperature
 	cpuTempObj := new(CPUTempObj)
 	cpuTempObj.TimeStamp = time.Now()
 	cpuTempObj.HostAddress = hostIP
 
-	tempVal := ReadCPUTemp()
+	tempVal := rfPiEmu.ReadCPUTemp()
 	//tempVal := randTemperature(1, 100)
 	cpuTempObj.CPUTemp = tempVal
 
 	jsonObj, err := json.Marshal(cpuTempObj)
 
 	if err != nil {
-		log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
+		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 
 }
 
-// CPU power usage
-func GetProcessorPowerUsage(w http.ResponseWriter, r *http.Request) {
-	hostIP := GetNodeIPAddress()
-	//log.Println("\nProcessor Power Usage")
-
+// GetProcessorPowerUsage acquires CPU power usage
+func (rfPiEmu *RFPiEmu) GetProcessorPowerUsage(w http.ResponseWriter, r *http.Request) {
+	hostIP := rfPiEmu.GetNodeIPAddress()
 	cpuPwrObj := new(CPUPowerObj)
 	cpuPwrObj.TimeStamp = time.Now()
 	cpuPwrObj.HostAddress = hostIP
-	cpuPwrObj.CPUPowerUsage.Socket1_CPUPowerUsage = 150.25
-	cpuPwrObj.CPUPowerUsage.Socket2_CPUPowerUsage = 80.30
+	cpuPwrObj.CPUPowerUsage.Socket1CPUPowerUsage = 150.25
+	cpuPwrObj.CPUPowerUsage.Socket2CPUPowerUsage = 80.30
 	jsonObj, err := json.Marshal(cpuPwrObj)
 	if err != nil {
-		log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
+		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 
 }
 
-// Memory power usage
-func GetMemoryPowerUsage(w http.ResponseWriter, r *http.Request) {
-	hostIP := GetNodeIPAddress()
-	log.Println("\nMemory Power Usage")
+// GetMemoryPowerUsage simulate values for memory power usage
+func (rfPiEmu *RFPiEmu) GetMemoryPowerUsage(w http.ResponseWriter, r *http.Request) {
+	hostIP := rfPiEmu.GetNodeIPAddress()
 	memPwrObj := new(MemPowerObj)
 	memPwrObj.TimeStamp = time.Now()
 	memPwrObj.HostAddress = hostIP
-	memPwrObj.MemPowerUsage.Socket1_MemPowerUsage = 60.99
-	memPwrObj.MemPowerUsage.Socket2_MemPowerUsage = 40.56
+	memPwrObj.MemPowerUsage.Socket1MemPowerUsage = 60.99
+	memPwrObj.MemPowerUsage.Socket2MemPowerUsage = 40.56
 	jsonObj, err := json.Marshal(memPwrObj)
 	if err != nil {
-		log.Println(fmt.Sprintf("Could not marshal the response data: %v", err))
+		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 }
 
-func respondWithError(response http.ResponseWriter, statusCode int, msg string) {
-	respondWithJSON(response, statusCode, map[string]string{"error": msg})
-}
-
-func respondWithJSON(response http.ResponseWriter, statusCode int, data interface{}) {
-	result, _ := json.Marshal(data)
-	response.Header().Set("Content-Type", "application/json")
-	response.WriteHeader(statusCode)
-	response.Write(result)
-}
-
-// Scale CPU Performance
-func ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
+// ScaleCPUFreq scale CPU frequency of pi node
+func (rfPiEmu *RFPiEmu) ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 
 	var reqPayload CPUPerfScalingReq
 
 	err := json.NewDecoder(r.Body).Decode(&reqPayload)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
 	} else {
 
 		// Extracting the desired scaling governor, scaling minimum, scaling maximum frequencies
@@ -379,8 +365,8 @@ func ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 		scalingMaxFreq := []byte(strconv.Itoa(reqPayload.ScalingMaxFreq))
 		scalingMinFreq := []byte(strconv.Itoa(reqPayload.ScalingMinFreq))
 
-		basePath := "/sys/devices/system/cpu/cpufreq/policy0/"
-		// basePath := "/Users/gali/go/src/cpufreq/"
+		basePath := rfPiEmu.cfg.GetFreqSensorPath()
+		//basePath := "/sys/devices/system/cpu/cpufreq/policy0/"
 
 		// Set the CPU frequency scaling parameters
 		_ = ioutil.WriteFile(basePath+"scaling_governor", scalingGovernor, 0644)
@@ -404,7 +390,7 @@ func ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 		cpuMinFreqqInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuMinFreq), "\n"))
 		cpuMaxFreqqInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuMaxFreq), "\n"))
 
-		hostIP := GetNodeIPAddress()
+		hostIP := rfPiEmu.GetNodeIPAddress()
 
 		resPayload, e := json.Marshal(CPUPerfScalingResp{
 			TimeStamp:          time.Now(),
@@ -422,6 +408,7 @@ func ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 
 			w.Write(resPayload)
 		} else {
+			rfPiEmu.api.Log(lib.LLERROR, "%v", e)
 			w.Write([]byte(e.Error()))
 		}
 
