@@ -287,7 +287,7 @@ func (rfPiEmu *RFPiEmu) randTemperature(min, max float64) float64 {
 func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
 	tempSensorPath := rfPiEmu.cfg.GetTempSensorPath()
 	//tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
-	rfPiEmu.api.Logf(lib.INFO, "TEMP: %v", tempSensorPath)
+	rfPiEmu.api.Logf(lib.LLINFO, "TEMP: %v", tempSensorPath)
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
 	if err != nil {
 		rfPiEmu.api.Logf(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
