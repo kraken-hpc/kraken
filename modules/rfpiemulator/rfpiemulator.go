@@ -287,11 +287,16 @@ func (rfPiEmu *RFPiEmu) randTemperature(min, max float64) float64 {
 func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
 	tempSensorPath := rfPiEmu.cfg.GetTempSensorPath()
 	//tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
+	rfPiEmu.api.Logf(lib.INFO, "TEMP: %v", tempSensorPath)
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
-	rfPiEmu.api.Logf(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
+	if err != nil {
+		rfPiEmu.api.Logf(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
+	}
 
 	cpuTempInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
-	rfPiEmu.api.Logf(lib.LLERROR, "ascci to int conversion error: %v", e)
+	if e != nil {
+		rfPiEmu.api.Logf(lib.LLERROR, "ascci to int conversion error: %v", e)
+	}
 
 	return cpuTempInt
 }
