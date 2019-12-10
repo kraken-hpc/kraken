@@ -100,7 +100,6 @@ func ReadCPUTemp() int {
 	return cpuTempInt
 }
 
-
 const (
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/rfpiemulator/State"
@@ -127,8 +126,8 @@ func (*RFPiEmu) Name() string { return "github.com/hpc/kraken/modules/rfpiemulat
 func (*RFPiEmu) NewConfig() proto.Message {
 	localIP := GetNodeIPAddress()
 	r := &pb.HostDiscoveryConfig{
-		EmulatorIp: localIP,
-		EmulatorPort: "8000"
+		EmulatorIp:   localIP,
+		EmulatorPort: "8000",
 	}
 	return r
 }
@@ -156,7 +155,7 @@ func (rfPiEmu *RFPiEmu) SetDiscoveryChan(c chan<- lib.Event) { rfPiEmu.dchan = c
 func init() {
 	module := &RFPiEmu{}
 	discovers := make(map[string]map[string]reflect.Value)
-	
+
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
@@ -197,14 +196,14 @@ func (rfPiEmu *RFPiEmu) Entry() {
 
 	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Processors/power", GetProcessorPowerUsage).Methods(http.MethodGet)
 	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Memory/power", GetMemoryPowerUsage).Methods(http.MethodGet)
-	
+
 	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/Thermal", GetCPUTemp).Methods(http.MethodGet)
 	router.HandleFunc("/redfish/v1/Chassis/{ChassisID}/ScaleCPUFreq", ScaleCPUFreq).Methods(http.MethodPut)
 	router.HandleFunc("/redfish/v1/Systems/{SystemID}/Actions/Reset", NodePowerControl).Methods(http.MethodPut)
-	
+
 	piIPAddr := rfPiEmu.cfg.GetEmulatorIp()
-	piPort := rfPiEmu.cfg.GetEmulatorPort() 
-	piSrv := net.JoinHostPort(piIPAddr,piPort)
+	piPort := rfPiEmu.cfg.GetEmulatorPort()
+	piSrv := net.JoinHostPort(piIPAddr, piPort)
 	log.Fatal(http.ListenAndServe(piSrv, router))
 }
 
@@ -298,9 +297,9 @@ func randTemperature(min, max float64) float64 {
 
 // CPU power usage
 func GetCPUTemp(w http.ResponseWriter, r *http.Request) {
-	
+
 	hostIP := GetNodeIPAddress()
-	
+
 	// Its a mockup CPU temperature
 	cpuTempObj := new(CPUTempObj)
 	cpuTempObj.TimeStamp = time.Now()
