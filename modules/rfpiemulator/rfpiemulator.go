@@ -106,7 +106,7 @@ type RFPiEmu struct {
 func (*RFPiEmu) Name() string { return "github.com/hpc/kraken/modules/rfpiemulator" }
 
 // NewConfig returns a fully initialized default config
-func (*RFPiEmu) NewConfig() proto.Message {
+func (rfPiEmu *RFPiEmu) NewConfig() proto.Message {
 	localIP := rfPiEmu.GetNodeIPAddress()
 	r := &pb.RFEmulatorConfig{
 		EmulatorIp:     localIP,
@@ -191,7 +191,7 @@ func (rfPiEmu *RFPiEmu) Entry() {
 	piPort := rfPiEmu.cfg.GetEmulatorPort()
 	piSrv := net.JoinHostPort(piIPAddr, piPort)
 	err := http.ListenAndServe(piSrv, router)
-	rfPiEmu.api.Log(lib.LLERROR, "can't start rf emulator on pi node: %v", err)
+	rfPiEmu.api.Logf(lib.LLERROR, "can't start rf emulator on pi node: %v", err)
 }
 
 // NodePowerControl performs power control of pi node
@@ -203,7 +203,7 @@ func (rfPiEmu *RFPiEmu) NodePowerControl(w http.ResponseWriter, r *http.Request)
 
 	err := json.NewDecoder(r.Body).Decode(&reset)
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "can't decode request: %v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "can't decode request: %v", err)
 	} else {
 		resetType := reset.ResetType
 		if resetType == "r" || resetType == "reboot" {
@@ -218,11 +218,11 @@ func (rfPiEmu *RFPiEmu) NodePowerControl(w http.ResponseWriter, r *http.Request)
 			} else {
 				msg = "\nRebooting the node!\n"
 			}
-			rfPiEmu.api.Log(lib.LLERROR, "%v", msg)
+			rfPiEmu.api.Logf(lib.LLERROR, "%v", msg)
 
 			result, err = json.Marshal(msg)
 			if err != nil {
-				rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+				rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 			}
 			w.Write(result)
 		} else if resetType == "h" || resetType == "halt" {
@@ -237,10 +237,10 @@ func (rfPiEmu *RFPiEmu) NodePowerControl(w http.ResponseWriter, r *http.Request)
 			} else {
 				msg = "\nPowering off the node!\n"
 			}
-			rfPiEmu.api.Log(lib.LLINFO, "%v", msg)
+			rfPiEmu.api.Logf(lib.LLINFO, "%v", msg)
 			result, err = json.Marshal(msg)
 			if err != nil {
-				rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+				rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 			}
 			w.Write(result)
 		}
@@ -253,7 +253,7 @@ func (rfPiEmu *RFPiEmu) GetNodeIPAddress() string {
 
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 	}
 	ip := ""
 	for _, a := range addrs {
@@ -271,7 +271,7 @@ func (rfPiEmu *RFPiEmu) GetNodeIPAddress() string {
 		     hostname, err := os.Hostname()
 		     if err != nil {
 				 hostname = "nil"
-				 rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+				 rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 		     }
 		     return hostname
 	*/
@@ -288,10 +288,10 @@ func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
 	tempSensorPath := rfPiEmu.cfg.GetTempSensorPath()
 	//tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
-	rfPiEmu.api.Log(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
+	rfPiEmu.api.Logf(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
 
 	cpuTempInt, e := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
-	rfPiEmu.api.Log(lib.LLERROR, "ascci to int conversion error: %v", e)
+	rfPiEmu.api.Logf(lib.LLERROR, "ascci to int conversion error: %v", e)
 
 	return cpuTempInt
 }
@@ -313,7 +313,7 @@ func (rfPiEmu *RFPiEmu) GetCPUTemp(w http.ResponseWriter, r *http.Request) {
 	jsonObj, err := json.Marshal(cpuTempObj)
 
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 
@@ -329,7 +329,7 @@ func (rfPiEmu *RFPiEmu) GetProcessorPowerUsage(w http.ResponseWriter, r *http.Re
 	cpuPwrObj.CPUPowerUsage.Socket2CPUPowerUsage = 80.30
 	jsonObj, err := json.Marshal(cpuPwrObj)
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 
@@ -345,7 +345,7 @@ func (rfPiEmu *RFPiEmu) GetMemoryPowerUsage(w http.ResponseWriter, r *http.Reque
 	memPwrObj.MemPowerUsage.Socket2MemPowerUsage = 40.56
 	jsonObj, err := json.Marshal(memPwrObj)
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 	}
 	w.Write(jsonObj)
 }
@@ -357,7 +357,7 @@ func (rfPiEmu *RFPiEmu) ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&reqPayload)
 	if err != nil {
-		rfPiEmu.api.Log(lib.LLERROR, "%v", err)
+		rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
 	} else {
 
 		// Extracting the desired scaling governor, scaling minimum, scaling maximum frequencies
@@ -408,7 +408,7 @@ func (rfPiEmu *RFPiEmu) ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 
 			w.Write(resPayload)
 		} else {
-			rfPiEmu.api.Log(lib.LLERROR, "%v", e)
+			rfPiEmu.api.Logf(lib.LLERROR, "%v", e)
 			w.Write([]byte(e.Error()))
 		}
 
