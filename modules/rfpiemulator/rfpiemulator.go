@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/gorilla/mux"
 	"github.com/hpc/kraken/core"
+	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/rfpiemulator/proto"
 )
@@ -125,7 +126,7 @@ func (*RFPiEmu) Name() string { return "github.com/hpc/kraken/modules/rfpiemulat
 // NewConfig returns a fully initialized default config
 func (*RFPiEmu) NewConfig() proto.Message {
 	localIP := GetNodeIPAddress()
-	r := &pb.HostDiscoveryConfig{
+	r := &pb.RFEmulatorConfig{
 		EmulatorIp:   localIP,
 		EmulatorPort: "8000",
 	}
@@ -134,7 +135,7 @@ func (*RFPiEmu) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (rfPiEmu *RFPiEmu) UpdateConfig(cfg proto.Message) (e error) {
-	if rcfg, ok := cfg.(*pb.RfPiEmuoveryConfig); ok {
+	if rcfg, ok := cfg.(*pb.RFEmulatorConfig); ok {
 		rfPiEmu.cfg = rcfg
 		return
 	}
@@ -143,7 +144,7 @@ func (rfPiEmu *RFPiEmu) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*RFPiEmu) ConfigURL() string {
-	cfg := &pb.HostDiscoveryConfig{}
+	cfg := &pb.RFEmulatorConfig{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
