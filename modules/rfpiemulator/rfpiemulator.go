@@ -1,3 +1,17 @@
+/* rfpiemulator.go: This module is intended to run pi-node and delivers real-time and emulated telemetry data. This data is exposed via Redfish API methodology.
+ *
+ * Currently this module exposes CPU thermal, get/set CPU frequency in realtime, and performs soft power control in real-time.
+ * It also simulates delivery of power usage (in watts) on CPU and memory level. The goal is to attach real-time interfaces (e.g. Intel RAPL) to get the real-time functionalities.
+ *
+ * Additionally, there are many other functionalities are under investinations and considerations.
+ *
+ * Authors: Ghazanfar Ali, ghazanfar.ali@ttu.edu; Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
 package rfpiemulator
 
 import (
