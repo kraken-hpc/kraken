@@ -27,6 +27,9 @@ const ioDir = "/tmp/io"
 // perm mask for ioDir files
 const ioMode = 0700
 
+// log level of child node
+const logLevel = "7"
+
 type command struct {
 	Cmd        string
 	Args       []string
@@ -154,7 +157,7 @@ func main() {
 		{
 			Cmd:        "/bin/kraken",
 			Background: true,
-			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID},
+			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID, "-log", logLevel},
 		},
 		{
 			Cmd:        "/bin/RFEmulator-pull",
