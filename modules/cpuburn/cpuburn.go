@@ -58,6 +58,7 @@ type CPUBurn struct {
 	workers   []chan int // our workers are defined by their quit channels
 	running   bool
 	throttled bool
+	therm     chan int
 }
 
 // Name returns a unique URL name for the module
@@ -77,51 +78,16 @@ func (c *CPUBurn) Entry() {
 		},
 	)
 	c.dchan <- ev
-	var therm chan int
 	for {
 		switch sig := <-c.control; sig {
 		case CONTROL_STOP:
-			if !c.running {
-				continue
-			}
-			if therm != nil {
-				therm <- 0
-				therm = nil
-			}
-			for i := 0; i < len(c.workers); i++ {
-				c.stopWorker()
-			}
-			c.running = false
+			c.ctlStop()
 		case CONTROL_START:
-			if c.running {
-				continue
-			}
-			if c.cfg.ThermalThrottle {
-				therm = make(chan int)
-				c.runTherm(therm)
-			}
-			for i := 0; i < int(c.cfg.Workers); i++ {
-				c.runWorker(defaultKernel)
-			}
-			c.running = true
+			c.ctlStart()
 		case CONTROL_THROTTLE:
-			if c.throttled {
-				continue
-			}
-			if c.cfg.WorkersThrottled < c.cfg.Workers {
-				for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
-					c.stopWorker()
-				}
-			}
+			c.ctlThrottle()
 		case CONTROL_UNTHROTTLE:
-			if !c.throttled {
-				continue
-			}
-			if c.cfg.WorkersThrottled < c.cfg.Workers {
-				for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
-					c.runWorker(defaultKernel)
-				}
-			}
+			c.ctlThrottle()
 		}
 	}
 }
@@ -222,6 +188,56 @@ func (c *CPUBurn) stopWorker() {
 		go func() {
 			quit <- 0
 		}()
+	}
+}
+
+func (c *CPUBurn) ctlStop() {
+	if !c.running {
+		return
+	}
+	if c.therm != nil {
+		c.therm <- 0
+		c.therm = nil
+	}
+	for i := 0; i < len(c.workers); i++ {
+		c.stopWorker()
+	}
+	c.running = false
+}
+
+func (c *CPUBurn) ctlStart() {
+	if c.running {
+		return
+	}
+	if c.cfg.ThermalThrottle {
+		c.therm = make(chan int)
+		c.runTherm(c.therm)
+	}
+	for i := 0; i < int(c.cfg.Workers); i++ {
+		c.runWorker(defaultKernel)
+	}
+	c.running = true
+}
+
+func (c *CPUBurn) ctlThrottle() {
+	if c.throttled {
+		return
+	}
+	if c.cfg.WorkersThrottled < c.cfg.Workers {
+		for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
+			c.stopWorker()
+		}
+	}
+}
+
+func (c *CPUBurn) ctlUnthrottle() {
+	if !c.throttled {
+		return
+	}
+	if c.cfg.WorkersThrottled < c.cfg.Workers {
+		for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
+			c.runWorker(defaultKernel)
+		}
 	}
 }
 
