@@ -17,6 +17,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib"
 
+	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/cpuburn/proto"
 )
 
@@ -260,4 +262,16 @@ func kernelLucasLehmer() {
 		s = ((s * s) - 2) % M
 	}
 	// if s == 0 prime, else composite, but we don't actually return
+}
+
+func init() {
+	module := &CPUBurn{}
+	si := core.NewServiceInstance("cpuburn", module.Name(), module.Entry, nil)
+	core.Registry.RegisterModule(module)
+	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterDiscoverable(si, map[string]map[string]reflect.Value{
+		SrvStateURL: {
+			"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN),
+		},
+	})
 }
