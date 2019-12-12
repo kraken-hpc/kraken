@@ -80,6 +80,9 @@ func (c *CPUBurn) Entry() {
 		},
 	)
 	c.dchan <- ev
+	go func() {
+		c.control <- CONTROL_START
+	}()
 	for {
 		switch sig := <-c.control; sig {
 		case CONTROL_STOP:
