@@ -36,6 +36,10 @@ func (r VBox) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (VBox) Context() lib.ExtensionContext {
+	return lib.ExtensionContext_PARENT
+}
+
 func init() {
 	core.Registry.RegisterExtension(VBox{})
 }

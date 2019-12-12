@@ -73,6 +73,10 @@ func (i IPv4OverEthernet) Name() string {
 	return a.GetTypeUrl()
 }
 
+func (IPv4OverEthernet) Context() lib.ExtensionContext {
+	return lib.ExtensionContext_PARENT
+}
+
 // BytesToIP converts 4 bytes to a net.IP
 // returns nil if you don't give it 4 bytes
 func BytesToIP(b []byte) (ip net.IP) {

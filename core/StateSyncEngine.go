@@ -726,6 +726,14 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	if n.getParent() {
 		sse.query.Update(rp.Node)
 	} else {
+		// Filter node extensions based off of extension context
+		for _, ext := range rp.Node.GetExtensionURLs() {
+			if kExt, ok := Registry.Extensions[ext]; ok {
+				if kExt.Context() == lib.ExtensionContext_PARENT {
+					rp.Node.DelExtension(ext)
+				}
+			}
+		}
 		sse.query.UpdateDsc(rp.Node)
 	}
 }
