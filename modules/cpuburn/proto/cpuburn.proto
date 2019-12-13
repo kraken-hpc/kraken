@@ -1,0 +1,21 @@
+/* cpuburn.proto: describes the CpuBurn object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+ syntax = "proto3";
+ package proto;
+
+ message CPUBurnConfig {
+     string temp_sensor = 1;        // Path to temp sensor readout
+     bool thermal_throttle = 2;     // Should we thermal throttle?
+     uint32 thermal_poll =3;        // Interval (s) to poll
+     uint32 thermal_resume = 4;     // After throttling, at what temp (C) should we resume?
+     uint32 thermal_crit = 5;       // At what temp (C) should we start throttling?
+     uint32 workers = 6;            // Number of workers
+     uint32 workers_throttled = 7;  // Number of workers running when throttled
+ }
