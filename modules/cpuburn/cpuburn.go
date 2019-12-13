@@ -86,12 +86,16 @@ func (c *CPUBurn) Entry() {
 	for {
 		switch sig := <-c.control; sig {
 		case CONTROL_STOP:
+			c.api.Log(lib.LLINFO, "got STOP control")
 			c.ctlStop()
 		case CONTROL_START:
+			c.api.Log(lib.LLINFO, "got START control")
 			c.ctlStart()
 		case CONTROL_THROTTLE:
+			c.api.Log(lib.LLINFO, "got THROTTLE control")
 			c.ctlThrottle()
 		case CONTROL_UNTHROTTLE:
+			c.api.Log(lib.LLINFO, "got UNTHROTTLE control")
 			c.ctlThrottle()
 		}
 	}
@@ -133,6 +137,8 @@ func (c *CPUBurn) UpdateConfig(cfg proto.Message) (e error) {
 		c.cfg = ccfg
 		return
 	}
+	c.control <- CONTROL_STOP
+	c.control <- CONTROL_START
 	return fmt.Errorf("invalid config type")
 }
 
@@ -157,22 +163,22 @@ func (c *CPUBurn) runTherm(quit <-chan int) {
 	for {
 		tstr, err := ioutil.ReadFile(c.cfg.TempSensor)
 		if err != nil {
-			// couldn't read temp
+			c.api.Logf(lib.LLERROR, "failed to read temp sensor: %v", err)
 			time.Sleep(time.Duration(c.cfg.ThermalPoll) * time.Second)
 			continue
 		}
 		t, err := strconv.Atoi(strings.TrimSuffix(string(tstr), "\n"))
 		if err != nil {
-			// couldn't interpret thermal file
+			c.api.Logf(lib.LLERROR, "failed to interpret temp sensor: %v", err)
 			time.Sleep(time.Duration(c.cfg.ThermalPoll) * time.Second)
 			continue
 		}
 		if t >= int(c.cfg.ThermalCrit) && !cooling {
-			// start throttling
+			c.api.Logf(lib.LLDEBUG, "reached thermal critical temp: %d", t)
 			cooling = true
 			c.control <- CONTROL_THROTTLE
 		} else if t <= int(c.cfg.ThermalResume) && cooling {
-			// resume
+			c.api.Logf(lib.LLDEBUG, "reached thermal resume temp: %d", t)
 			cooling = false
 			c.control <- CONTROL_UNTHROTTLE
 		}
@@ -183,7 +189,7 @@ func (c *CPUBurn) runTherm(quit <-chan int) {
 func (c *CPUBurn) runWorker(kernel func()) {
 	quit := make(chan int)
 	c.workers = append(c.workers, quit)
-	go worker(quit, kernel)
+	go c.worker(quit, kernel)
 }
 
 func (c *CPUBurn) stopWorker() {
@@ -204,6 +210,7 @@ func (c *CPUBurn) ctlStop() {
 		c.therm <- 0
 		c.therm = nil
 	}
+	c.api.Logf(lib.LLDEBUG, "stopping %d workers", len(c.workers))
 	for i := 0; i < len(c.workers); i++ {
 		c.stopWorker()
 	}
@@ -218,6 +225,7 @@ func (c *CPUBurn) ctlStart() {
 		c.therm = make(chan int)
 		c.runTherm(c.therm)
 	}
+	c.api.Logf(lib.LLDEBUG, "starting %d workers", int(c.cfg.Workers))
 	for i := 0; i < int(c.cfg.Workers); i++ {
 		c.runWorker(defaultKernel)
 	}
@@ -229,6 +237,7 @@ func (c *CPUBurn) ctlThrottle() {
 		return
 	}
 	if c.cfg.WorkersThrottled < c.cfg.Workers {
+		c.api.Logf(lib.LLDEBUG, "stopping %d workers", c.cfg.Workers-c.cfg.WorkersThrottled)
 		for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
 			c.stopWorker()
 		}
@@ -240,16 +249,19 @@ func (c *CPUBurn) ctlUnthrottle() {
 		return
 	}
 	if c.cfg.WorkersThrottled < c.cfg.Workers {
+		c.api.Logf(lib.LLDEBUG, "(re)starting %d workers", c.cfg.Workers-c.cfg.WorkersThrottled)
 		for i := c.cfg.Workers - c.cfg.WorkersThrottled; i > 0; i-- {
 			c.runWorker(defaultKernel)
 		}
 	}
 }
 
-func worker(quit <-chan int, k Kernel) {
+func (c *CPUBurn) worker(quit <-chan int, k Kernel) {
+	c.api.Log(lib.LLDDEBUG, "worker started")
 	for {
 		select {
 		case <-quit:
+			c.api.Log(lib.LLDDEBUG, "worker quit")
 			return
 		default:
 		}
