@@ -304,7 +304,6 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 					ValueID: "WAIT",
 				},
 			)
-			px.dchan <- ev
 
 			var stop = make(chan bool)
 			px.wakeMutex.Lock()
@@ -315,6 +314,8 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 			px.nodeWake[m.NodeCfg.ID().String()] = stop
 			px.wakeMutex.Unlock()
 			go px.wakeNode(m.NodeCfg, stop)
+
+			px.dchan <- ev
 		case "WAITtoINIT": // we're initializing, but don't do anything (more for discovery/timeout)
 		}
 	case core.MutationEvent_INTERRUPT: // on any interrupt, we remove the node
