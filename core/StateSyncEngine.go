@@ -847,7 +847,7 @@ func init() {
 			},
 			map[string]reflect.Value{},
 			lib.StateMutationContext_CHILD,
-			time.Second*60, // FIXME: don't hardcode values
+			time.Second*90, // FIXME: don't hardcode values
 			[3]string{"sse", "/PhysState", "HANG"},
 		),
 	}
