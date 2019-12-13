@@ -329,8 +329,8 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 	return fmt.Errorf("client did not take DHCP offer")
 }
 
-// wakeNodes sends a wake packet every second until something is passed into the stop channel
-// will stop after 30 seconds of spamming
+// wakeNodes sends a wake packet every second until something is passed into the stop channel.
+// will also stop after 30 seconds of spamming
 func (px *PiPXE) wakeNode(n lib.Node, stop <-chan bool) {
 	macValue, e := n.GetValue(px.cfg.GetMacUrl())
 	if e != nil {
@@ -356,7 +356,7 @@ func (px *PiPXE) wakeNode(n lib.Node, stop <-chan bool) {
 			px.wakeMutex.Unlock()
 			return
 		case <-stop:
-			// assumes the handling function locked and deleted the channel from the map
+			// assumes the handling function deleted the channel from the px.nodeWake map
 			px.api.Logf(lib.LLDDDEBUG, "Stopping wake packets for: %v %v", n.ID().String(), mac.String())
 			return
 		case <-ticker.C:
