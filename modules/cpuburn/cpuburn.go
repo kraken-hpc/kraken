@@ -107,6 +107,7 @@ func (c *CPUBurn) Init(api lib.APIClient) {
 	c.api = api
 	c.cfg = c.NewConfig().(*pb.CPUBurnConfig)
 	c.control = make(chan int)
+	c.running = false
 }
 
 // Stop should gracefully exit a running service instance
@@ -204,6 +205,7 @@ func (c *CPUBurn) stopWorker() {
 
 func (c *CPUBurn) ctlStop() {
 	if !c.running {
+		c.api.Logf(lib.LLERROR, "got STOP, but we're not running")
 		return
 	}
 	if c.therm != nil {
@@ -219,6 +221,7 @@ func (c *CPUBurn) ctlStop() {
 
 func (c *CPUBurn) ctlStart() {
 	if c.running {
+		c.api.Logf(lib.LLERROR, "got START, but already running")
 		return
 	}
 	if c.cfg.ThermalThrottle {
