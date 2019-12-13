@@ -226,7 +226,7 @@ func (c *CPUBurn) ctlStart() {
 	}
 	if c.cfg.ThermalThrottle {
 		c.therm = make(chan int)
-		c.runTherm(c.therm)
+		go c.runTherm(c.therm)
 	}
 	c.api.Logf(lib.LLDEBUG, "starting %d workers", int(c.cfg.Workers))
 	for i := 0; i < int(c.cfg.Workers); i++ {
