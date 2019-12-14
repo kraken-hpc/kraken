@@ -254,8 +254,8 @@ func (hfs *HFS) SetDiscoveryChan(d chan<- lib.Event) { hfs.dchan = d }
 var reqs = map[string]reflect.Value{
 	"/PhysState":   reflect.ValueOf(cpb.Node_POWER_ON),
 	"/RunState":    reflect.ValueOf(cpb.Node_SYNC),
-	ModuleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
-	PxeURL:         reflect.ValueOf(rp3pb.RPi3_INIT),
+	moduleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
+	pxeURL:         reflect.ValueOf(rp3pb.RPi3_INIT),
 }
 
 // modify this if you want excludes
@@ -289,9 +289,9 @@ func init() {
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_HIGH)
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_CRITICAL)
 
-	discovers[HostThermalStateURL] = hostThermDiscs
+	discovers[hostThermalStateURL] = hostThermDiscs
 
-	discovers[ModuleStateURL] = map[string]reflect.Value{
+	discovers[moduleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
 	hostBootFreqScalerDiscs["powersave"] = reflect.ValueOf("powersave")
@@ -308,7 +308,7 @@ func init() {
 		dur, _ := time.ParseDuration(m.timeout)
 		mutations[k] = core.NewStateMutation(
 			map[string][2]reflect.Value{
-				HostThermalStateURL: {
+				hostThermalStateURL: {
 					reflect.ValueOf(m.f),
 					reflect.ValueOf(m.t),
 				},
@@ -317,7 +317,7 @@ func init() {
 			excs,
 			lib.StateMutationContext_SELF,
 			dur,
-			[3]string{si.ID(), HostThermalStateURL, m.failTo},
+			[3]string{si.ID(), hostThermalStateURL, m.failTo},
 		)
 	}
 
@@ -331,7 +331,7 @@ func init() {
 // Entry is the module's executable entrypoint
 func (hfs *HFS) Entry() {
 
-	url := lib.NodeURLJoin(hfs.api.Self().String(), ModuleStateURL)
+	url := lib.NodeURLJoin(hfs.api.Self().String(), moduleStateURL)
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -366,7 +366,7 @@ func (hfs *HFS) handleMutation(m lib.Event) {
 
 		switch me.Mutation[1] {
 		case "CPU_TEMP_NONEtoCPU_TEMP_UNKNOWN":
-			url := lib.NodeURLJoin(me.NodeCfg.ID().String(), HostThermalStateURL)
+			url := lib.NodeURLJoin(me.NodeCfg.ID().String(), hostThermalStateURL)
 			ev := core.NewEvent(
 				lib.Event_DISCOVERY,
 				url,
