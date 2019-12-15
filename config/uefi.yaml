@@ -1,4 +1,4 @@
-# kraken-build.go: describes a build for a Virtualbox testbed
+# kraken-build.go: describes a build for embedding in UEFI firmware
 targets:
   'linux-arm64':
     os: 'linux'
