@@ -242,7 +242,7 @@ func uKraken(outDir string, krakenDir string) (targets []string, e error) {
 	}
 
 	// Copy needed files from krakenDir to outDir
-	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "vendor", "go.mod", "go.sum"}
+	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "go.mod", "go.sum"}
 	for _, file := range files {
 		// Rename "kraken" dir to "kraken-tpl" to distinguish it as the template dir.
 		// The "kraken" dir will contain the kraken source files generated from the
