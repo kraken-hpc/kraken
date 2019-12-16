@@ -134,8 +134,8 @@ var scalMuts = map[string]hfscalmut{
 
 // Structure for mutation defintion
 type hfsmut struct {
-	f       hostthpb.HostThermal_CPU_TEMP_STATE
-	t       hostthpb.HostThermal_CPU_TEMP_STATE
+	f       hostthpb.HostThermalCpuState
+	t       hostthpb.HostThermalCpuState
 	reqs    map[string]reflect.Value
 	timeout string
 	failTo  string
