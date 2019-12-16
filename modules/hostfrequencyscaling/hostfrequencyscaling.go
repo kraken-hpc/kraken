@@ -113,7 +113,7 @@ var scalMuts = map[string]hfscalmut{
 	},
 	"NONEtoPERFORMANCE": {
 		f:       scalpb.HostFrequencyScaler_NONE,
-		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		t:       scalpb.HostFrequencyScaler_PERFORMANCE,
 		reqs:    scalerReqs,
 		timeout: "60s",
 		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
