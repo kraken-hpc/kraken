@@ -28,6 +28,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	scalpb "github.com/hpc/kraken/extensions/HostFrequencyScaler/proto"
 	hostthpb "github.com/hpc/kraken/extensions/HostThermal/proto"
 	rp3pb "github.com/hpc/kraken/extensions/RPi3/proto"
 	"github.com/hpc/kraken/lib"
@@ -75,16 +76,61 @@ const (
 	// NodeIPURL provides node IP address
 	nodeIPURL string = "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip"
 
-	// hostBootFreqScalerURL provides URL for host frequency scaler at host boot time
-	hostBootFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/BoottimeFreqScaler"
-
-	// hostRuntimeFreqScalerURL provides URL for host frequency scaler at host run time
-	hostHightoLowFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/HightoLowFreqScaler"
+	// hostFreqScalerURL provides URL for host frequency scaler at host run time
+	hostFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/State"
 
 	// freqSensorPath holds frequency sensor path on pi node
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
 )
 
+type hfscalmut struct {
+	f       scalpb.HostFrequencyScaler_ScalerState
+	t       scalpb.HostFrequencyScaler_ScalerState
+	reqs    map[string]reflect.Value
+	timeout string
+	failTo  string
+}
+// modify these if you want different requires for mutations
+var scalerReqs = map[string]reflect.Value{
+	"/PhysState":   reflect.ValueOf(cpb.Node_POWER_ON),
+	"/RunState":    reflect.ValueOf(cpb.Node_SYNC),
+	moduleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
+}
+var scalMuts = map[string]hfscalmut{
+	"NONEtoPOWERSAVE": {
+		f:       scalpb.HostFrequencyScaler_NONE,
+		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		reqs:    scalerReqs,
+		timeout: "60s",
+		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
+	},
+	"PERFORMANCEtoPOWERSAVE": {
+		f:       scalpb.HostFrequencyScaler_PERFORMANCE,
+		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		reqs:    scalerReqs,
+		timeout: "60s",
+		failTo:  scalpb.HostFrequencyScaler_PERFORMANCE.String(),
+	},
+	"NONEtoPERFORMANCE": {
+		f:       scalpb.HostFrequencyScaler_NONE,
+		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		reqs:    scalerReqs,
+		timeout: "60s",
+		failTo:  scalpb.HostThermal_CPU_TEMP_NONE.String(),
+	},
+	"POWERSAVEtoPERFORMANCE": {
+		f:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		t:       scalpb.HostFrequencyScaler_PERFORMANCE,
+		reqs:    map[string]reflect.Value{
+			"/PhysState":   reflect.ValueOf(cpb.Node_POWER_ON),
+			"/RunState":    reflect.ValueOf(cpb.Node_SYNC),
+			moduleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
+			hostThermalStateURL:         reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL),
+		},
+		timeout: "60s",
+		failTo:  scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+	}
+}
 // Structure for mutation defintion
 type hfsmut struct {
 	f       hostthpb.HostThermal_CPU_TEMP_STATE
@@ -94,58 +140,22 @@ type hfsmut struct {
 	failTo  string
 }
 
+
 // Mutations supported by this module
 var muts = map[string]hfsmut{
-	"CPU_TEMP_NONEtoCPU_TEMP_UNKNOWN": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
-		t:       hostthpb.HostThermal_CPU_TEMP_UNKNOWN,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
-	},
 
-	"CPU_TEMP_UNKNOWNtoCPU_TEMP_NORMAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_UNKNOWN,
+	"CPU_TEMP_NONEtoCPU_TEMP_NORMAL": {
+		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    reqs,
 		timeout: "60s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_UNKNOWN.String(),
-	},
-	"CPU_TEMP_UNKNOWNtoCPU_TEMP_HIGH": {
-		f:       hostthpb.HostThermal_CPU_TEMP_UNKNOWN,
-		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_UNKNOWN.String(),
-	},
-	"CPU_TEMP_UNKNOWNtoCPU_TEMP_CRITICAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_UNKNOWN,
-		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_UNKNOWN.String(),
-	},
-
-	"CPU_TEMP_NORMALtoCPU_TEMP_HIGH": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
-		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NORMAL.String(),
-	},
-
+	 },
+	
 	"CPU_TEMP_HIGHtoCPU_TEMP_NORMAL": {
 		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_HIGH.String(),
-	},
-
-	"CPU_TEMP_HIGHtoCPU_TEMP_CRITICAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
-		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
-		reqs:    reqs,
+		reqs:    greqs,
 		timeout: "60s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_HIGH.String(),
 	},
@@ -153,23 +163,18 @@ var muts = map[string]hfsmut{
 	"CPU_TEMP_CRITICALtoCPU_TEMP_HIGH": {
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
-		reqs:    reqs,
+		reqs:    greqs,
 		timeout: "60s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
+		
 	},
 
-	"CPU_TEMP_NORMALtoCPU_TEMP_CRITICAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
-		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
-		reqs:    reqs,
-		timeout: "60s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NORMAL.String(),
-	},
+	
 
 	"CPU_TEMP_CRITICALtoCPU_TEMP_NORMAL": {
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
-		reqs:    reqs,
+		reqs:    greqs,
 		timeout: "60s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
 	},
@@ -255,7 +260,13 @@ var reqs = map[string]reflect.Value{
 	"/PhysState":   reflect.ValueOf(cpb.Node_POWER_ON),
 	"/RunState":    reflect.ValueOf(cpb.Node_SYNC),
 	moduleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
-	pxeURL:         reflect.ValueOf(rp3pb.RPi3_INIT),
+}
+
+var greqs = map[string]reflect.Value{
+	"/PhysState":   reflect.ValueOf(cpb.Node_POWER_ON),
+	"/RunState":    reflect.ValueOf(cpb.Node_SYNC),
+	moduleStateURL: reflect.ValueOf(cpb.ServiceInstance_RUN),
+	hostFreqScalerURL:         reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE),
 }
 
 // modify this if you want excludes
@@ -278,9 +289,8 @@ func init() {
 	module := &HFS{}
 	mutations := make(map[string]lib.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
+	hostFreqScalerDiscs := make(map[string]reflect.Value)
 	hostThermDiscs := make(map[string]reflect.Value)
-	hostBootFreqScalerDiscs := make(map[string]reflect.Value)
-	hostHLFreqScalerDiscs := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("hostfrequencyscaling", module.Name(), module.Entry, nil)
 
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NONE)
@@ -290,19 +300,13 @@ func init() {
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_CRITICAL)
 
 	discovers[hostThermalStateURL] = hostThermDiscs
-
 	discovers[moduleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
-	hostBootFreqScalerDiscs["powersave"] = reflect.ValueOf("powersave")
-	hostBootFreqScalerDiscs["schedutil"] = reflect.ValueOf("schedutil")
-	hostBootFreqScalerDiscs["performance"] = reflect.ValueOf("performance")
-	discovers[hostBootFreqScalerURL] = hostBootFreqScalerDiscs
-
-	hostHLFreqScalerDiscs["powersave"] = reflect.ValueOf("powersave")
-	hostHLFreqScalerDiscs["schedutil"] = reflect.ValueOf("schedutil")
-	hostHLFreqScalerDiscs["performance"] = reflect.ValueOf("performance")
-	discovers[hostHightoLowFreqScalerURL] = hostHLFreqScalerDiscs
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_NONE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_NONE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_PERFORMANCE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_POWER_SAVE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE)
+	discovers[hostFreqScalerURL] = hostFreqScalerDiscs
 
 	for k, m := range muts {
 		dur, _ := time.ParseDuration(m.timeout)
@@ -320,6 +324,26 @@ func init() {
 			[3]string{si.ID(), hostThermalStateURL, m.failTo},
 		)
 	}
+
+	for k, m := range scalMuts {
+		dur, _ := time.ParseDuration(m.timeout)
+		mutations[k] = core.NewStateMutation(
+			map[string][2]reflect.Value{
+				hostFreqScalerURL: {
+					reflect.ValueOf(m.f),
+					reflect.ValueOf(m.t),
+				},
+			},
+			m.reqs,
+			excs,
+			lib.StateMutationContext_SELF,
+			dur,
+			[3]string{si.ID(), hostFreqScalerURL, m.failTo},
+		)
+	}
+
+	
+
 
 	// Register it all
 	core.Registry.RegisterModule(module)
@@ -348,76 +372,39 @@ func (hfs *HFS) Entry() {
 		select {
 		case m := <-hfs.mchan:
 
-			go hfs.handleMutation(m)
+			go hfs.mutateCPUFreq(m)
 			break
 
 		}
 	}
 }
 
-func (hfs *HFS) handleMutation(m lib.Event) {
+// aggregateHandler makes calls to aggregator for the given nodes with related mutation and frequecy scaling policy
+func (hfs *HFS) mutateCPUFreq(m lib.Event) {
+
 	if m.Type() != lib.Event_STATE_MUTATION {
 		hfs.api.Log(lib.LLERROR, "got unexpected non-mutation event")
+		return
 	}
 	me := m.Data().(*core.MutationEvent)
 
-	switch me.Type {
-	case core.MutationEvent_MUTATE:
-
-		switch me.Mutation[1] {
-		case "CPU_TEMP_NONEtoCPU_TEMP_UNKNOWN":
-			url := lib.NodeURLJoin(me.NodeCfg.ID().String(), hostThermalStateURL)
-			ev := core.NewEvent(
-				lib.Event_DISCOVERY,
-				url,
-				&core.DiscoveryEvent{
-
-					URL:     url,
-					ValueID: hostthpb.HostThermal_CPU_TEMP_UNKNOWN.String(),
-				},
-			)
-			hfs.dchan <- ev
-
-		case "CPU_TEMP_UNKNOWNtoCPU_TEMP_NORMAL":
-			fallthrough
-		case "CPU_TEMP_CRITICALtoCPU_TEMP_NORMAL":
-			fallthrough
-		case "CPU_TEMP_HIGHtoCPU_TEMP_NORMAL":
-			hfs.mutateCPUFreq(me)
-
-		default:
-			//REVERSE pp.api.Logf(lib.LLDEBUG, "unexpected event: %s", me.Mutation[1])
-		}
-	}
-}
-
-// aggregateHandler makes calls to aggregator for the given nodes with related mutation and frequecy scaling policy
-func (hfs *HFS) mutateCPUFreq(me *core.MutationEvent) {
-
-	bootFreqScalPolicy, e := me.NodeCfg.GetValue(hfs.cfg.GetBoottimeFreqPolicy())
-	lowtoHighFreqScalPolicy, e := me.NodeCfg.GetValue(hfs.cfg.GetHightoLowFreqPolicy())
-	bBoot := false
-	if e != nil {
-		hfs.api.Logf(lib.LLERROR, "problem getting agg name for node: %s", e.Error())
-	}
-
 	switch me.Mutation[1] {
-	case "CPU_TEMP_UNKNOWNtoCPU_TEMP_NORMAL":
-		bBoot = true
-		hfs.HostFrequencyScaling(me.NodeCfg, bootFreqScalPolicy.String(), bBoot)
+	case "NONEtoPOWERSAVE":
+		fallthrough
+	case "PERFORMANCEtoPOWERSAVE":
+		hfs.HostFrequencyScaling(me.NodeCfg, "powersave")
 		break
-	case "CPU_TEMP_CRITICALtoCPU_TEMP_NORMAL":
-		hfs.HostFrequencyScaling(me.NodeCfg, lowtoHighFreqScalPolicy.String(), bBoot)
-		break
-	case "CPU_TEMP_HIGHtoCPU_TEMP_NORMAL":
-		hfs.HostFrequencyScaling(me.NodeCfg, lowtoHighFreqScalPolicy.String(), bBoot)
+	case "NONEtoPERFORMANCE":
+		fallthrough
+	case "POWERSAVEtoPERFORMANCE":
+		hfs.HostFrequencyScaling(me.NodeCfg, "performance")
 		break
 	}
 
 }
 
 // HostFrequencyScaling scales CPU frequency according to given parameters
-func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string, bBoot bool) {
+func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 
 	freqScalPolicies := hfs.cfg.GetFreqScalPolicies()
 
@@ -466,8 +453,8 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string, bBoot
 		CPUMaxFreq: cpuMaxFreqq,
 	}
 
-	if bBoot == true {
-		url := lib.NodeURLJoin(node.ID().String(), hostBootFreqScalerURL)
+	//if bBoot == true {
+		url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
 		ev := core.NewEvent(
 			lib.Event_DISCOVERY,
 			url,
@@ -477,18 +464,18 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string, bBoot
 			},
 		)
 		hfs.dchan <- ev
-	} else {
-		url := lib.NodeURLJoin(node.ID().String(), hostHightoLowFreqScalerURL)
-		ev := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url,
-			&core.DiscoveryEvent{
-				URL:     url,
-				ValueID: currentScalingConfig.CurScalingGovernor,
-			},
-		)
-		hfs.dchan <- ev
-	}
+	// } else {
+	// 	url := lib.NodeURLJoin(node.ID().String(), hostHightoLowFreqScalerURL)
+	// 	ev := core.NewEvent(
+	// 		lib.Event_DISCOVERY,
+	// 		url,
+	// 		&core.DiscoveryEvent{
+	// 			URL:     url,
+	// 			ValueID: currentScalingConfig.CurScalingGovernor,
+	// 		},
+	// 	)
+	// 	hfs.dchan <- ev
+	// }
 
 }
 

@@ -7,11 +7,16 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package proto;
+syntax = "proto3";
+package proto;
 
-message HostFrequencyScaler {
-    string boottime_freq_scaler = 1; // host CPU frequency scaler at host boot time
-    string highto_low_freq_scaler = 2; // host CPU frequency scaler for reducing cpu frequency from high to low
+message HostFrequencyScaler{
+    enum ScalerState {
+        NONE = 0;
+        POWER_SAVE = 1;
+        PERFORMANCE = 2;
+                
+    }
+    ScalerState state = 1;
     
 }

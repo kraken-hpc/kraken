@@ -3,13 +3,9 @@
 
 package proto
 
-import (
-	fmt "fmt"
-
-	proto "github.com/golang/protobuf/proto"
-
-	math "math"
-)
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -22,50 +18,47 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type HostThermal_CPU_TEMP_STATE int32
+type HostThermalHostThermalState int32
 
 const (
-	HostThermal_CPU_TEMP_NONE     HostThermal_CPU_TEMP_STATE = 0
-	HostThermal_CPU_TEMP_UNKNOWN  HostThermal_CPU_TEMP_STATE = 1
-	HostThermal_CPU_TEMP_NORMAL   HostThermal_CPU_TEMP_STATE = 2
-	HostThermal_CPU_TEMP_HIGH     HostThermal_CPU_TEMP_STATE = 3
-	HostThermal_CPU_TEMP_CRITICAL HostThermal_CPU_TEMP_STATE = 4
+	HostThermal_CPU_TEMP_NONE     HostThermalHostThermalState = 0
+	HostThermal_CPU_TEMP_NORMAL   HostThermalHostThermalState = 1
+	HostThermal_CPU_TEMP_HIGH     HostThermalHostThermalState = 2
+	HostThermal_CPU_TEMP_CRITICAL HostThermalHostThermalState = 3
 )
 
-var HostThermal_CPU_TEMP_STATE_name = map[int32]string{
+var HostThermalHostThermalState_name = map[int32]string{
 	0: "CPU_TEMP_NONE",
-	1: "CPU_TEMP_UNKNOWN",
-	2: "CPU_TEMP_NORMAL",
-	3: "CPU_TEMP_HIGH",
-	4: "CPU_TEMP_CRITICAL",
+	1: "CPU_TEMP_NORMAL",
+	2: "CPU_TEMP_HIGH",
+	3: "CPU_TEMP_CRITICAL",
 }
-var HostThermal_CPU_TEMP_STATE_value = map[string]int32{
+var HostThermalHostThermalState_value = map[string]int32{
 	"CPU_TEMP_NONE":     0,
-	"CPU_TEMP_UNKNOWN":  1,
-	"CPU_TEMP_NORMAL":   2,
-	"CPU_TEMP_HIGH":     3,
-	"CPU_TEMP_CRITICAL": 4,
+	"CPU_TEMP_NORMAL":   1,
+	"CPU_TEMP_HIGH":     2,
+	"CPU_TEMP_CRITICAL": 3,
 }
 
-func (x HostThermal_CPU_TEMP_STATE) String() string {
-	return proto.EnumName(HostThermal_CPU_TEMP_STATE_name, int32(x))
+func (x HostThermalHostThermalState) String() string {
+	return proto.EnumName(HostThermalHostThermalState_name, int32(x))
 }
-func (HostThermal_CPU_TEMP_STATE) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_HostThermal_35f6b383f163c199, []int{0, 0}
+func (HostThermalHostThermalState) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_HostThermal_fc4818f237eb5d02, []int{0, 0}
 }
 
 type HostThermal struct {
-	State                HostThermal_CPU_TEMP_STATE `protobuf:"varint,1,opt,name=state,proto3,enum=proto.HostThermal_CPU_TEMP_STATE" json:"state,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                   `json:"-"`
-	XXX_unrecognized     []byte                     `json:"-"`
-	XXX_sizecache        int32                      `json:"-"`
+	State                HostThermalHostThermalState `protobuf:"varint,1,opt,name=state,proto3,enum=proto.HostThermalHostThermalState" json:"state,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                    `json:"-"`
+	XXX_unrecognized     []byte                      `json:"-"`
+	XXX_sizecache        int32                       `json:"-"`
 }
 
 func (m *HostThermal) Reset()         { *m = HostThermal{} }
 func (m *HostThermal) String() string { return proto.CompactTextString(m) }
 func (*HostThermal) ProtoMessage()    {}
 func (*HostThermal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_HostThermal_35f6b383f163c199, []int{0}
+	return fileDescriptor_HostThermal_fc4818f237eb5d02, []int{0}
 }
 func (m *HostThermal) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HostThermal.Unmarshal(m, b)
@@ -85,7 +78,7 @@ func (m *HostThermal) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_HostThermal proto.InternalMessageInfo
 
-func (m *HostThermal) GetState() HostThermal_CPU_TEMP_STATE {
+func (m *HostThermal) GetState() HostThermalHostThermalState {
 	if m != nil {
 		return m.State
 	}
@@ -94,22 +87,21 @@ func (m *HostThermal) GetState() HostThermal_CPU_TEMP_STATE {
 
 func init() {
 	proto.RegisterType((*HostThermal)(nil), "proto.HostThermal")
-	proto.RegisterEnum("proto.HostThermal_CPU_TEMP_STATE", HostThermal_CPU_TEMP_STATE_name, HostThermal_CPU_TEMP_STATE_value)
+	proto.RegisterEnum("proto.HostThermalHostThermalState", HostThermalHostThermalState_name, HostThermalHostThermalState_value)
 }
 
-func init() { proto.RegisterFile("HostThermal.proto", fileDescriptor_HostThermal_35f6b383f163c199) }
+func init() { proto.RegisterFile("HostThermal.proto", fileDescriptor_HostThermal_fc4818f237eb5d02) }
 
-var fileDescriptor_HostThermal_35f6b383f163c199 = []byte{
-	// 167 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_HostThermal_fc4818f237eb5d02 = []byte{
+	// 151 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0xf4, 0xc8, 0x2f, 0x2e,
 	0x09, 0xc9, 0x48, 0x2d, 0xca, 0x4d, 0xcc, 0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x05,
-	0x53, 0x4a, 0x07, 0x18, 0xb9, 0xb8, 0x91, 0x24, 0x85, 0xcc, 0xb9, 0x58, 0x8b, 0x4b, 0x12, 0x4b,
-	0x52, 0x25, 0x18, 0x15, 0x18, 0x35, 0xf8, 0x8c, 0x14, 0x21, 0xaa, 0xf5, 0x90, 0xf5, 0x3b, 0x07,
-	0x84, 0xc6, 0x87, 0xb8, 0xfa, 0x06, 0xc4, 0x07, 0x87, 0x38, 0x86, 0xb8, 0x06, 0x41, 0xd4, 0x2b,
-	0x55, 0x70, 0xf1, 0xa1, 0x4a, 0x08, 0x09, 0x72, 0xf1, 0xc2, 0x45, 0xfc, 0xfc, 0xfd, 0x5c, 0x05,
-	0x18, 0x84, 0x44, 0xb8, 0x04, 0xe0, 0x42, 0xa1, 0x7e, 0xde, 0x7e, 0xfe, 0xe1, 0x7e, 0x02, 0x8c,
-	0x42, 0xc2, 0x5c, 0xfc, 0x48, 0x0a, 0x83, 0x7c, 0x1d, 0x7d, 0x04, 0x98, 0x50, 0x74, 0x7b, 0x78,
-	0xba, 0x7b, 0x08, 0x30, 0x0b, 0x89, 0x72, 0x09, 0xc2, 0x85, 0x9c, 0x83, 0x3c, 0x43, 0x3c, 0x9d,
-	0x1d, 0x7d, 0x04, 0x58, 0x92, 0xd8, 0xc0, 0x4e, 0x34, 0x06, 0x04, 0x00, 0x00, 0xff, 0xff, 0x98,
-	0x9f, 0x8b, 0x83, 0xe5, 0x00, 0x00, 0x00,
+	0x53, 0x4a, 0xeb, 0x18, 0xb9, 0xb8, 0x91, 0x24, 0x85, 0x2c, 0xb9, 0x58, 0x8b, 0x4b, 0x12, 0x4b,
+	0x52, 0x25, 0x18, 0x15, 0x18, 0x35, 0xf8, 0x8c, 0x94, 0x21, 0xaa, 0xf5, 0x90, 0xf5, 0x67, 0x20,
+	0xd8, 0xc1, 0x20, 0xa5, 0x41, 0x10, 0x1d, 0x4a, 0x29, 0x5c, 0x02, 0xe8, 0x52, 0x42, 0x82, 0x5c,
+	0xbc, 0xce, 0x01, 0xa1, 0xf1, 0x21, 0xae, 0xbe, 0x01, 0xf1, 0x7e, 0xfe, 0x7e, 0xae, 0x02, 0x0c,
+	0x42, 0xc2, 0x5c, 0xfc, 0x48, 0x42, 0x41, 0xbe, 0x8e, 0x3e, 0x02, 0x8c, 0x28, 0xea, 0x3c, 0x3c,
+	0xdd, 0x3d, 0x04, 0x98, 0x84, 0x44, 0xb9, 0x04, 0xe1, 0x42, 0xce, 0x41, 0x9e, 0x21, 0x9e, 0xce,
+	0x8e, 0x3e, 0x02, 0xcc, 0x49, 0x6c, 0x60, 0x07, 0x19, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0x53,
+	0xaa, 0x23, 0xc0, 0xd3, 0x00, 0x00, 0x00,
 }
