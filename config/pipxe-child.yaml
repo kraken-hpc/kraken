@@ -24,4 +24,5 @@ modules:
   - github.com/hpc/kraken/modules/hostthermaldiscovery
   - github.com/hpc/kraken/modules/hostfrequencyscaling
   - github.com/hpc/kraken/modules/cpuburn
+  - github.com/hpc/kraken/modules/websocket
 
