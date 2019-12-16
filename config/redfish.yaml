@@ -23,3 +23,5 @@ modules:
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
   - github.com/hpc/kraken/modules/rfthermaldiscovery
+  - github.com/hpc/kraken/modules/hostthermaldiscovery
+  - github.com/hpc/kraken/modules/rfpiemulator
