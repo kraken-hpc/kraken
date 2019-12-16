@@ -101,8 +101,10 @@ type PiPXE struct {
 
 	// for maintaining our list of currently booting nodes
 
-	mutex  sync.RWMutex
-	nodeBy map[nodeQueryBy]map[string]lib.Node
+	mutex     sync.RWMutex
+	nodeBy    map[nodeQueryBy]map[string]lib.Node
+	wakeMutex sync.Mutex
+	nodeWake  map[string]chan<- bool //[nodeId]doneChannel
 }
 
 /*
@@ -270,6 +272,8 @@ func (px *PiPXE) Init(api lib.APIClient) {
 	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)
 	px.nodeBy[queryByIP] = make(map[string]lib.Node)
 	px.nodeBy[queryByMAC] = make(map[string]lib.Node)
+	px.wakeMutex = sync.Mutex{}
+	px.nodeWake = make(map[string]chan<- bool)
 	px.cfg = px.NewConfig().(*pb.PiPXEConfig)
 }
 
@@ -300,6 +304,17 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 					ValueID: "WAIT",
 				},
 			)
+
+			var stop = make(chan bool)
+			px.wakeMutex.Lock()
+			if stop, ok := px.nodeWake[m.NodeCfg.ID().String()]; ok {
+				// if there is already a wakeNode running for this node, stop it
+				stop <- true
+			}
+			px.nodeWake[m.NodeCfg.ID().String()] = stop
+			px.wakeMutex.Unlock()
+			go px.wakeNode(m.NodeCfg, stop)
+
 			px.dchan <- ev
 		case "WAITtoINIT": // we're initializing, but don't do anything (more for discovery/timeout)
 		}
