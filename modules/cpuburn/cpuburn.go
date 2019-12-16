@@ -160,8 +160,15 @@ func (c *CPUBurn) SetDiscoveryChan(dc chan<- lib.Event) { c.dchan = dc }
  */
 
 func (c *CPUBurn) runTherm(quit <-chan int) {
+	c.api.Log(lib.LLDEBUG, "thermal watcher is starting")
 	cooling := false
 	for {
+		select {
+		case <-quit:
+			c.api.Log(lib.LLDEBUG, "thermal watcher is exiting")
+			return
+		default:
+		}
 		tstr, err := ioutil.ReadFile(c.cfg.TempSensor)
 		if err != nil {
 			c.api.Logf(lib.LLERROR, "failed to read temp sensor: %v", err)
