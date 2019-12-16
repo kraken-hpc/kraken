@@ -82,6 +82,11 @@ const (
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
 )
 
+var profileMap = map[string]string{
+	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
+	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+}
+
 type hfscalmut struct {
 	f       scalpb.HostFrequencyScaler_ScalerState
 	t       scalpb.HostFrequencyScaler_ScalerState
@@ -454,7 +459,7 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
-			ValueID: currentScalingConfig.CurScalingGovernor,
+			ValueID: profileMap[currentScalingConfig.CurScalingGovernor],
 		},
 	)
 	hfs.dchan <- ev
