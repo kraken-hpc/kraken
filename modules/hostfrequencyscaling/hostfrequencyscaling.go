@@ -330,7 +330,9 @@ func init() {
 				},
 			},
 			m.reqs,
-			excs,
+			map[string]reflect.Value{
+				hostThermalStateURL: reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NONE),
+			},
 			lib.StateMutationContext_SELF,
 			dur,
 			[3]string{si.ID(), hostFreqScalerURL, m.failTo},
