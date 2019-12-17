@@ -156,6 +156,20 @@ var muts = map[string]hfsmut{
 		timeout: "60s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
+	"CPU_TEMP_NONEtoCPU_TEMP_HIGH": {
+		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
+		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
+		reqs:    reqs,
+		timeout: "60s",
+		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
+	},
+	"CPU_TEMP_NONEtoCPU_TEMP_CRITICAL": {
+		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
+		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
+		reqs:    reqs,
+		timeout: "60s",
+		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
+	},
 
 	"CPU_TEMP_HIGHtoCPU_TEMP_NORMAL": {
 		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
