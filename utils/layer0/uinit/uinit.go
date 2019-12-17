@@ -28,7 +28,7 @@ const ioDir = "/tmp/io"
 const ioMode = 0700
 
 // log level of child node
-const logLevel = "7"
+const logLevel = "10"
 
 type command struct {
 	Cmd        string
