@@ -22,7 +22,6 @@ modules:
   - github.com/hpc/kraken/modules/restapi
   - github.com/hpc/kraken/modules/rfpipower
   - github.com/hpc/kraken/modules/pipxe
-  - github.com/hpc/kraken/modules/rffrequencyscaling
   - github.com/hpc/kraken/modules/hostthermaldiscovery
   - github.com/hpc/kraken/modules/rfpiemulator
   - github.com/hpc/kraken/modules/websocket
