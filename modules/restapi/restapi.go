@@ -242,8 +242,8 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 				}
 
 				enum := extension{
-					Name:    p.Enum,
-					Url:     lib.URLPush(k, p.Enum),
+					Name:    p.OrigName,
+					Url:     lib.URLPush(k, p.OrigName),
 					Options: enumOptions,
 				}
 				extSlice = append(extSlice, enum)
