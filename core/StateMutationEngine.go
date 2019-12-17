@@ -1142,8 +1142,6 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 	}
 	m.cmplt = false
 
-	rewind, i, err := sme.devolve(m, url, val)
-
 	// this is a bit bad.  We don't want to get our own state changes, so we change the node directly
 	nid := NewNodeIDFromURL(node)
 	n, e := sme.query.ReadDsc(nid)
@@ -1153,18 +1151,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 		return
 	}
 
-	// this is a devolution
-	if err == nil {
-		// ok, let's devolve
-		sme.Logf(DEBUG, "%s is devolving back %d steps due to an unexpected regression", node, m.cur-i)
-
-		n.SetValues(rewind)
-		m.chain = append(m.chain[:m.cur+1], m.chain[i:]...)
-		sme.advanceMutation(node, m)
-		return
-	}
-
-	// not a devolution, can we find a path?
+	// can we find a path?
 	end, e := sme.query.Read(nid)
 	if e != nil {
 		sme.Log(ERROR, e.Error())
