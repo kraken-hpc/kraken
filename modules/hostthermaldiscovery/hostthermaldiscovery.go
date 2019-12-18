@@ -116,7 +116,7 @@ func init() {
 	module := &HostDisc{}
 	discovers := make(map[string]map[string]reflect.Value)
 	hostThermDisc := make(map[string]reflect.Value)
-	hostFreqScalerDiscs := make(map[string]reflect.Value)
+	//hostFreqScalerDiscs := make(map[string]reflect.Value)
 
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
