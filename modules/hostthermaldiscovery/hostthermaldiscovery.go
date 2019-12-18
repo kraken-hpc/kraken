@@ -23,7 +23,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	scalpb "github.com/hpc/kraken/extensions/HostFrequencyScaler/proto"
 	thpb "github.com/hpc/kraken/extensions/HostThermal/proto"
+
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/hostthermaldiscovery/proto"
 )
@@ -51,6 +53,11 @@ var _ lib.Module = (*HostDisc)(nil)
 var _ lib.ModuleWithConfig = (*HostDisc)(nil)
 var _ lib.ModuleWithDiscovery = (*HostDisc)(nil)
 var _ lib.ModuleSelfService = (*HostDisc)(nil)
+
+var profileMap = map[string]string{
+	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
+	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+}
 
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
@@ -109,6 +116,7 @@ func init() {
 	module := &HostDisc{}
 	discovers := make(map[string]map[string]reflect.Value)
 	hostThermDisc := make(map[string]reflect.Value)
+	hostFreqScalerDiscs := make(map[string]reflect.Value)
 
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
@@ -116,6 +124,11 @@ func init() {
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
 
 	discovers[HostThermalStateURL] = hostThermDisc
+
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_NONE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_NONE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_PERFORMANCE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_POWER_SAVE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE)
+	discovers[hostFreqScalerURL] = hostFreqScalerDiscs
 
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
@@ -178,9 +191,10 @@ func (hostDisc *HostDisc) DiscFreqScaler() {
 	}
 	hostDisc.preFreqScaler = hostFreqScaler
 
-	hostDisc.api.Logf(lib.LLERROR, "SCALER: %s", hostFreqScaler)
+	vid := profileMap[hostFreqScaler]
 
-	vid := hostFreqScaler
+	hostDisc.api.Logf(lib.LLERROR, "PRINTSCALER: %s", vid)
+
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), hostFreqScalerURL)
 
 	// Generating discovery event for CPU Thermal state
