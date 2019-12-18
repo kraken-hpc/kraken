@@ -619,10 +619,27 @@ func (sme *StateMutationEngine) collectURLs() {
 }
 
 func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode) {
-	realNode := to
-	inEdge := root.in[0]
-	inEdge.to = realNode
-	realNode.in = append(realNode.in, inEdge)
+	inSlice := func(s []*mutationEdge, n *mutationEdge) bool {
+		for _, mn := range s {
+			if mn.mut == n.mut {
+				return true
+			}
+		}
+		return false
+	}
+	// we perform a union on in/out.  We expect root has fewer in/out (0 - 1)
+	for _, in := range root.in {
+		if !inSlice(to.in, in) {
+			in.to = to
+			to.in = append(to.in, in)
+		}
+	}
+	for _, out := range root.out {
+		if !inSlice(to.out, out) {
+			out.from = to
+			to.out = append(to.out, out)
+		}
+	}
 }
 
 // buildGraph builds the graph of Specs/Mutations.  It is depth-first, recursive.
@@ -630,7 +647,7 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 // !!!IMPORTANT!!!
 // buildGraph assumes you already hold a lock
 // currently only used in onUpdate
-func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, seenMut map[int]*mutationNode, chain []*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
+func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, chain map[int]*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
 	nodes = append(nodes, root)
 	edges = []*mutationEdge{}
 
@@ -648,7 +665,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 		// can this form in out arrow?
 		if m.SpecCompatOut(root.spec, sme.mutators) {
 			// ...or, 2) we have hit the same mutation in the same chain.
-			if n, ok := seenMut[i]; ok {
+			if n, ok := chain[i]; ok {
 				// Ok, I've seen this mutation -> I'm not actually a new node
 				// Which node am I? -> seen[i]
 				sme.remapToNode(root, n)
@@ -666,27 +683,20 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 			}
 			nme.to = nn
 			root.out = append(root.out, nme)
-			//ineffient, but every chain needs its own copy of seenMut
-			newseenMut := make(map[int]*mutationNode)
-			for k := range seenMut {
-				newseenMut[k] = seenMut[k]
+			//ineffient, but every chain needs its own copy
+			newChain := make(map[int]*mutationNode)
+			for k := range chain {
+				newChain[k] = chain[k]
 			}
-			newseenMut[i] = root
+			chain[i] = root
 			seenNode[root.spec] = root
-			nds, eds := sme.buildGraph(nn, seenNode, newseenMut, append(chain, root))
+			nds, eds := sme.buildGraph(nn, seenNode, chain)
 			edges = append(edges, nme)
 			edges = append(edges, eds...)
 			nodes = append(nodes, nds...)
 		}
 		// Can this form an in arrow?
 		if m.SpecCompatIn(root.spec, sme.mutators) {
-			// ...or, 2) we have hit the same mutation in the same chain.
-			if n, ok := seenMut[i]; ok {
-				// Ok, I've seen this mutation -> I'm not actually a new node
-				// Which node am I? -> seen[i]
-				sme.remapToNode(root, n)
-				return []*mutationNode{}, []*mutationEdge{}
-			}
 			nme := &mutationEdge{
 				cost: 1,
 				mut:  m,
@@ -694,19 +704,14 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 			}
 			nn := &mutationNode{
 				spec: root.spec.SpecMergeMust(m.Before()),
-				in:   []*mutationEdge{nme},
-				out:  []*mutationEdge{},
+				in:   []*mutationEdge{},
+				out:  []*mutationEdge{nme},
 			}
 			nme.from = nn
 			root.in = append(root.in, nme)
-			//ineffient, but every chain needs its own copy of seenMut
-			newseenMut := make(map[int]*mutationNode)
-			for k := range seenMut {
-				newseenMut[k] = seenMut[k]
-			}
-			newseenMut[i] = root
 			seenNode[root.spec] = root
-			nds, eds := sme.buildGraph(nn, seenNode, newseenMut, append(chain, root))
+			// we reset the chain if we went backwards
+			nds, eds := sme.buildGraph(nn, seenNode, make(map[int]*mutationNode))
 			edges = append(edges, nme)
 			edges = append(edges, eds...)
 			nodes = append(nodes, nds...)
@@ -735,7 +740,7 @@ func (sme *StateMutationEngine) onUpdate() {
 	sme.graphMutex.Lock()
 	sme.clearGraph()
 	sme.collectURLs()
-	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode), []*mutationNode{})
+	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode))
 	sme.Logf(DEBUG, "Built graph [ Mutations: %d Mutation URLs: %d Requires URLs: %d Graph Nodes: %d Graph Edges: %d ]",
 		len(sme.muts), len(sme.mutators), len(sme.requires), len(sme.nodes), len(sme.edges))
 	sme.graphMutex.Unlock()
