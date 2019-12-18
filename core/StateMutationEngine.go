@@ -645,6 +645,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 	}
 
 	for i, m := range sme.muts {
+		// can this form in out arrow?
 		if m.SpecCompatOut(root.spec, sme.mutators) {
 			// ...or, 2) we have hit the same mutation in the same chain.
 			if n, ok := seenMut[i]; ok {
@@ -665,6 +666,39 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 			}
 			nme.to = nn
 			root.out = append(root.out, nme)
+			//ineffient, but every chain needs its own copy of seenMut
+			newseenMut := make(map[int]*mutationNode)
+			for k := range seenMut {
+				newseenMut[k] = seenMut[k]
+			}
+			newseenMut[i] = root
+			seenNode[root.spec] = root
+			nds, eds := sme.buildGraph(nn, seenNode, newseenMut, append(chain, root))
+			edges = append(edges, nme)
+			edges = append(edges, eds...)
+			nodes = append(nodes, nds...)
+		}
+		// Can this form an in arrow?
+		if m.SpecCompatIn(root.spec, sme.mutators) {
+			// ...or, 2) we have hit the same mutation in the same chain.
+			if n, ok := seenMut[i]; ok {
+				// Ok, I've seen this mutation -> I'm not actually a new node
+				// Which node am I? -> seen[i]
+				sme.remapToNode(root, n)
+				return []*mutationNode{}, []*mutationEdge{}
+			}
+			nme := &mutationEdge{
+				cost: 1,
+				mut:  m,
+				to:   root,
+			}
+			nn := &mutationNode{
+				spec: root.spec.SpecMergeMust(m.Before()),
+				in:   []*mutationEdge{nme},
+				out:  []*mutationEdge{},
+			}
+			nme.from = nn
+			root.in = append(root.in, nme)
 			//ineffient, but every chain needs its own copy of seenMut
 			newseenMut := make(map[int]*mutationNode)
 			for k := range seenMut {
