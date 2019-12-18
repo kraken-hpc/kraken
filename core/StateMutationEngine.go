@@ -645,7 +645,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.
 	}
 
 	for i, m := range sme.muts {
-		if m.SpecCompatWithMutators(root.spec, sme.mutators) {
+		if m.SpecCompatOut(root.spec, sme.mutators) {
 			// ...or, 2) we have hit the same mutation in the same chain.
 			if n, ok := seenMut[i]; ok {
 				// Ok, I've seen this mutation -> I'm not actually a new node
