@@ -13,7 +13,8 @@ package proto;
 message HostDiscoveryConfig {
     string polling_interval = 1;
     string temp_sensor_path = 2;
-    map<string, HostThermalThresholds> thermal_thresholds = 3;
+    string freq_sensor_url = 3;
+    map<string, HostThermalThresholds> thermal_thresholds = 4;
 }
 
 message HostThermalThresholds {

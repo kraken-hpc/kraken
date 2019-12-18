@@ -40,6 +40,11 @@ const (
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostthermaldiscovery/State"
+	// hostFreqScalerURL provides URL for host frequency scaler at host run time
+	hostFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/State"
+
+	// freqSensorPath holds frequency sensor path on pi node
+	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
 )
 
 var _ lib.Module = (*HostDisc)(nil)
@@ -49,11 +54,12 @@ var _ lib.ModuleSelfService = (*HostDisc)(nil)
 
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
-	prevTemp   int32
-	api        lib.APIClient
-	cfg        *pb.HostDiscoveryConfig
-	dchan      chan<- lib.Event
-	pollTicker *time.Ticker
+	prevTemp      int32
+	preFreqScaler string
+	api           lib.APIClient
+	cfg           *pb.HostDiscoveryConfig
+	dchan         chan<- lib.Event
+	pollTicker    *time.Ticker
 }
 
 // Name returns the FQDN of the module
@@ -64,6 +70,7 @@ func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
 		PollingInterval: "10s",
 		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
+		FreqSensorUrl:   freqSensorPath,
 		ThermalThresholds: map[string]*pb.HostThermalThresholds{
 			"CPUThermalThresholds": {
 				LowerNormal:   3000,
@@ -155,9 +162,50 @@ func (hostDisc *HostDisc) Entry() {
 		select {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
+			go hostDisc.DiscFreqScaler()
 			break
 		}
 	}
+}
+
+// DiscFreqScaler cpu frequency scaler
+func (hostDisc *HostDisc) DiscFreqScaler() {
+
+	hostFreqScaler := hostDisc.ReadFreqScaler()
+	if hostFreqScaler == hostDisc.preFreqScaler {
+		// no change in frequency scaler so no need to generate discovery event
+		return
+	}
+	hostDisc.preFreqScaler = hostFreqScaler
+
+	vid := hostFreqScaler
+	url := lib.NodeURLJoin(hostDisc.api.Self().String(), hostFreqScalerURL)
+
+	// Generating discovery event for CPU Thermal state
+	v := core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
+
+			URL:     url,
+			ValueID: vid,
+		},
+	)
+	hostDisc.dchan <- v
+
+}
+
+// ReadFreqScaler cpu frequency scaler
+func (hostDisc *HostDisc) ReadFreqScaler() string {
+
+	basePath := hfs.cfg.GetFreqSensorUrl()
+	bscalingGovernor, err := ioutil.ReadFile(basePath + "scaling_governor")
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
+		return ""
+	}
+	//fscalingGovernor := strings.TrimSuffix(string(bscalingGovernor), "\n")
+	return strings.TrimSuffix(string(bscalingGovernor), "\n")
 }
 
 // discoverHostCPUTemp is used to acquire CPU thermal locally.
