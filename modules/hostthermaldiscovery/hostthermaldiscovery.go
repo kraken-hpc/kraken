@@ -198,7 +198,7 @@ func (hostDisc *HostDisc) DiscFreqScaler() {
 // ReadFreqScaler cpu frequency scaler
 func (hostDisc *HostDisc) ReadFreqScaler() string {
 
-	basePath := hfs.cfg.GetFreqSensorUrl()
+	basePath := hostDisc.cfg.GetFreqSensorUrl()
 	bscalingGovernor, err := ioutil.ReadFile(basePath + "scaling_governor")
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
