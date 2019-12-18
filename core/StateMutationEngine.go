@@ -927,13 +927,6 @@ func (sme *StateMutationEngine) nodeViolatesDeps(deps map[string]lib.StateSpec, 
 		}
 		// Can this form an in arrow?
 		if m.SpecCompatIn(root.spec, sme.mutators) {
-			// ...or, 2) we have hit the same mutation in the same chain.
-			if n, ok := seenMut[i]; ok {
-				// Ok, I've seen this mutation -> I'm not actually a new node
-				// Which node am I? -> seen[i]
-				sme.remapToNode(root, n)
-				return []*mutationNode{}, []*mutationEdge{}
-			}
 			nme := &mutationEdge{
 				cost: 1,
 				mut:  m,
@@ -941,19 +934,14 @@ func (sme *StateMutationEngine) nodeViolatesDeps(deps map[string]lib.StateSpec, 
 			}
 			nn := &mutationNode{
 				spec: root.spec.SpecMergeMust(m.Before()),
-				in:   []*mutationEdge{nme},
-				out:  []*mutationEdge{},
+				in:   []*mutationEdge{},
+				out:  []*mutationEdge{nme},
 			}
 			nme.from = nn
 			root.in = append(root.in, nme)
-			//ineffient, but every chain needs its own copy of seenMut
-			newseenMut := make(map[int]*mutationNode)
-			for k := range seenMut {
-				newseenMut[k] = seenMut[k]
-			}
-			newseenMut[i] = root
 			seenNode[root.spec] = root
-			nds, eds := sme.buildGraph(nn, seenNode, newseenMut, append(chain, root))
+			// we reset the chain if we went backwards
+			nds, eds := sme.buildGraph(nn, seenNode, make(map[int]*mutationNode))
 			edges = append(edges, nme)
 			edges = append(edges, eds...)
 			nodes = append(nodes, nds...)
