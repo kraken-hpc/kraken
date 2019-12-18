@@ -98,6 +98,17 @@ func (s *StateMutation) SpecCompatIn(sp lib.StateSpec, muts map[string]uint32) b
 		return false
 	}
 
+	// 1.5 We have stronger requirements for mutation excludes in the case of zero value exclude
+	for url, val := range s.Excludes() {
+		if val.IsZero() {
+			// It's not OK to be unset, and SpecCompat won't catch this (for good reason)
+			// SpecCompat catches the case of set, but zero
+			if _, ok := sp.Requires()[url]; !ok {
+				return false
+			}
+		}
+	}
+
 	// 2. Do the requirements of the spec match the end of what this mutation mutates?
 	for u, v := range s.Mutates() {
 		spv, ok := sp.Requires()[u]
