@@ -178,6 +178,8 @@ func (hostDisc *HostDisc) DiscFreqScaler() {
 	}
 	hostDisc.preFreqScaler = hostFreqScaler
 
+	hostDisc.api.Logf(lib.LLERROR, "SCALER: %s", hostFreqScaler)
+
 	vid := hostFreqScaler
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), hostFreqScalerURL)
 
