@@ -1171,18 +1171,6 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 	}
 
 	sme.Logf(DEBUG, "%s could neither find a path, nor devolve.  We're lost.", node)
-
-	sme.graphMutex.RLock()
-	defer sme.graphMutex.RUnlock()
-	// set everything to unknown except the value we were given
-	for u := range sme.mutators {
-		if u == url {
-			// don't reset the unexpected value...
-			continue
-		}
-		v, _ := n.GetValue(u)
-		n.SetValue(u, reflect.Zero(v.Type()))
-	}
 }
 
 // updateMutation attempts to progress along an existing mutation chain
