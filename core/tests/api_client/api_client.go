@@ -7,9 +7,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	_ "github.com/hpc/kraken/extensions"
 	"github.com/hpc/kraken/lib"
-	_ "github.com/hpc/kraken/modules"
 	pbd "github.com/hpc/kraken/modules/dummy/proto"
 )
 
