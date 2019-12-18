@@ -383,10 +383,8 @@ type StateMutation interface {
 	Context() StateMutationContext
 	Before() StateSpec
 	After() StateSpec
-	CanMutateNode(Node) bool
-	MutationCompat(StateMutation) bool
-	SpecCompat(StateSpec) bool
-	SpecCompatWithMutators(StateSpec, map[string]uint32) bool
+	SpecCompatIn(StateSpec, map[string]uint32) bool
+	SpecCompatOut(StateSpec, map[string]uint32) bool
 	Timeout() time.Duration
 	FailTo() [3]string // discover address: module:url:value_id
 }

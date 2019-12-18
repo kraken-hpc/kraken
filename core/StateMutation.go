@@ -87,44 +87,41 @@ func (s *StateMutation) After() lib.StateSpec {
 	return after
 }
 
-// CanMutateNode returns whether a particular node is eligable for mutation by this StateMutation
-func (s *StateMutation) CanMutateNode(n lib.Node) (r bool) {
-	return s.Before().NodeMatch(n)
-}
+// SpecCompatIn decides if this mutation can form an in arrow in the graph
+// This is used for graph building.
+func (s *StateMutation) SpecCompatIn(sp lib.StateSpec, muts map[string]uint32) bool {
+	// Philosphy: assume true, fail fast
 
-// MutationCompat determines if two mutations are compatible to be connected
-// This is non-commutative.  Is the beginning of b compat with end of s?
-func (s *StateMutation) MutationCompat(b lib.StateMutation) (r bool) {
-	return b.SpecCompat(s.After())
-}
-
-// SpecCompat determines if a spec is compatable with the beginning of a mutation
-// Unlike state specs, this is not commutative
-func (s *StateMutation) SpecCompat(sp lib.StateSpec) bool {
-	if !s.Before().SpecCompat(sp) {
+	// 1. If the specs aren't compatible, we're done
+	//    Provides basic requires/excludes matching
+	if !s.After().SpecCompat(sp) {
 		return false
 	}
-	spr := sp.Requires()
-	// we have stronger requirements for mutation urls
+
+	// 1.5 We have stronger requirements for mutation excludes in the case of zero value exclude
+	for url, val := range s.Excludes() {
+		if val.IsZero() {
+			// It's not OK to be unset, and SpecCompat won't catch this (for good reason)
+			// SpecCompat catches the case of set, but zero
+			if _, ok := sp.Requires()[url]; !ok {
+				return false
+			}
+		}
+	}
+
+	// 2. Do the requirements of the spec match the end of what this mutation mutates?
 	for u, v := range s.Mutates() {
-		spv, ok := spr[u]
+		spv, ok := sp.Requires()[u]
 		if !ok {
 			// make a zero value of the type we're comparing
 			spv = reflect.Indirect(reflect.New(v[0].Type()))
 		}
-		if spv.Interface() != v[0].Interface() {
+		if spv.Interface() != v[1].Interface() {
 			return false
 		}
 	}
-	return true
-}
 
-// SpecCompatWithMutators adds to the requirements of SpecCompat that any requires that is also
-// a mutator must be present and equal
-func (s *StateMutation) SpecCompatWithMutators(sp lib.StateSpec, muts map[string]uint32) bool {
-	if !s.SpecCompat(sp) {
-		return false
-	}
+	// 3. If our mutation requires x & and x is a mutator (globally) -> they must match
 	for r := range s.Requires() {
 		if _, ok := muts[r]; ok { // our requires is also a mutator
 			spv, ok := sp.Requires()[r]
@@ -136,6 +133,59 @@ func (s *StateMutation) SpecCompatWithMutators(sp lib.StateSpec, muts map[string
 			}
 		}
 	}
+
+	// Ok, we're copatible
+	return true
+}
+
+// SpecCompatOut decides if this mutaiton can form an out arrow in the graph
+// This is used for graph building.
+func (s *StateMutation) SpecCompatOut(sp lib.StateSpec, muts map[string]uint32) bool {
+	// Philosphy: assume true, fail fast
+
+	// 1. If the specs aren't compatible, we're done
+	//    Provides basic requires/excludes matching
+	if !s.Before().SpecCompat(sp) {
+		return false
+	}
+
+	// 1.5 We have stronger requirements for mutation excludes in the case of zero value exclude
+	for url, val := range s.Excludes() {
+		if val.IsZero() {
+			// It's not OK to be unset, and SpecCompat won't catch this (for good reason)
+			// SpecCompat catches the case of set, but zero
+			if _, ok := sp.Requires()[url]; !ok {
+				return false
+			}
+		}
+	}
+
+	// 2. Do the requirements of the spec match the begining of what this mutation mutates?
+	for u, v := range s.Mutates() {
+		spv, ok := sp.Requires()[u]
+		if !ok {
+			// make a zero value of the type we're comparing
+			spv = reflect.Indirect(reflect.New(v[0].Type()))
+		}
+		if spv.Interface() != v[0].Interface() {
+			return false
+		}
+	}
+
+	// 3. If our mutation requires x & and x is a mutator (globally) -> they must match
+	for r := range s.Requires() {
+		if _, ok := muts[r]; ok { // our requires is also a mutator
+			spv, ok := sp.Requires()[r]
+			if !ok {
+				return false
+			}
+			if spv.Interface() != s.Requires()[r].Interface() {
+				return false
+			}
+		}
+	}
+
+	// Ok, we're copatible
 	return true
 }
 
