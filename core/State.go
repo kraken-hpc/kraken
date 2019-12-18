@@ -13,6 +13,7 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/hpc/kraken/lib"
 )
@@ -28,13 +29,15 @@ var _ lib.State = (*State)(nil)
 
 // A State stores and manipulates a collection of Nodes
 type State struct {
-	nodes map[string]*Node
+	nodesMutex *sync.RWMutex
+	nodes      map[string]*Node
 }
 
 // NewState creates an initialized state
 func NewState() *State {
 	s := &State{}
 	s.nodes = make(map[string]*Node)
+	s.nodesMutex = &sync.RWMutex{}
 	return s
 }
 
@@ -44,6 +47,9 @@ func NewState() *State {
 
 // Create creates a node in the state
 func (s *State) Create(n lib.Node) (r lib.Node, e error) {
+	s.nodesMutex.Lock()
+	defer s.nodesMutex.Unlock()
+
 	idstr := n.ID().String()
 	if _, ok := s.nodes[idstr]; ok {
 		e = fmt.Errorf("not creating node with duplicate ID: %s", idstr)
@@ -56,6 +62,9 @@ func (s *State) Create(n lib.Node) (r lib.Node, e error) {
 
 // Read returns a node from the state
 func (s *State) Read(nid lib.NodeID) (r lib.Node, e error) {
+	s.nodesMutex.RLock()
+	defer s.nodesMutex.RUnlock()
+
 	idstr := nid.String()
 	if v, ok := s.nodes[idstr]; ok {
 		r = v
@@ -67,6 +76,9 @@ func (s *State) Read(nid lib.NodeID) (r lib.Node, e error) {
 
 // Update updates a node in the state
 func (s *State) Update(n lib.Node) (r lib.Node, e error) {
+	s.nodesMutex.Lock()
+	defer s.nodesMutex.Unlock()
+
 	idstr := n.ID().String()
 	if _, ok := s.nodes[idstr]; ok {
 		s.nodes[idstr] = n.(*Node)
@@ -84,6 +96,9 @@ func (s *State) Delete(n lib.Node) (r lib.Node, e error) {
 
 // DeleteByID deletes a node from the state keyed by NodeID
 func (s *State) DeleteByID(nid lib.NodeID) (r lib.Node, e error) {
+	s.nodesMutex.Lock()
+	defer s.nodesMutex.Unlock()
+
 	idstr := nid.String()
 	if v, ok := s.nodes[idstr]; ok {
 		delete(s.nodes, idstr)
@@ -125,6 +140,9 @@ func (s *State) BulkDeleteByID(nids []lib.NodeID) (r []lib.Node, e error) {
 
 // ReadAll returns a slice of all nodes from the state
 func (s *State) ReadAll() (r []lib.Node, e error) {
+	s.nodesMutex.RLock()
+	defer s.nodesMutex.RUnlock()
+
 	for _, v := range s.nodes {
 		r = append(r, v)
 	}
@@ -133,6 +151,9 @@ func (s *State) ReadAll() (r []lib.Node, e error) {
 
 // DeleteAll will remove all nodes from the state
 func (s *State) DeleteAll() (r []lib.Node, e error) {
+	s.nodesMutex.Lock()
+	defer s.nodesMutex.Unlock()
+
 	r, e = s.ReadAll()
 	s.nodes = make(map[string]*Node)
 	return
