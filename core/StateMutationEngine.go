@@ -642,81 +642,93 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 	}
 }
 
+// buildGraphStage1 builds a fully expanded set of paths branching from a starting root
+// this will build a very verbose, probably unusable graph
+// it is expected that later graph stages will clean it up and make it more sane
+// root: current node, edge: edge that got us here (or nil), seenNodes: map of nodes we've seen
+func (sme *StateMutationEngine) buildGraphStage1(root *mutationNode, edge *mutationEdge, seenNodes map[lib.StateSpec]*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
+	nodes = []*mutationNode{}
+	edges = []*mutationEdge{}
+
+	// is this node equal to one we've already seen?
+	for sp, n := range seenNodes {
+		if sp.Equal(root.spec) {
+			// yes, we've seen this node, so we're done processing this chain.  Merge the nodes.
+			sme.remapToNode(root, n)
+			return
+		}
+	}
+
+	// we know we've at least go our root as a new node
+	if edge != nil {
+		edges = append(edges, edge)
+	}
+	nodes = append(nodes, root)
+	seenNodes[root.spec] = root
+
+	// find connecting mutations
+	for _, m := range sme.muts {
+		// do we have a valid out arrow?
+		if m.SpecCompatOut(root.spec, sme.mutators) {
+			// m is a valid out arrow, create an edge for the out arrow
+			// first, do we already know about this one?
+			for _, edge := range root.out {
+				if m == edge.mut {
+					continue
+				}
+			}
+			newEdge := &mutationEdge{
+				cost: 1,
+				mut:  m,
+				from: root,
+			}
+			// ...and construct the new node that it connects to
+			newNode := &mutationNode{
+				spec: root.spec.SpecMergeMust(m.After()), // a combination of the current spec + the changes the mation creates
+				in:   []*mutationEdge{newEdge},           // we know we have this in at least
+				out:  []*mutationEdge{},                  // for now, out is empty
+			}
+			newEdge.to = newNode
+			root.out = append(root.out, newEdge)
+			// ready to recurse
+			ns, es := sme.buildGraphStage1(newNode, newEdge, seenNodes)
+			nodes = append(nodes, ns...)
+			edges = append(edges, es...)
+		} else if m.SpecCompatIn(root.spec, sme.mutators) {
+			// note: it doesn't make sense for the same mutator to be both in/out.  This would be a meaningless nop.
+			// m is a valid in arrow, similar to out with some subtle differences
+			for _, edge := range root.in {
+				if m == edge.mut {
+					continue
+				}
+			}
+			newEdge := &mutationEdge{
+				cost: 1,
+				mut:  m,
+				to:   root,
+			}
+			newNode := &mutationNode{
+				spec: root.spec.SpecMergeMust(m.Before()),
+				in:   []*mutationEdge{},
+				out:  []*mutationEdge{newEdge},
+			}
+			newEdge.from = newNode
+			root.in = append(root.in, newEdge)
+			ns, es := sme.buildGraphStage1(newNode, newEdge, seenNodes)
+			nodes = append(nodes, ns...)
+			edges = append(edges, es...)
+		}
+	}
+	return
+}
+
 // buildGraph builds the graph of Specs/Mutations.  It is depth-first, recursive.
 // TODO: this function may eventually need recursion protection
 // !!!IMPORTANT!!!
 // buildGraph assumes you already hold a lock
 // currently only used in onUpdate
-func (sme *StateMutationEngine) buildGraph(root *mutationNode, seenNode map[lib.StateSpec]*mutationNode, chain map[int]*mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
-	nodes = append(nodes, root)
-	edges = []*mutationEdge{}
-
-	// There are two thing that can make a node equal:
-	// 1) we have seen this exact node spec...
-	for sp, n := range seenNode {
-		if sp.Equal(root.spec) {
-			// we've seen an identical spec already
-			sme.remapToNode(root, n)
-			return []*mutationNode{}, []*mutationEdge{}
-		}
-	}
-
-	for i, m := range sme.muts {
-		// can this form in out arrow?
-		if m.SpecCompatOut(root.spec, sme.mutators) {
-			// ...or, 2) we have hit the same mutation in the same chain.
-			if n, ok := chain[i]; ok {
-				// Ok, I've seen this mutation -> I'm not actually a new node
-				// Which node am I? -> seen[i]
-				sme.remapToNode(root, n)
-				return []*mutationNode{}, []*mutationEdge{}
-			}
-			nme := &mutationEdge{
-				cost: 1,
-				mut:  m,
-				from: root,
-			}
-			nn := &mutationNode{
-				spec: root.spec.SpecMergeMust(m.After()),
-				in:   []*mutationEdge{nme},
-				out:  []*mutationEdge{},
-			}
-			nme.to = nn
-			root.out = append(root.out, nme)
-			//ineffient, but every chain needs its own copy
-			newChain := make(map[int]*mutationNode)
-			for k := range chain {
-				newChain[k] = chain[k]
-			}
-			chain[i] = root
-			seenNode[root.spec] = root
-			nds, eds := sme.buildGraph(nn, seenNode, chain)
-			edges = append(edges, nme)
-			edges = append(edges, eds...)
-			nodes = append(nodes, nds...)
-		}
-		// Can this form an in arrow?
-		if m.SpecCompatIn(root.spec, sme.mutators) {
-			nme := &mutationEdge{
-				cost: 1,
-				mut:  m,
-				to:   root,
-			}
-			nn := &mutationNode{
-				spec: root.spec.SpecMergeMust(m.Before()),
-				in:   []*mutationEdge{},
-				out:  []*mutationEdge{nme},
-			}
-			nme.from = nn
-			root.in = append(root.in, nme)
-			seenNode[root.spec] = root
-			// we reset the chain if we went backwards
-			nds, eds := sme.buildGraph(nn, seenNode, make(map[int]*mutationNode))
-			edges = append(edges, nme)
-			edges = append(edges, eds...)
-			nodes = append(nodes, nds...)
-		}
-	}
+func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutationNode, edges []*mutationEdge) {
+	nodes, edges = sme.buildGraphStage1(root, nil, map[lib.StateSpec]*mutationNode{})
 	return
 }
 
@@ -740,7 +752,7 @@ func (sme *StateMutationEngine) onUpdate() {
 	sme.graphMutex.Lock()
 	sme.clearGraph()
 	sme.collectURLs()
-	sme.nodes, sme.edges = sme.buildGraph(sme.graph, make(map[lib.StateSpec]*mutationNode), make(map[int]*mutationNode))
+	sme.nodes, sme.edges = sme.buildGraph(sme.graph)
 	sme.Logf(DEBUG, "Built graph [ Mutations: %d Mutation URLs: %d Requires URLs: %d Graph Nodes: %d Graph Edges: %d ]",
 		len(sme.muts), len(sme.mutators), len(sme.requires), len(sme.nodes), len(sme.edges))
 	sme.graphMutex.Unlock()
@@ -879,8 +891,6 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	gs, ge := sme.boundarySearch(start, end)
 	if len(gs) < 1 {
 		e = fmt.Errorf("could not find path: start not in graph")
-	} else if len(gs) > 1 {
-		e = fmt.Errorf("could not find path: ambiguous start")
 	}
 	if len(ge) < 1 {
 		e = fmt.Errorf("could not find path: end not in graph")
@@ -892,24 +902,13 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 	if e != nil {
 		return
 	}
-	// If start is contained in end, we're already where we want to be
-	// In this case, we return a valid mutationPath with a zero length chain
-	/* this should be caught by the test above already
-	for _, gend := range ge {
-		if gend == gs[0] {
-			path = &mutationPath{
-				mutex:   &sync.Mutex{},
-				start:   start,
-				end:     end,
-				cur:     0,
-				curSeen: []string{},
-				chain:   []*mutationEdge{},
-			}
-			return
+	// try starts until we get a path (or fail)
+	for _, st := range gs {
+		path = sme.drijkstra(st, ge) // we require a unique start, but not a unique end
+		if path.chain != nil {
+			break
 		}
 	}
-	*/
-	path = sme.drijkstra(gs[0], ge) // we require a unique start, but not a unique end
 	path.start = start
 	path.end = end
 	path.cur = 0
