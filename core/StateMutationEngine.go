@@ -932,19 +932,16 @@ func (sme *StateMutationEngine) nodeViolatesDeps(deps map[string]lib.StateSpec, 
 				mut:  m,
 				to:   root,
 			}
-			nn := &mutationNode{
+			newNode := &mutationNode{
 				spec: root.spec.SpecMergeMust(m.Before()),
 				in:   []*mutationEdge{},
-				out:  []*mutationEdge{nme},
+				out:  []*mutationEdge{newEdge},
 			}
-			nme.from = nn
-			root.in = append(root.in, nme)
-			seenNode[root.spec] = root
-			// we reset the chain if we went backwards
-			nds, eds := sme.buildGraph(nn, seenNode, make(map[int]*mutationNode))
-			edges = append(edges, nme)
-			edges = append(edges, eds...)
-			nodes = append(nodes, nds...)
+			newEdge.from = newNode
+			root.in = append(root.in, newEdge)
+			ns, es := sme.buildGraphStage1(newNode, newEdge, seenNodes)
+			nodes = append(nodes, ns...)
+			edges = append(edges, es...)
 		}
 	}
 	return
