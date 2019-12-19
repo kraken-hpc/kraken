@@ -419,7 +419,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 // HostFrequencyScaling scales CPU frequency according to given parameters
 func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 
-	hfs.api.Log(lib.LLERROR, "POLICY: %s", freqScalPolicy)
+	hfs.api.Logf(lib.LLERROR, "POLICY: %s", freqScalPolicy)
 
 	freqScalPolicies := hfs.cfg.GetFreqScalPolicies()
 
