@@ -185,11 +185,11 @@ func (hostDisc *HostDisc) Entry() {
 func (hostDisc *HostDisc) DiscFreqScaler() {
 
 	hostFreqScaler := hostDisc.ReadFreqScaler()
-	// if hostFreqScaler == hostDisc.preFreqScaler {
-	// 	// no change in frequency scaler so no need to generate discovery event
-	// 	return
-	// }
-	// hostDisc.preFreqScaler = hostFreqScaler
+	if hostFreqScaler == hostDisc.preFreqScaler {
+		// no change in frequency scaler so no need to generate discovery event
+		return
+	}
+	hostDisc.preFreqScaler = hostFreqScaler
 
 	vid := profileMap[hostFreqScaler]
 
