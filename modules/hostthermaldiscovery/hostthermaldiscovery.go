@@ -149,6 +149,7 @@ func (hostDisc *HostDisc) Init(api lib.APIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
 
+	var err error
 	hostDisc.file, err = os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
