@@ -62,7 +62,7 @@ var profileMap = map[string]string{
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
 	prevTemp      int32
-	file          *File
+	file          *os.File
 	preFreqScaler string
 	api           lib.APIClient
 	cfg           *pb.HostDiscoveryConfig
@@ -148,13 +148,13 @@ func init() {
 func (hostDisc *HostDisc) Init(api lib.APIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
-	
-	hostDisc.file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+
+	hostDisc.file, err = os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
 	defer file.Close()
-	
+
 }
 
 // Stop should perform a graceful exit
