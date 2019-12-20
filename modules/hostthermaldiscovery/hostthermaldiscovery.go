@@ -62,6 +62,7 @@ var profileMap = map[string]string{
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
 	prevTemp      int32
+	file          *File
 	preFreqScaler string
 	api           lib.APIClient
 	cfg           *pb.HostDiscoveryConfig
@@ -147,6 +148,13 @@ func init() {
 func (hostDisc *HostDisc) Init(api lib.APIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
+	
+	hostDisc.file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
+	}
+	defer file.Close()
+	
 }
 
 // Stop should perform a graceful exit
@@ -194,13 +202,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	t := time.Now().UnixNano() // / int64(time.Millisecond)
 	record := fmt.Sprintf("%d,%d,%s\n", t, temp, freqScaler)
 
-	file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
-	if err != nil {
-		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
-	}
-	defer file.Close()
-
-	_, err = file.WriteString(record)
+	_, err = hostDisc.file.WriteString(record)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
