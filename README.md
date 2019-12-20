@@ -31,6 +31,7 @@ Check back soon for more documentation, utilities and demonstrations.
 Excellent!  It's our intention to make Kraken a community developed project.  To get started, you can:
 
 1) contact us;
+   Kraken has a Slack instance.  You can get an invite here: [slack.kraken-hpc.io](http://slack.kraken-hpc.io)
 2) take a look at any posted issues;
 3) post new issues;
 4) create pull requests.
