@@ -78,8 +78,8 @@ func (*HostDisc) NewConfig() proto.Message {
 		PollingInterval: "1s",
 		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
 		FreqSensorUrl:   freqSensorPath,
-		LogThermalData: true
-		LogHere: "/tmp/ThermalLog.txt"
+		LogThermalData:  true,
+		LogHere:         "/tmp/ThermalLog.txt",
 		ThermalThresholds: map[string]*pb.HostThermalThresholds{
 			"CPUThermalThresholds": {
 				LowerNormal:   3000,
@@ -178,10 +178,10 @@ func (hostDisc *HostDisc) Entry() {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
 			go hostDisc.DiscFreqScaler()
-			if hostDisc.cfg.GetLogThermalData() == true{
+			if hostDisc.cfg.GetLogThermalData() == true {
 				go hostDisc.CapturingStatData()
 			}
-			
+
 			break
 		}
 	}
