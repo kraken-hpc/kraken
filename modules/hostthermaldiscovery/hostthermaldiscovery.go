@@ -194,7 +194,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	t := time.Now().UnixNano() // / int64(time.Millisecond)
 	record := fmt.Sprintf("%d,", "%d,", "%s", t, temp, freqScaler)
 
-	file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
