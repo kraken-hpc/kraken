@@ -78,6 +78,8 @@ func (*HostDisc) NewConfig() proto.Message {
 		PollingInterval: "1s",
 		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
 		FreqSensorUrl:   freqSensorPath,
+		LogThermalData: true
+		LogHere: "/tmp/ThermalLog.txt"
 		ThermalThresholds: map[string]*pb.HostThermalThresholds{
 			"CPUThermalThresholds": {
 				LowerNormal:   3000,
@@ -176,7 +178,10 @@ func (hostDisc *HostDisc) Entry() {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
 			go hostDisc.DiscFreqScaler()
-			go hostDisc.CapturingStatData()
+			if hostDisc.cfg.GetLogThermalData() == true{
+				go hostDisc.CapturingStatData()
+			}
+			
 			break
 		}
 	}
@@ -189,7 +194,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	t := time.Now().UnixNano() // / int64(time.Millisecond)
 	record := fmt.Sprintf("%d,", "%d,", "%s", t, currTemp, freqScaler)
 
-	file, err := os.OpenFile("/tmp/thermLog.txt", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}

@@ -15,6 +15,8 @@ message HostDiscoveryConfig {
     string temp_sensor_path = 2;
     string freq_sensor_url = 3;
     map<string, HostThermalThresholds> thermal_thresholds = 4;
+    bool log_thermal_data = 5;
+    string log_here = 6;
 }
 
 message HostThermalThresholds {
