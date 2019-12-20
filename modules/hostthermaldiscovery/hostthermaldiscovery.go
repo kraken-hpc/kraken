@@ -149,11 +149,10 @@ func (hostDisc *HostDisc) Init(api lib.APIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
 
-	hostDisc.file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	hostDisc.file, err = os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
-	
 
 }
 
@@ -202,7 +201,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	t := time.Now().UnixNano() // / int64(time.Millisecond)
 	record := fmt.Sprintf("%d,%d,%s\n", t, temp, freqScaler)
 
-	_, err = hostDisc.file.WriteString(record)
+	_, err := hostDisc.file.WriteString(record)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
