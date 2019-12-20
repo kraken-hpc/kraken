@@ -75,7 +75,7 @@ func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hosttherm
 // NewConfig returns a fully initialized default config
 func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
-		PollingInterval: "10s",
+		PollingInterval: "1s",
 		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
 		FreqSensorUrl:   freqSensorPath,
 		ThermalThresholds: map[string]*pb.HostThermalThresholds{
@@ -176,9 +176,30 @@ func (hostDisc *HostDisc) Entry() {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
 			go hostDisc.DiscFreqScaler()
+			go hostDisc.CapturingStatData()
 			break
 		}
 	}
+}
+
+// CapturingStatData logs thermal information
+func (hostDisc *HostDisc) CapturingStatData() {
+	freqScaler := hostDisc.preFreqScaler
+	temp := hostDisc.prevTemp
+	t := time.Now().UnixNano() // / int64(time.Millisecond)
+	record := fmt.Sprintf("%d,", "%d,", "%s", t, currTemp, freqScaler)
+
+	file, err := os.OpenFile("/tmp/thermLog.txt", os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
+	}
+	defer file.Close()
+
+	len, err := file.WriteString(record)
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
+	}
+
 }
 
 // DiscFreqScaler cpu frequency scaler
