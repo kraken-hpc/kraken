@@ -192,7 +192,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	freqScaler := hostDisc.preFreqScaler
 	temp := hostDisc.prevTemp
 	t := time.Now().UnixNano() // / int64(time.Millisecond)
-	record := fmt.Sprintf("%d,", "%d,", "%s", t, temp, freqScaler)
+	record := fmt.Sprintf("%d,%d,%s\n", t, temp, freqScaler)
 
 	file, err := os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 	if err != nil {
