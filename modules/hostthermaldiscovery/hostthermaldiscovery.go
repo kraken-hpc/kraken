@@ -200,7 +200,7 @@ func (hostDisc *HostDisc) CapturingStatData() {
 	}
 	defer file.Close()
 
-	_, err := file.WriteString(record)
+	_, err = file.WriteString(record)
 	if err != nil {
 		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
 	}
