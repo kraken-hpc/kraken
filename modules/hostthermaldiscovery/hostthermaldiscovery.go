@@ -62,7 +62,7 @@ var profileMap = map[string]string{
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
 	prevTemp      int32
-	file          os.File
+	file          *os.File
 	preFreqScaler string
 	api           lib.APIClient
 	cfg           *pb.HostDiscoveryConfig
