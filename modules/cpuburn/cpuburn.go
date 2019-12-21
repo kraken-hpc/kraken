@@ -124,7 +124,7 @@ func (*CPUBurn) NewConfig() (r proto.Message) {
 		ThermalThrottle:  true,
 		ThermalPoll:      1,
 		ThermalResume:    60000,
-		ThermalCrit:      85000,
+		ThermalCrit:      98000,
 		Workers:          4,
 		WorkersThrottled: 0,
 	}

@@ -219,7 +219,8 @@ func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
 		FreqSensorUrl:     freqSensorPath,
 		ScalingFreqPolicy: hostFreqScalerURL,
-
+		HighToLowScaler:   "powersave",
+		LowToHighScaler:   "performance",
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
@@ -244,7 +245,7 @@ func (*HFS) NewConfig() proto.Message {
 			},
 		},
 	}
-	return r
+	return
 }
 
 // UpdateConfig updates the running config
@@ -405,12 +406,14 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 	case "NONEtoPOWERSAVE":
 		fallthrough
 	case "PERFORMANCEtoPOWERSAVE":
-		hfs.HostFrequencyScaling(me.NodeCfg, "powersave")
+		highToLowScaler := hfs.cfg.GetHighToLowScaler()
+		hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
 		break
 	case "NONEtoPERFORMANCE":
 		fallthrough
 	case "POWERSAVEtoPERFORMANCE":
-		hfs.HostFrequencyScaling(me.NodeCfg, "performance")
+		lowToHighScaler := hfs.cfg.GetLowToHighScaler()
+		hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
 		break
 	}
 

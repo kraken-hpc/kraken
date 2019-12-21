@@ -84,15 +84,15 @@ func (*HostDisc) NewConfig() proto.Message {
 		ThermalThresholds: map[string]*pb.HostThermalThresholds{
 			"CPUThermalThresholds": {
 				LowerNormal:   3000,
-				UpperNormal:   60000,
-				LowerHigh:     60000,
-				UpperHigh:     70000,
+				UpperNormal:   80000,
+				LowerHigh:     80000,
+				UpperHigh:     90000,
 				LowerCritical: 3000,
-				UpperCritical: 70000,
+				UpperCritical: 90000,
 			},
 		},
 	}
-	return r
+	return
 }
 
 // UpdateConfig updates the running config

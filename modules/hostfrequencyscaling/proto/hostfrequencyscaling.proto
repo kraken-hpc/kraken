@@ -13,7 +13,9 @@
  message HostFreqScalingConfig {
      map<string, HostFreqScalingPolicy> freq_scal_policies = 1;
      string freq_sensor_url = 2;
-     string scaling_freq_policy = 3;    
+     string scaling_freq_policy = 3;
+     string low_to_high_scaler = 4;
+     string high_to_low_scaler = 5;    
 }
  
  message HostFreqScalingPolicy {
