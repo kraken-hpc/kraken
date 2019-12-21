@@ -245,7 +245,7 @@ func (*HFS) NewConfig() proto.Message {
 			},
 		},
 	}
-	return
+	return r
 }
 
 // UpdateConfig updates the running config

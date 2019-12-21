@@ -92,7 +92,7 @@ func (*HostDisc) NewConfig() proto.Message {
 			},
 		},
 	}
-	return
+	return r
 }
 
 // UpdateConfig updates the running config
