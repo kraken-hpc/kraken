@@ -697,6 +697,32 @@ func nodeMerge(list []int, nodes []*mutationNode) (*mutationNode, []*mutationEdg
 	return node, node.out
 }
 
+func nodeMerge(list []int, nodes []*mutationNode) (*mutationNode, []*mutationEdge) {
+	// build a new node from a merge of multiple nodes
+	// use least-common specification
+	// note: this will choke on a zero length list, but that shouldn't happen
+	node := nodes[list[0]] // build off of the first node
+	for i := 1; i < len(list); i++ {
+		// remap edges
+		inode := nodes[list[i]]
+		for _, e := range inode.in {
+			if !edgeInEdges(e, node.in) { // don't add if we already have this
+				e.to = node
+				node.in = append(node.in, e)
+			}
+		}
+		for _, e := range inode.out {
+			if !edgeInEdges(e, node.out) {
+				e.from = node
+				node.out = append(node.out, e)
+			}
+		}
+		// prune spec
+		node.spec.LeastCommon(inode.spec)
+	}
+	return node, node.out
+}
+
 // buildGraphStage1 builds a fully expanded set of paths branching from a starting root
 // this will build a very verbose, probably unusable graph
 // it is expected that later graph stages will clean it up and make it more sane
@@ -1025,6 +1051,33 @@ func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edge
 		}
 		return edges
 	}
+	fmt.Println("=== BEGIN: Graph sanity check ===")
+	// sanity checks
+	// 1. Equal number of nodeEdges as edges?
+	if len(nodeEdges) != len(edges) {
+		fmt.Printf("len(nodeEdges) != len(edges) : %d != %d\n", len(nodeEdges), len(edges))
+		ret = false
+	}
+	// 2. Equal number of edgeNodes as nodes?
+	if len(edgeNodes) != len(nodes) {
+		fmt.Printf("len(edgeNodes) != len(nodes) : %d != %d\n", len(edgeNodes), len(nodes))
+		ret = false
+	}
+	// 2. nodeEdges should have ref count 2
+	bad := 0
+	for _, c := range nodeEdges {
+		if c != 2 {
+			bad++
+		}
+	}
+	if bad > 0 {
+		fmt.Printf("%d edges have ref count != 2\n", bad)
+		ret = false
+	}
+
+	fmt.Println("=== END: Graph sanity check ===")
+	return ret
+}
 
 	// 1. iterate through the nodes
 	//    - remove dependecy violating info
