@@ -15,6 +15,7 @@ message HostFrequencyScaler{
         NONE = 0;
         POWER_SAVE = 1;
         PERFORMANCE = 2;
+        SCHEDUTIL = 3;
                 
     }
     ScalerState state = 1;

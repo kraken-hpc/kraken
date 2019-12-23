@@ -57,6 +57,7 @@ var _ lib.ModuleSelfService = (*HostDisc)(nil)
 var profileMap = map[string]string{
 	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
 	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+	"schedutil":   scalpb.HostFrequencyScaler_SCHEDUTIL.String(),
 }
 
 // HostDisc provides hostdiscovery module capabilities

@@ -85,6 +85,7 @@ const (
 var profileMap = map[string]string{
 	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
 	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+	"schedutil":   scalpb.HostFrequencyScaler_SCHEDUTIL.String(),
 }
 
 type hfscalmut struct {
@@ -219,8 +220,8 @@ func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
 		FreqSensorUrl:     freqSensorPath,
 		ScalingFreqPolicy: hostFreqScalerURL,
-		HighToLowScaler:   "powersave",
-		LowToHighScaler:   "powersave",
+		HighToLowScaler:   "schedutil",
+		LowToHighScaler:   "schedutil",
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
