@@ -185,7 +185,7 @@ func (hostDisc *HostDisc) Entry() {
 		select {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
-			//go hostDisc.DiscFreqScaler()
+			go hostDisc.DiscFreqScaler()
 			if hostDisc.cfg.GetLogThermalData() == true {
 				go hostDisc.CapturingStatData()
 			}
@@ -199,8 +199,8 @@ func (hostDisc *HostDisc) Entry() {
 func (hostDisc *HostDisc) CapturingStatData() {
 	freqScaler := hostDisc.preFreqScaler
 	temp := hostDisc.prevTemp
-	t := time.Now().UnixNano() // / int64(time.Millisecond)
-	record := fmt.Sprintf("%d,%d,%s\n", t, temp, freqScaler)
+	t := time.Now() // / int64(time.Millisecond)
+	record := fmt.Sprintf("%s,%d,%s\n", t.String(), temp, freqScaler)
 
 	_, err := hostDisc.file.WriteString(record)
 	if err != nil {
@@ -213,10 +213,10 @@ func (hostDisc *HostDisc) CapturingStatData() {
 func (hostDisc *HostDisc) DiscFreqScaler() {
 
 	hostFreqScaler := hostDisc.ReadFreqScaler()
-	if hostFreqScaler == hostDisc.preFreqScaler {
-		// no change in frequency scaler so no need to generate discovery event
-		return
-	}
+	// if hostFreqScaler == hostDisc.preFreqScaler {
+	// 	// no change in frequency scaler so no need to generate discovery event
+	// 	return
+	// }
 	hostDisc.preFreqScaler = hostFreqScaler
 
 	vid := profileMap[hostFreqScaler]
