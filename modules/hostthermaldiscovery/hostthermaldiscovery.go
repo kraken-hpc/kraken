@@ -185,7 +185,7 @@ func (hostDisc *HostDisc) Entry() {
 		select {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
-			go hostDisc.DiscFreqScaler()
+			//go hostDisc.DiscFreqScaler()
 			if hostDisc.cfg.GetLogThermalData() == true {
 				go hostDisc.CapturingStatData()
 			}
