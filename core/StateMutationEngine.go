@@ -1089,7 +1089,6 @@ OUTER_NODE:
 		nr := n.spec.Requires()
 		ne := n.spec.Excludes()
 		vr, ve := sme.nodeViolatesDeps(deps, n) // get list of violating urls
-		fmt.Printf("vr %v ve %v\n", vr, ve)
 		for _, r := range vr {
 			delete(nr, r)
 		}
