@@ -220,7 +220,7 @@ func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
 		FreqSensorUrl:     freqSensorPath,
 		ScalingFreqPolicy: hostFreqScalerURL,
-		HighToLowScaler:   "performance",
+		HighToLowScaler:   "powersave",
 		LowToHighScaler:   "performance",
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
