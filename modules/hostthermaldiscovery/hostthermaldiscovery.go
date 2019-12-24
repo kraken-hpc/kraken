@@ -82,15 +82,13 @@ func (*HostDisc) NewConfig() proto.Message {
 		FreqSensorUrl:   freqSensorPath,
 		LogThermalData:  true,
 		LogHere:         "/tmp/ThermalLog.txt",
-		ThermalThresholds: map[string]*pb.HostThermalThresholds{
-			"CPUThermalThresholds": {
 				LowerNormal:   3000,
 				UpperNormal:   80000,
 				LowerHigh:     80000,
 				UpperHigh:     98000,
 				LowerCritical: 3000,
 				UpperCritical: 98000,
-			},
+			
 		},
 	}
 	return r
@@ -342,15 +340,25 @@ func (hostDisc *HostDisc) lambdaStateDiscovery(v CPUTempObj) (string, int32) {
 	cpuTemp := v.CPUTemp
 	cpuTempState := thpb.HostThermal_CPU_TEMP_NONE
 
-	cpuThermalThresholds := hostDisc.cfg.GetThermalThresholds()
-	lowerNormal := cpuThermalThresholds["CPUThermalThresholds"].GetLowerNormal()
-	upperNormal := cpuThermalThresholds["CPUThermalThresholds"].GetUpperNormal()
+	
+	lowerNormal := hostDisc.cfg.GetLowerNormal()
+	upperNormal := hostDisc.cfg..GetUpperNormal()
 
-	lowerHigh := cpuThermalThresholds["CPUThermalThresholds"].GetLowerHigh()
-	upperHigh := cpuThermalThresholds["CPUThermalThresholds"].GetUpperHigh()
+	lowerHigh := hostDisc.cfg.GetLowerHigh()
+	upperHigh := hostDisc.cfg.GetUpperHigh()
 
-	lowerCritical := cpuThermalThresholds["CPUThermalThresholds"].GetLowerCritical()
-	upperCritical := cpuThermalThresholds["CPUThermalThresholds"].GetUpperCritical()
+	lowerCritical := hostDisc.cfg.GetLowerCritical()
+	upperCritical := hostDisc.cfg.GetUpperCritical()
+
+	// cpuThermalThresholds := hostDisc.cfg.GetThermalThresholds()
+	// lowerNormal := cpuThermalThresholds["CPUThermalThresholds"].GetLowerNormal()
+	// upperNormal := cpuThermalThresholds["CPUThermalThresholds"].GetUpperNormal()
+
+	// lowerHigh := cpuThermalThresholds["CPUThermalThresholds"].GetLowerHigh()
+	// upperHigh := cpuThermalThresholds["CPUThermalThresholds"].GetUpperHigh()
+
+	// lowerCritical := cpuThermalThresholds["CPUThermalThresholds"].GetLowerCritical()
+	// upperCritical := cpuThermalThresholds["CPUThermalThresholds"].GetUpperCritical()
 
 	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_CRITICAL
