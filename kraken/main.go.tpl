@@ -92,7 +92,10 @@ func main() {
 							reflect.ValueOf(b),
 						},
 					},
-					map[string]reflect.Value{},
+					map[string]reflect.Value{
+						"/RunState": reflect.ValueOf(pb.Node_SYNC),
+						"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+					},
 					map[string]reflect.Value{},
 					lib.StateMutationContext_SELF,
 					0,
