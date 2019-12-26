@@ -466,7 +466,7 @@ func (hfs *HFS) EnforceLowFreqScaler() {
 	hfs.psEnforced = true
 	hfs.mutex.Unlock()
 
-	timer := timer.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
+	timer := time.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
 	defer timer.Stop()
 
 	go func() {
