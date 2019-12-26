@@ -22,6 +22,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -199,11 +200,12 @@ var muts = map[string]hfsmut{
 
 // HFS provides rfcpufreqscaling module capabilities
 type HFS struct {
-	api lib.APIClient
-	cfg *pb.HostFreqScalingConfig
-
-	mchan <-chan lib.Event
-	dchan chan<- lib.Event
+	api        lib.APIClient
+	cfg        *pb.HostFreqScalingConfig
+	mutex      *sync.Mutex
+	psEnforced bool
+	mchan      <-chan lib.Event
+	dchan      chan<- lib.Event
 }
 
 var _ lib.Module = (*HFS)(nil)
@@ -222,6 +224,8 @@ func (*HFS) NewConfig() proto.Message {
 		ScalingFreqPolicy: hostFreqScalerURL,
 		HighToLowScaler:   "powersave",
 		LowToHighScaler:   "performance",
+		LowFreqScalerDur:  10,
+		EnforceLowFreqScaler: true,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
@@ -292,7 +296,8 @@ var excs = map[string]reflect.Value{}
 // Init is used to intialize an executable module prior to entrypoint
 func (hfs *HFS) Init(api lib.APIClient) {
 	hfs.api = api
-	//hfs.mutex = &sync.Mutex{}
+	hfs.mutex = &sync.Mutex{}
+	hfs.psEnforced = false
 	// hfs.queue = make(map[string]map[string]NMut)
 	hfs.cfg = hfs.NewConfig().(*pb.HostFreqScalingConfig)
 }
@@ -402,24 +407,78 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 		return
 	}
 	me := m.Data().(*core.MutationEvent)
+	
+	enforceLowFreqScalerOverTime := hfs.cfg.GetEnforceLowFreqScaler()
 
-	switch me.Mutation[1] {
-	case "NONEtoPOWERSAVE":
-		fallthrough
-	case "PERFORMANCEtoPOWERSAVE":
-		highToLowScaler := hfs.cfg.GetHighToLowScaler()
-		hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
-		break
-	case "NONEtoPERFORMANCE":
-		fallthrough
-	case "POWERSAVEtoPERFORMANCE":
-		lowToHighScaler := hfs.cfg.GetLowToHighScaler()
-		hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
-		break
+	if enforceLowFreqScalerOverTime == true{
+		switch me.Mutation[1] {
+		case "NONEtoPOWERSAVE":
+			highToLowScaler := hfs.cfg.GetHighToLowScaler()
+			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
+			break
+		case "PERFORMANCEtoPOWERSAVE":
+			highToLowScaler := hfs.cfg.GetHighToLowScaler()
+			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
+			hfs.mutex.Lock()
+			hfs.psEnforced = true
+			hfs.mutex.Unlock()
+			break
+		case "NONEtoPERFORMANCE":
+			lowToHighScaler := hfs.cfg.GetLowToHighScaler()
+			hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
+			break
+		case "POWERSAVEtoPERFORMANCE":
+			hfs.mutex.Lock()
+			psEnforced := hfs.psEnforced
+			hfs.mutex.Unlock()
+			if psEnforced == true{
+				highToLowScaler := hfs.cfg.GetHighToLowScaler()
+				hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)	
+			} else{
+				lowToHighScaler := hfs.cfg.GetLowToHighScaler()
+				hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
+			}
+			
+			break
+		}
+
+	} else{
+		switch me.Mutation[1] {
+		case "NONEtoPOWERSAVE":
+			fallthrough
+		case "PERFORMANCEtoPOWERSAVE":
+			highToLowScaler := hfs.cfg.GetHighToLowScaler()
+			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
+			break
+		case "NONEtoPERFORMANCE":
+			fallthrough
+		case "POWERSAVEtoPERFORMANCE":
+			lowToHighScaler := hfs.cfg.GetLowToHighScaler()
+			hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
+			break
+		}
 	}
+	
 
 }
 
+func (hfs *HFS) EnforceLowFreqScaler(){
+	hfs.mutex.Lock()
+	hfs.psEnforced = true
+	hfs.mutex.Unlock()
+
+	timer := timer.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
+	defer timer.Stop()
+
+  go func() {
+    <-timer.C
+    hfs.mutex.Lock()
+	hfs.psEnforced = false
+	hfs.mutex.Unlock()
+  }
+
+}
+low_freq_scaler_dur 
 // HostFrequencyScaling scales CPU frequency according to given parameters
 func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 

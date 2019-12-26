@@ -15,7 +15,10 @@
      string freq_sensor_url = 2;
      string scaling_freq_policy = 3;
      string low_to_high_scaler = 4;
-     string high_to_low_scaler = 5;    
+     string high_to_low_scaler = 5;
+     int32 low_freq_scaler_dur = 6;
+     bool enforce_low_freq_scaler = 7;    
+
 }
  
  message HostFreqScalingPolicy {
