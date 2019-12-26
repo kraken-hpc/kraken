@@ -220,11 +220,11 @@ func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencys
 // NewConfig returns a fully initialized default config
 func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
-		FreqSensorUrl:     freqSensorPath,
-		ScalingFreqPolicy: hostFreqScalerURL,
-		HighToLowScaler:   "powersave",
-		LowToHighScaler:   "performance",
-		LowFreqScalerDur:  10,
+		FreqSensorUrl:        freqSensorPath,
+		ScalingFreqPolicy:    hostFreqScalerURL,
+		HighToLowScaler:      "powersave",
+		LowToHighScaler:      "performance",
+		LowFreqScalerDur:     10,
 		EnforceLowFreqScaler: true,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
@@ -407,10 +407,10 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 		return
 	}
 	me := m.Data().(*core.MutationEvent)
-	
+
 	enforceLowFreqScalerOverTime := hfs.cfg.GetEnforceLowFreqScaler()
 
-	if enforceLowFreqScalerOverTime == true{
+	if enforceLowFreqScalerOverTime == true {
 		switch me.Mutation[1] {
 		case "NONEtoPOWERSAVE":
 			highToLowScaler := hfs.cfg.GetHighToLowScaler()
@@ -431,18 +431,18 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			hfs.mutex.Lock()
 			psEnforced := hfs.psEnforced
 			hfs.mutex.Unlock()
-			if psEnforced == true{
+			if psEnforced == true {
 				highToLowScaler := hfs.cfg.GetHighToLowScaler()
-				hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)	
-			} else{
+				hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
+			} else {
 				lowToHighScaler := hfs.cfg.GetLowToHighScaler()
 				hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
 			}
-			
+
 			break
 		}
 
-	} else{
+	} else {
 		switch me.Mutation[1] {
 		case "NONEtoPOWERSAVE":
 			fallthrough
@@ -458,11 +458,10 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			break
 		}
 	}
-	
 
 }
 
-func (hfs *HFS) EnforceLowFreqScaler(){
+func (hfs *HFS) EnforceLowFreqScaler() {
 	hfs.mutex.Lock()
 	hfs.psEnforced = true
 	hfs.mutex.Unlock()
@@ -470,15 +469,15 @@ func (hfs *HFS) EnforceLowFreqScaler(){
 	timer := timer.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
 	defer timer.Stop()
 
-  go func() {
-    <-timer.C
-    hfs.mutex.Lock()
-	hfs.psEnforced = false
-	hfs.mutex.Unlock()
-  }
+	go func() {
+		<-timer.C
+		hfs.mutex.Lock()
+		hfs.psEnforced = false
+		hfs.mutex.Unlock()
+	}()
 
 }
- 
+
 // HostFrequencyScaling scales CPU frequency according to given parameters
 func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 
