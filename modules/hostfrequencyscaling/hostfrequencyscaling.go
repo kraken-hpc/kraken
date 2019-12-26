@@ -478,7 +478,7 @@ func (hfs *HFS) EnforceLowFreqScaler(){
   }
 
 }
-low_freq_scaler_dur 
+ 
 // HostFrequencyScaling scales CPU frequency according to given parameters
 func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 
