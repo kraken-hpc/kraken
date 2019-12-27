@@ -431,8 +431,9 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			if hfs.cfg.GetTimeBoundScaler() == true {
 				go hfs.EnforceTimeBoundScaler()
 			} else if hfs.cfg.GetThermalBoundScaler() == true {
-				go hfs.EnforceThermalBoundScaler()
-
+				hfs.mutex.Lock()
+				hfs.psEnforced = true
+				hfs.mutex.Unlock()
 			}
 
 			break
@@ -441,6 +442,10 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
 			break
 		case "POWERSAVEtoPERFORMANCE":
+			if hfs.cfg.GetThermalBoundScaler() == true {
+				hfs.CheckThermalThreshold()
+			}
+
 			hfs.mutex.Lock()
 			psEnforced := hfs.psEnforced
 			hfs.mutex.Unlock()
@@ -474,20 +479,22 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 
 }
 
-// EnforceThermalBoundScaler keep low frequency scaler like "powersave" for a certain temperature
-func (hfs *HFS) EnforceThermalBoundScaler() {
+// CheckThermalThreshold validates whether current thermal is less than preset threshold and if so set the PS enforcement to false
+func (hfs *HFS) CheckThermalThreshold() {
 	currentThermal := hfs.ReadCPUTemp()
 	thresholdThermal := hfs.cfg.GetThermalThreshold()
 
-	if currentThermal >= thresholdThermal {
-		hfs.mutex.Lock()
-		hfs.psEnforced = true
-		hfs.mutex.Unlock()
-	} else if currentThermal < thresholdThermal {
+	// if currentThermal >= thresholdThermal {
+	// 	hfs.mutex.Lock()
+	// 	hfs.psEnforced = true
+	// 	hfs.mutex.Unlock()
+	// } else
+	if currentThermal < thresholdThermal {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
 	}
+	hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", int32(cpuTempInt))
 
 }
 
@@ -531,7 +538,7 @@ func (hfs *HFS) ReadCPUTemp() int32 {
 		hfs.api.Logf(lib.LLERROR, "String to Int conversion failed: %v", err)
 		return 0
 	}
-	hfs.api.Logf(lib.LLERROR, "***TEMP***: %v", int32(cpuTempInt))
+
 	return int32(cpuTempInt)
 }
 
