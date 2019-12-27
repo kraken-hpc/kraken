@@ -403,7 +403,8 @@ func (hfs *HFS) Entry() {
 			go hfs.mutateCPUFreq(m)
 
 			if hfs.cfg.GetThermalBoundScaler() == true && hfs.psEnforced == true {
-				hfs.CheckThermalThreshold()
+				me := m.Data().(*core.MutationEvent)
+				hfs.CheckThermalThreshold(me.NodeCfg)
 			}
 
 			break
@@ -482,7 +483,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 }
 
 // CheckThermalThreshold validates whether current thermal is less than preset threshold and if so set the PS enforcement to false
-func (hfs *HFS) CheckThermalThreshold() {
+func (hfs *HFS) CheckThermalThreshold(node lib.Node) {
 	currentThermal := hfs.ReadCPUTemp()
 	thresholdThermal := hfs.cfg.GetThermalThreshold()
 
