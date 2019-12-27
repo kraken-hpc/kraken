@@ -428,13 +428,12 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			highToLowScaler := hfs.cfg.GetHighToLowScaler()
 			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
 
-			if hfs.cfg.GetTimeBoundScaler() == true{
+			if hfs.cfg.GetTimeBoundScaler() == true {
 				go hfs.EnforceTimeBoundScaler()
-			} else if {
+			} else if hfs.cfg.GetThermalBoundScaler() == true {
 				go hfs.EnforceThermalBoundScaler()
 
 			}
-			
 
 			break
 		case "NONEtoPERFORMANCE":
@@ -484,15 +483,13 @@ func (hfs *HFS) EnforceThermalBoundScaler() {
 		hfs.mutex.Lock()
 		hfs.psEnforced = true
 		hfs.mutex.Unlock()
-	}
-	else if currentThermal < thresholdThermal{
+	} else if currentThermal < thresholdThermal {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
 	}
-	
-}
 
+}
 
 // EnforceTimeBoundScaler keep low frequency scaler like "powersave" for a certain duration
 func (hfs *HFS) EnforceTimeBoundScaler() {
