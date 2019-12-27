@@ -224,7 +224,7 @@ func (*HFS) NewConfig() proto.Message {
 		ScalingFreqPolicy:    hostFreqScalerURL,
 		HighToLowScaler:      "powersave",
 		LowToHighScaler:      "performance",
-		LowFreqScalerDur:     10,
+		LowFreqScalerDur:     5,
 		EnforceLowFreqScaler: true,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
@@ -422,6 +422,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			hfs.mutex.Lock()
 			hfs.psEnforced = true
 			hfs.mutex.Unlock()
+			go hfs.EnforceLowFreqScaler()
 			break
 		case "NONEtoPERFORMANCE":
 			lowToHighScaler := hfs.cfg.GetLowToHighScaler()
@@ -461,6 +462,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 
 }
 
+// EnforceLowFreqScaler keep low frequency scaler like "powersave"
 func (hfs *HFS) EnforceLowFreqScaler() {
 	hfs.mutex.Lock()
 	hfs.psEnforced = true
@@ -469,12 +471,17 @@ func (hfs *HFS) EnforceLowFreqScaler() {
 	timer := time.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
 	defer timer.Stop()
 
-	go func() {
-		<-timer.C
-		hfs.mutex.Lock()
-		hfs.psEnforced = false
-		hfs.mutex.Unlock()
-	}()
+	for {
+
+		select {
+		case <-timer.C:
+			hfs.mutex.Lock()
+			hfs.psEnforced = false
+			hfs.mutex.Unlock()
+			break
+		}
+
+	}
 
 }
 
