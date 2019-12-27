@@ -233,7 +233,7 @@ func (*HFS) NewConfig() proto.Message {
 		EnforceLowFreqScaler: true,
 		TimeBoundScaler:      false,
 		ThermalBoundScaler:   true,
-		ThermalThreshold:     60,
+		ThermalThreshold:     66,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
@@ -531,7 +531,7 @@ func (hfs *HFS) ReadCPUTemp() int32 {
 		hfs.api.Logf(lib.LLERROR, "String to Int conversion failed: %v", err)
 		return 0
 	}
-
+	hfs.api.Logf(lib.LLERROR, "***TEMP***: %v", int32(cpuTempInt))
 	return int32(cpuTempInt)
 }
 
