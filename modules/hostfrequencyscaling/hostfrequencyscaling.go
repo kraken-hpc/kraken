@@ -493,8 +493,9 @@ func (hfs *HFS) CheckThermalThreshold() {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
+		hfs.api.Log(lib.LLERROR, " D* * * F A L S E * * * ")
 	}
-	hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal)
+	hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal/1000)
 
 }
 
