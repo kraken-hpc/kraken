@@ -496,6 +496,17 @@ func (hfs *HFS) CheckThermalThreshold() {
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
 		hfs.api.Log(lib.LLERROR, " D* * * F A L S E * * * ")
+
+		url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
+		ev := core.NewEvent(
+			lib.Event_DISCOVERY,
+			url,
+			&core.DiscoveryEvent{
+				URL:     url,
+				ValueID: profileMap["performance"],
+			},
+		)
+		hfs.dchan <- ev
 	}
 	hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal/1000)
 
