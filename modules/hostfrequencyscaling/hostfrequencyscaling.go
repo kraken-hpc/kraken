@@ -489,7 +489,7 @@ func (hfs *HFS) CheckThermalThreshold() {
 	// 	hfs.psEnforced = true
 	// 	hfs.mutex.Unlock()
 	// } else
-	if currentThermal < thresholdThermal {
+	if (currentThermal / 1000) < thresholdThermal {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
