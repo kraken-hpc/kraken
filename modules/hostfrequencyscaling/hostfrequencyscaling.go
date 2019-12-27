@@ -112,21 +112,21 @@ var scalMuts = map[string]hfscalmut{
 		f:       scalpb.HostFrequencyScaler_NONE,
 		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
 	},
 	"PERFORMANCEtoPOWERSAVE": {
 		f:       scalpb.HostFrequencyScaler_PERFORMANCE,
 		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_PERFORMANCE.String(),
 	},
 	"NONEtoPERFORMANCE": {
 		f:       scalpb.HostFrequencyScaler_NONE,
 		t:       scalpb.HostFrequencyScaler_PERFORMANCE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
 	},
 	"POWERSAVEtoPERFORMANCE": {
@@ -138,7 +138,7 @@ var scalMuts = map[string]hfscalmut{
 			moduleStateURL:      reflect.ValueOf(cpb.ServiceInstance_RUN),
 			hostThermalStateURL: reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL),
 		},
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_POWER_SAVE.String(),
 	},
 }
@@ -159,21 +159,21 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_HIGH": {
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_CRITICAL": {
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 
@@ -181,7 +181,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_HIGH.String(),
 	},
 
@@ -189,7 +189,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
 	},
 
@@ -197,7 +197,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
 	},
 }
@@ -403,8 +403,8 @@ func (hfs *HFS) Entry() {
 			go hfs.mutateCPUFreq(m)
 
 			if hfs.cfg.GetThermalBoundScaler() == true && hfs.psEnforced == true {
-				me := m.Data().(*core.MutationEvent)
-				hfs.CheckThermalThreshold(me.NodeCfg)
+				//me := m.Data().(*core.MutationEvent)
+				hfs.CheckThermalThreshold()
 			}
 
 			break
@@ -483,7 +483,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 }
 
 // CheckThermalThreshold validates whether current thermal is less than preset threshold and if so set the PS enforcement to false
-func (hfs *HFS) CheckThermalThreshold(node lib.Node) {
+func (hfs *HFS) CheckThermalThreshold() {
 	currentThermal := hfs.ReadCPUTemp()
 	thresholdThermal := hfs.cfg.GetThermalThreshold()
 
@@ -496,20 +496,19 @@ func (hfs *HFS) CheckThermalThreshold(node lib.Node) {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
-		hfs.api.Log(lib.LLERROR, " D* * * F A L S E * * * ")
 
-		url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
-		ev := core.NewEvent(
-			lib.Event_DISCOVERY,
-			url,
-			&core.DiscoveryEvent{
-				URL:     url,
-				ValueID: profileMap["performance"],
-			},
-		)
-		hfs.dchan <- ev
+		// url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
+		// ev := core.NewEvent(
+		// 	lib.Event_DISCOVERY,
+		// 	url,
+		// 	&core.DiscoveryEvent{
+		// 		URL:     url,
+		// 		ValueID: profileMap["performance"],
+		// 	},
+		// )
+		// hfs.dchan <- ev
 	}
-	hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal/1000)
+	//hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal/1000)
 
 }
 
