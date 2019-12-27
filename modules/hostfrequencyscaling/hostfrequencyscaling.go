@@ -401,6 +401,11 @@ func (hfs *HFS) Entry() {
 		case m := <-hfs.mchan:
 
 			go hfs.mutateCPUFreq(m)
+
+			if hfs.cfg.GetThermalBoundScaler() == true {
+				hfs.CheckThermalThreshold()
+			}
+
 			break
 
 		}
@@ -442,9 +447,6 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			hfs.HostFrequencyScaling(me.NodeCfg, lowToHighScaler)
 			break
 		case "POWERSAVEtoPERFORMANCE":
-			if hfs.cfg.GetThermalBoundScaler() == true {
-				hfs.CheckThermalThreshold()
-			}
 
 			hfs.mutex.Lock()
 			psEnforced := hfs.psEnforced
