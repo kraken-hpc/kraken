@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -81,6 +82,9 @@ const (
 
 	// freqSensorPath holds frequency sensor path on pi node
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
+
+	// thermalSensorUrl holds thermal sensor path on pi node
+	thermalSensorUrl string = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 )
 
 var profileMap = map[string]string{
@@ -221,11 +225,15 @@ func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencys
 func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
 		FreqSensorUrl:        freqSensorPath,
+		ThermalSensorUrl:     thermalSensorUrl,
 		ScalingFreqPolicy:    hostFreqScalerURL,
 		HighToLowScaler:      "powersave",
 		LowToHighScaler:      "performance",
 		LowFreqScalerDur:     5,
 		EnforceLowFreqScaler: true,
+		TimeBoundScaler:      false,
+		ThermalBoundScaler:   true,
+		ThermalThreshold:     60,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
@@ -408,9 +416,9 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 	}
 	me := m.Data().(*core.MutationEvent)
 
-	enforceLowFreqScalerOverTime := hfs.cfg.GetEnforceLowFreqScaler()
+	enforceLowFreqScaler := hfs.cfg.GetEnforceLowFreqScaler()
 
-	if enforceLowFreqScalerOverTime == true {
+	if enforceLowFreqScaler == true {
 		switch me.Mutation[1] {
 		case "NONEtoPOWERSAVE":
 			highToLowScaler := hfs.cfg.GetHighToLowScaler()
@@ -419,10 +427,15 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 		case "PERFORMANCEtoPOWERSAVE":
 			highToLowScaler := hfs.cfg.GetHighToLowScaler()
 			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
-			hfs.mutex.Lock()
-			hfs.psEnforced = true
-			hfs.mutex.Unlock()
-			go hfs.EnforceLowFreqScaler()
+
+			if hfs.cfg.GetTimeBoundScaler() == true{
+				go hfs.EnforceTimeBoundScaler()
+			} else if {
+				go hfs.EnforceThermalBoundScaler()
+
+			}
+			
+
 			break
 		case "NONEtoPERFORMANCE":
 			lowToHighScaler := hfs.cfg.GetLowToHighScaler()
@@ -462,8 +475,27 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 
 }
 
-// EnforceLowFreqScaler keep low frequency scaler like "powersave"
-func (hfs *HFS) EnforceLowFreqScaler() {
+// EnforceThermalBoundScaler keep low frequency scaler like "powersave" for a certain temperature
+func (hfs *HFS) EnforceThermalBoundScaler() {
+	currentThermal := hfs.ReadCPUTemp()
+	thresholdThermal := hfs.cfg.GetThermalThreshold()
+
+	if currentThermal >= thresholdThermal {
+		hfs.mutex.Lock()
+		hfs.psEnforced = true
+		hfs.mutex.Unlock()
+	}
+	else if currentThermal < thresholdThermal{
+		hfs.mutex.Lock()
+		hfs.psEnforced = false
+		hfs.mutex.Unlock()
+	}
+	
+}
+
+
+// EnforceTimeBoundScaler keep low frequency scaler like "powersave" for a certain duration
+func (hfs *HFS) EnforceTimeBoundScaler() {
 	hfs.mutex.Lock()
 	hfs.psEnforced = true
 	hfs.mutex.Unlock()
@@ -483,6 +515,27 @@ func (hfs *HFS) EnforceLowFreqScaler() {
 
 	}
 
+}
+
+// ReadCPUTemp returns the current CPU thermal
+func (hfs *HFS) ReadCPUTemp() int32 {
+
+	tempSensorPath := hfs.cfg.GetThermalSensorUrl()
+
+	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
+
+	if err != nil {
+		hfs.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
+		return 0
+	}
+	cpuTempInt, err := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
+
+	if err != nil {
+		hfs.api.Logf(lib.LLERROR, "String to Int conversion failed: %v", err)
+		return 0
+	}
+
+	return int32(cpuTempInt)
 }
 
 // HostFrequencyScaling scales CPU frequency according to given parameters

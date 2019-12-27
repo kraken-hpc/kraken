@@ -47,6 +47,9 @@ const (
 
 	// freqSensorPath holds frequency sensor path on pi node
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
+
+	// thermalSensorUrl holds thermal sensor path on pi node
+	thermalSensorUrl string = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 )
 
 var _ lib.Module = (*HostDisc)(nil)
@@ -78,7 +81,7 @@ func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hosttherm
 func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
 		PollingInterval: "1s",
-		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
+		TempSensorPath:  thermalSensorUrl,
 		FreqSensorUrl:   freqSensorPath,
 		LogThermalData:  true,
 		LogHere:         "/tmp/ThermalLog.txt",

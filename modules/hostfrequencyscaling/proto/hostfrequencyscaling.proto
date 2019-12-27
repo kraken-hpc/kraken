@@ -17,7 +17,11 @@
      string low_to_high_scaler = 4;
      string high_to_low_scaler = 5;
      int32 low_freq_scaler_dur = 6;
-     bool enforce_low_freq_scaler = 7;    
+     bool enforce_low_freq_scaler = 7;
+     string thermal_sensor_url = 8;
+     bool time_bound_scaler = 9;
+     bool thermal_bound_scaler = 10;
+     int32 thermal_threshold = 11;    
 
 }
  
