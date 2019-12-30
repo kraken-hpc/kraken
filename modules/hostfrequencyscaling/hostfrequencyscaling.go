@@ -112,21 +112,21 @@ var scalMuts = map[string]hfscalmut{
 		f:       scalpb.HostFrequencyScaler_NONE,
 		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
 	},
 	"PERFORMANCEtoPOWERSAVE": {
 		f:       scalpb.HostFrequencyScaler_PERFORMANCE,
 		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_PERFORMANCE.String(),
 	},
 	"NONEtoPERFORMANCE": {
 		f:       scalpb.HostFrequencyScaler_NONE,
 		t:       scalpb.HostFrequencyScaler_PERFORMANCE,
 		reqs:    scalerReqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
 	},
 	"POWERSAVEtoPERFORMANCE": {
@@ -138,7 +138,7 @@ var scalMuts = map[string]hfscalmut{
 			moduleStateURL:      reflect.ValueOf(cpb.ServiceInstance_RUN),
 			hostThermalStateURL: reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL),
 		},
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  scalpb.HostFrequencyScaler_POWER_SAVE.String(),
 	},
 }
@@ -159,21 +159,21 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_HIGH": {
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_CRITICAL": {
 		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
 		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		reqs:    reqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
 	},
 
@@ -181,7 +181,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_HIGH.String(),
 	},
 
@@ -189,7 +189,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
 	},
 
@@ -197,7 +197,7 @@ var muts = map[string]hfsmut{
 		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
 		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
 		reqs:    greqs,
-		timeout: "60s",
+		timeout: "1s",
 		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
 	},
 }
@@ -402,30 +402,33 @@ func (hfs *HFS) Entry() {
 
 			go hfs.mutateCPUFreq(m)
 
+			if hfs.cfg.GetThermalBoundScaler() == true && if hfs.psEnforced == true{
+				go hfs.CheckThermalThreshold()
+			}
 			break
 
 		}
 	}
 
-	// setup a ticker for checking whether PS is enforced in Thermal bound scenario
-	if hfs.cfg.GetThermalBoundScaler() == true {
+	// // setup a ticker for checking whether PS is enforced in Thermal bound scenario
+	// if hfs.cfg.GetThermalBoundScaler() == true {
 
-		dur, _ := time.ParseDuration("1s")
-		thermalCheckTick := time.NewTicker(dur)
+	// 	dur, _ := time.ParseDuration("1s")
+	// 	thermalCheckTick := time.NewTicker(dur)
 
-		// thermal ticker
-		for {
-			select {
-			case <-thermalCheckTick.C:
-				if hfs.psEnforced == true {
-					go hfs.CheckThermalThreshold()
-				}
+	// 	// thermal ticker
+	// 	for {
+	// 		select {
+	// 		case <-thermalCheckTick.C:
+	// 			if hfs.psEnforced == true {
+	// 				go hfs.CheckThermalThreshold()
+	// 			}
 
-				break
-			}
-		}
+	// 			break
+	// 		}
+	// 	}
 
-	}
+	// }
 }
 
 // aggregateHandler makes calls to aggregator for the given nodes with related mutation and frequecy scaling policy
