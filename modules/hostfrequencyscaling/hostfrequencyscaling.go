@@ -402,9 +402,12 @@ func (hfs *HFS) Entry() {
 
 			go hfs.mutateCPUFreq(m)
 
-			if hfs.cfg.GetThermalBoundScaler() == true && if hfs.psEnforced == true{
-				go hfs.CheckThermalThreshold()
+			if hfs.cfg.GetEnforceLowFreqScaler() == true {
+				if hfs.cfg.GetThermalBoundScaler() == true && hfs.psEnforced == true {
+					go hfs.CheckThermalThreshold()
+				}
 			}
+
 			break
 
 		}
