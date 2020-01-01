@@ -224,16 +224,16 @@ func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencys
 // NewConfig returns a fully initialized default config
 func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
-		FreqSensorUrl:        freqSensorPath,
-		ThermalSensorUrl:     thermalSensorUrl,
-		ScalingFreqPolicy:    hostFreqScalerURL,
-		HighToLowScaler:      "powersave",
-		LowToHighScaler:      "performance",
-		LowFreqScalerDur:     5,
-		EnforceLowFreqScaler: true,
-		TimeBoundScaler:      false,
-		ThermalBoundScaler:   true,
-		ThermalThreshold:     66,
+		FreqSensorUrl:                          freqSensorPath,
+		ThermalSensorUrl:                       thermalSensorUrl,
+		ScalingFreqPolicy:                      hostFreqScalerURL,
+		HighToLowScaler:                        "powersave",
+		LowToHighScaler:                        "performance",
+		TimeBoundThrottleRetentionDuration:     5,
+		ThrottleRetention:                      true,
+		TimeBoundThrottleRetention:             false,
+		ThermalBoundThrottleRetention:          true,
+		ThermalBoundThrottleRetentionThreshold: 66,
 		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
 			"powersave": {
 				ScalingGovernor: "powersave",
@@ -402,8 +402,8 @@ func (hfs *HFS) Entry() {
 
 			go hfs.mutateCPUFreq(m)
 
-			if hfs.cfg.GetEnforceLowFreqScaler() == true {
-				if hfs.cfg.GetThermalBoundScaler() == true && hfs.psEnforced == true {
+			if hfs.cfg.GetThrottleRetention() == true {
+				if hfs.cfg.GetThermalBoundThrottleRetention() == true && hfs.psEnforced == true {
 					go hfs.CheckThermalThreshold()
 				}
 			}
@@ -443,7 +443,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 	}
 	me := m.Data().(*core.MutationEvent)
 
-	enforceLowFreqScaler := hfs.cfg.GetEnforceLowFreqScaler()
+	enforceLowFreqScaler := hfs.cfg.ThrottleRetention()
 
 	if enforceLowFreqScaler == true {
 		switch me.Mutation[1] {
@@ -455,9 +455,9 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 			highToLowScaler := hfs.cfg.GetHighToLowScaler()
 			hfs.HostFrequencyScaling(me.NodeCfg, highToLowScaler)
 
-			if hfs.cfg.GetTimeBoundScaler() == true {
+			if hfs.cfg.GetTimeBoundThrottleRetention() == true {
 				go hfs.EnforceTimeBoundScaler()
-			} else if hfs.cfg.GetThermalBoundScaler() == true {
+			} else if hfs.cfg.GetThermalBoundThrottleRetention() == true {
 				hfs.mutex.Lock()
 				hfs.psEnforced = true
 				hfs.mutex.Unlock()
@@ -506,7 +506,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 // CheckThermalThreshold validates whether current thermal is less than preset threshold and if so set the PS enforcement to false
 func (hfs *HFS) CheckThermalThreshold() {
 	currentThermal := hfs.ReadCPUTemp()
-	thresholdThermal := hfs.cfg.GetThermalThreshold()
+	thresholdThermal := hfs.cfg.GetThermalBoundThrottleRetentionThreshold()
 
 	// if currentThermal >= thresholdThermal {
 	// 	hfs.mutex.Lock()
@@ -539,7 +539,7 @@ func (hfs *HFS) EnforceTimeBoundScaler() {
 	hfs.psEnforced = true
 	hfs.mutex.Unlock()
 
-	timer := time.NewTimer(time.Minute * time.Duration(hfs.cfg.GetLowFreqScalerDur()))
+	timer := time.NewTimer(time.Minute * time.Duration(hfs.cfg.GetTimeBoundThrottleRetentionDuration()))
 	defer timer.Stop()
 
 	for {
