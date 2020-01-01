@@ -443,7 +443,7 @@ func (hfs *HFS) mutateCPUFreq(m lib.Event) {
 	}
 	me := m.Data().(*core.MutationEvent)
 
-	enforceLowFreqScaler := hfs.cfg.ThrottleRetention()
+	enforceLowFreqScaler := hfs.cfg.GetThrottleRetention()
 
 	if enforceLowFreqScaler == true {
 		switch me.Mutation[1] {
