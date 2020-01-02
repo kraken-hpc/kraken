@@ -81,11 +81,6 @@ var muts = map[string]ppmut{
 		t:       cpb.Node_POWER_OFF,
 		timeout: "20s", // we need a longer timeout, because we let it sit cold for a few seconds
 	},
-	"UKtoHANG": { // this one should never happen; just making sure HANG gets connected in our graph
-		f:       cpb.Node_PHYS_UNKNOWN,
-		t:       cpb.Node_PHYS_HANG,
-		timeout: "0s",
-	},
 }
 
 // modify these if you want different requires for mutations

@@ -193,6 +193,26 @@ func (s *StateSpec) SpecMerge(b lib.StateSpec) (ns lib.StateSpec, e error) {
 	return
 }
 
+// LeastCommon keeps only the values that are also in the supplied spec
+func (s *StateSpec) LeastCommon(b lib.StateSpec) {
+	for u, v := range b.Requires() {
+		if sv, ok := s.req[u]; ok {
+			if v.Interface() != sv.Interface() {
+				// not in common, drop it
+				delete(s.req, u)
+			}
+		}
+		// else, not in common
+	}
+	for u, v := range b.Excludes() {
+		if sv, ok := s.exc[u]; ok {
+			if v.Interface() != sv.Interface() {
+				delete(s.exc, u)
+			}
+		}
+	}
+}
+
 // Equal tests if two specs are identical.  Note: DeepEqual doesn't work because it doesn't turn vals into interfaces.
 func (s *StateSpec) Equal(b lib.StateSpec) bool {
 	if len(s.Requires()) != len(b.Requires()) {

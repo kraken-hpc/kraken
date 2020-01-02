@@ -3,9 +3,6 @@ targets:
   'linux-amd64':
     os: 'linux'
     arch: 'amd64'
-  'darwin-amd64':
-    os: 'darwin'
-    arch: 'amd64'
 
 # included extensions
 extensions:

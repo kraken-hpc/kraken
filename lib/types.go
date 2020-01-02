@@ -359,6 +359,7 @@ type StateSpec interface {
 	Requires() map[string]reflect.Value
 	Excludes() map[string]reflect.Value
 	Equal(StateSpec) bool
+	LeastCommon(StateSpec)
 	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
 	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
 }
