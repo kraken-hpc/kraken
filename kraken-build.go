@@ -180,6 +180,7 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
+// Like CompileTemplates(), but does so for sources that will end up in u-root
 func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
