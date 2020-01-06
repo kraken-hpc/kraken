@@ -267,6 +267,7 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 			if e != nil {
 				return
 			}
+			// If not "kraken" dir, copy to outDir
 		} else {
 			if *verbose {
 				log.Printf("copying \"%s\" to \"%s\"", file, outDir)
@@ -286,7 +287,7 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 		}
 	}
 
-	// Rename "main.go" to "kraken.go"
+	// Rename "main.go" to "kraken.go" for better identification in u-root
 	pathMainGo := path.Join(srcDir, "main.go")
 	pathKrakenGo := path.Join(srcDir, "kraken.go")
 	if *verbose {
