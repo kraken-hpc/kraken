@@ -184,7 +184,7 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
-	files, e = ioutil.ReadDir(filepath.Join(krakenDir, "ukraken"))
+	files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken"))
 	if e != nil {
 		return
 	}
@@ -195,7 +195,7 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 					log.Printf("executing template: %s", f.Name())
 				}
 				var target string
-				target, e = compileTemplate(filepath.Join(krakenDir, "ukraken", f.Name()), tmpDir)
+				target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir)
 				if e != nil {
 					return
 				}
