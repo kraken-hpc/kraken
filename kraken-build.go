@@ -214,29 +214,29 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 }
 
 // Generate kraken source tree for u-root command from krakenDir into outDir
-func uKraken(outDir string, krakenDir string) (targets []string, e error) {
+func uKraken(outDir, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
 	e = os.MkdirAll(outDir, 0755)
-	if *verbose {
-		if e != nil {
-			log.Printf("error locating/creating directory for u-root-embeddable kraken source tree")
-			return
-		} else {
+	if e != nil {
+		log.Printf("error locating/creating directory for u-root-embeddable kraken source tree")
+		return
+	} else {
+		if *verbose {
 			log.Printf("created/found directory \"%s\" for generated kraken source tree", outDir)
 		}
 	}
 
-	// Create src dir (within outDir) for template compilation output
-	srcDir := filepath.Join(outDir, "kraken") // make an option to change where this is?
+	// Create directory within outDir for template compilation output
+	srcDir := filepath.Join(outDir, "kraken") // Needed by u-root: name of result binary
 	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
 	_, e = uCompileTemplates(krakenDir, srcDir)
-	if *verbose {
-		if e != nil {
-			log.Printf("error compiling templates for u-root-embeddable kraken source tree")
-			return
-		} else {
+	if e != nil {
+		log.Printf("error compiling templates for u-root-embeddable kraken source tree")
+		return
+	} else {
+		if *verbose {
 			log.Printf("generated kraken source tree for u-root in %s", outDir)
 		}
 	}
