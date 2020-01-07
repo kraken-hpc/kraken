@@ -213,15 +213,10 @@ func (hostDisc *HostDisc) CapturingStatData() {
 func (hostDisc *HostDisc) DiscFreqScaler() {
 
 	hostFreqScaler := hostDisc.ReadFreqScaler()
-	// if hostFreqScaler == hostDisc.preFreqScaler {
-	// 	// no change in frequency scaler so no need to generate discovery event
-	// 	return
-	// }
+
 	hostDisc.preFreqScaler = hostFreqScaler
 
 	vid := profileMap[hostFreqScaler]
-
-	//hostDisc.api.Logf(lib., "PRINTSCALER: %s", vid)
 
 	url := lib.NodeURLJoin(hostDisc.api.Self().String(), hostFreqScalerURL)
 
@@ -248,7 +243,7 @@ func (hostDisc *HostDisc) ReadFreqScaler() string {
 		hostDisc.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
 		return ""
 	}
-	//fscalingGovernor := strings.TrimSuffix(string(bscalingGovernor), "\n")
+
 	return strings.TrimSuffix(string(bscalingGovernor), "\n")
 }
 
@@ -349,16 +344,6 @@ func (hostDisc *HostDisc) lambdaStateDiscovery(v CPUTempObj) (string, int32) {
 
 	lowerCritical := hostDisc.cfg.GetLowerCritical()
 	upperCritical := hostDisc.cfg.GetUpperCritical()
-
-	// cpuThermalThresholds := hostDisc.cfg.GetThermalThresholds()
-	// lowerNormal := cpuThermalThresholds["CPUThermalThresholds"].GetLowerNormal()
-	// upperNormal := cpuThermalThresholds["CPUThermalThresholds"].GetUpperNormal()
-
-	// lowerHigh := cpuThermalThresholds["CPUThermalThresholds"].GetLowerHigh()
-	// upperHigh := cpuThermalThresholds["CPUThermalThresholds"].GetUpperHigh()
-
-	// lowerCritical := cpuThermalThresholds["CPUThermalThresholds"].GetLowerCritical()
-	// upperCritical := cpuThermalThresholds["CPUThermalThresholds"].GetUpperCritical()
 
 	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_CRITICAL
