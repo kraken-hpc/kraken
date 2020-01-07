@@ -40,6 +40,7 @@ type CPUTempObj struct {
 const (
 	// HostThermalStateURL points to Thermal extension
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
+	HostThermalTempURL  = "type.googleapis.com/proto.HostThermal/Temp"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostthermaldiscovery/State"
 	// hostFreqScalerURL provides URL for host frequency scaler at host run time
@@ -118,15 +119,23 @@ func (hostDisc *HostDisc) SetDiscoveryChan(c chan<- lib.Event) { hostDisc.dchan 
 func init() {
 	module := &HostDisc{}
 	discovers := make(map[string]map[string]reflect.Value)
-	hostThermDisc := make(map[string]reflect.Value)
 	hostFreqScalerDiscs := make(map[string]reflect.Value)
+	hostThermStateDisc := make(map[string]reflect.Value)
+	hostThermTempDisc := make(map[string]reflect.Value)
 
-	hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
-	hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
-	hostThermDisc[thpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_HIGH)
-	hostThermDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
+	hostThermStateDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
+	hostThermStateDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
+	hostThermStateDisc[thpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_HIGH)
+	hostThermStateDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
 
-	discovers[HostThermalStateURL] = hostThermDisc
+	discovers[HostThermalStateURL] = hostThermStateDisc
+
+	// Discovers any temperature from 0 - 150 degrees celcius
+	for i := 0; i <= 150; i++ {
+		hostThermTempDisc[strconv.Itoa(i)] = reflect.ValueOf(i)
+	}
+
+	discovers[HostThermalTempURL] = hostThermTempDisc
 
 	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_NONE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_NONE)
 	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_PERFORMANCE)
@@ -264,7 +273,20 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 		lib.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
+			URL:     url,
+			ValueID: vid,
+		},
+	)
+	hostDisc.dchan <- v
 
+	vid = strconv.Itoa(int(hostCPUTemp.CPUTemp) / 1000)
+	url = lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalTempURL)
+
+	// Generating discovery event for CPU Thermal temp
+	v = core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
 			URL:     url,
 			ValueID: vid,
 		},

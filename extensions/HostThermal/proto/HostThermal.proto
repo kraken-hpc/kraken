@@ -19,4 +19,5 @@ message HostThermal {
         
     }
     cpuState state = 1;
+    int32 temp = 2;
 }

@@ -85,6 +85,13 @@ func (m *HostThermal) GetState() HostThermalCpuState {
 	return HostThermal_CPU_TEMP_NONE
 }
 
+func (m *HostThermal) GetTemp() int32 {
+	if m != nil {
+		return m.Temp
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*HostThermal)(nil), "proto.HostThermal")
 	proto.RegisterEnum("proto.HostThermalCpuState", HostThermalCpuState_name, HostThermalCpuState_value)
