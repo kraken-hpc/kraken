@@ -210,26 +210,26 @@ func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n=== START: Node list ===\n")
 	for _, m := range sme.nodes {
 		fmt.Printf(`
-		Node: %p
-		 Spec: %p
-		  req: %s
-		  exc: %s
-		 In: %v
-		 Out: %v
-		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
+		 Node: %p
+		  Spec: %p
+		   req: %s
+		   exc: %s
+		  In: %v
+		  Out: %v
+		  `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
 	}
 	fmt.Printf("\n=== END: Node list ===\n")
 	fmt.Printf("\n=== START: Edge list ===\n")
 	for _, m := range sme.edges {
 		fmt.Printf(`
-		Edge: %p
-		 Mutation: %p
-		  mut: %s
-		  req: %s
-		  exc: %s
-		 From: %p
-		 To: %p
-		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
+		 Edge: %p
+		  Mutation: %p
+		   mut: %s
+		   req: %s
+		   exc: %s
+		  From: %p
+		  To: %p
+		 `, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
 	}
 	fmt.Printf("\n=== END: Edge list ===\n")
 	sme.graphMutex.RUnlock()
@@ -697,32 +697,6 @@ func nodeMerge(list []int, nodes []*mutationNode) (*mutationNode, []*mutationEdg
 	return node, node.out
 }
 
-func nodeMerge(list []int, nodes []*mutationNode) (*mutationNode, []*mutationEdge) {
-	// build a new node from a merge of multiple nodes
-	// use least-common specification
-	// note: this will choke on a zero length list, but that shouldn't happen
-	node := nodes[list[0]] // build off of the first node
-	for i := 1; i < len(list); i++ {
-		// remap edges
-		inode := nodes[list[i]]
-		for _, e := range inode.in {
-			if !edgeInEdges(e, node.in) { // don't add if we already have this
-				e.to = node
-				node.in = append(node.in, e)
-			}
-		}
-		for _, e := range inode.out {
-			if !edgeInEdges(e, node.out) {
-				e.from = node
-				node.out = append(node.out, e)
-			}
-		}
-		// prune spec
-		node.spec.LeastCommon(inode.spec)
-	}
-	return node, node.out
-}
-
 // buildGraphStage1 builds a fully expanded set of paths branching from a starting root
 // this will build a very verbose, probably unusable graph
 // it is expected that later graph stages will clean it up and make it more sane
@@ -951,24 +925,6 @@ func (sme *StateMutationEngine) nodeViolatesDeps(deps map[string]lib.StateSpec, 
 				}
 			}
 		}
-		// Can this form an in arrow?
-		if m.SpecCompatIn(root.spec, sme.mutators) {
-			nme := &mutationEdge{
-				cost: 1,
-				mut:  m,
-				to:   root,
-			}
-			newNode := &mutationNode{
-				spec: root.spec.SpecMergeMust(m.Before()),
-				in:   []*mutationEdge{},
-				out:  []*mutationEdge{newEdge},
-			}
-			newEdge.from = newNode
-			root.in = append(root.in, newEdge)
-			ns, es := sme.buildGraphStage1(newNode, newEdge, seenNodes)
-			nodes = append(nodes, ns...)
-			edges = append(edges, es...)
-		}
 	}
 	return
 }
@@ -1051,33 +1007,6 @@ func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edge
 		}
 		return edges
 	}
-	fmt.Println("=== BEGIN: Graph sanity check ===")
-	// sanity checks
-	// 1. Equal number of nodeEdges as edges?
-	if len(nodeEdges) != len(edges) {
-		fmt.Printf("len(nodeEdges) != len(edges) : %d != %d\n", len(nodeEdges), len(edges))
-		ret = false
-	}
-	// 2. Equal number of edgeNodes as nodes?
-	if len(edgeNodes) != len(nodes) {
-		fmt.Printf("len(edgeNodes) != len(nodes) : %d != %d\n", len(edgeNodes), len(nodes))
-		ret = false
-	}
-	// 2. nodeEdges should have ref count 2
-	bad := 0
-	for _, c := range nodeEdges {
-		if c != 2 {
-			bad++
-		}
-	}
-	if bad > 0 {
-		fmt.Printf("%d edges have ref count != 2\n", bad)
-		ret = false
-	}
-
-	fmt.Println("=== END: Graph sanity check ===")
-	return ret
-}
 
 	// 1. iterate through the nodes
 	//    - remove dependecy violating info
@@ -1388,6 +1317,7 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we need to hold the path mutex for the rest of this function
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+
 	sme.activeMutex.Lock()
 	sme.active[node] = p
 	sme.activeMutex.Unlock()
@@ -1675,7 +1605,6 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		sme.Log(ERROR, e.Error())
 		return
 	}
-	sme.log.Logf(lib.LLDEBUG, "(node: %v) sme got value from url: %v", node, val)
 
 	// this is a discovery on a completed chain
 	if m.cur >= len(m.chain) {

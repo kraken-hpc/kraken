@@ -8,10 +8,10 @@ import (
 	"github.com/hpc/kraken/lib"
 )
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/RFAggregatorServer.proto
+//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/HostFrequencyScaler.proto
 
 /////////////////
-// RFAggregatorServer Object /
+// HostFrequencyScaler Object /
 ///////////////
 
 var _ lib.Extension = HostFrequencyScaler{}

@@ -691,7 +691,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 		}
 	}
 	if n.due() {
-		sse.Logf(DEBUG, "sending hello to: %s", n.getID().String())
+		sse.Logf(DEBUG, "sending hello: %s", n.getID().String())
 		sse.send(n)
 		sse.sortQueue()
 	}
