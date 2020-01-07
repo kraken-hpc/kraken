@@ -210,26 +210,26 @@ func (sme *StateMutationEngine) DumpGraph() {
 	fmt.Printf("\n=== START: Node list ===\n")
 	for _, m := range sme.nodes {
 		fmt.Printf(`
-		 Node: %p
-		  Spec: %p
-		   req: %s
-		   exc: %s
-		  In: %v
-		  Out: %v
-		  `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
+		Node: %p
+		 Spec: %p
+		  req: %s
+		  exc: %s
+		 In: %v
+		 Out: %v
+		 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
 	}
 	fmt.Printf("\n=== END: Node list ===\n")
 	fmt.Printf("\n=== START: Edge list ===\n")
 	for _, m := range sme.edges {
 		fmt.Printf(`
-		 Edge: %p
-		  Mutation: %p
-		   mut: %s
-		   req: %s
-		   exc: %s
-		  From: %p
-		  To: %p
-		 `, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
+		Edge: %p
+		 Mutation: %p
+		  mut: %s
+		  req: %s
+		  exc: %s
+		 From: %p
+		 To: %p
+		`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
 	}
 	fmt.Printf("\n=== END: Edge list ===\n")
 	sme.graphMutex.RUnlock()
