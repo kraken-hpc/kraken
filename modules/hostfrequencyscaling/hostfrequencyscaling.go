@@ -84,7 +84,7 @@ const (
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
 
 	// thermalSensorUrl holds thermal sensor path on pi node
-	thermalSensorUrl string = "/sys/devices/virtual/thermal/thermal_zone0/temp"
+	thermalSensorURL string = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 )
 
 var profileMap = map[string]string{
@@ -225,7 +225,7 @@ func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencys
 func (*HFS) NewConfig() proto.Message {
 	r := &pb.HostFreqScalingConfig{
 		FreqSensorUrl:                          freqSensorPath,
-		ThermalSensorUrl:                       thermalSensorUrl,
+		ThermalSensorUrl:                       thermalSensorURL,
 		ScalingFreqPolicy:                      hostFreqScalerURL,
 		HighToLowScaler:                        "powersave",
 		LowToHighScaler:                        "performance",
@@ -413,25 +413,6 @@ func (hfs *HFS) Entry() {
 		}
 	}
 
-	// // setup a ticker for checking whether PS is enforced in Thermal bound scenario
-	// if hfs.cfg.GetThermalBoundScaler() == true {
-
-	// 	dur, _ := time.ParseDuration("1s")
-	// 	thermalCheckTick := time.NewTicker(dur)
-
-	// 	// thermal ticker
-	// 	for {
-	// 		select {
-	// 		case <-thermalCheckTick.C:
-	// 			if hfs.psEnforced == true {
-	// 				go hfs.CheckThermalThreshold()
-	// 			}
-
-	// 			break
-	// 		}
-	// 	}
-
-	// }
 }
 
 // aggregateHandler makes calls to aggregator for the given nodes with related mutation and frequecy scaling policy
@@ -508,28 +489,12 @@ func (hfs *HFS) CheckThermalThreshold() {
 	currentThermal := hfs.ReadCPUTemp()
 	thresholdThermal := hfs.cfg.GetThermalBoundThrottleRetentionThreshold()
 
-	// if currentThermal >= thresholdThermal {
-	// 	hfs.mutex.Lock()
-	// 	hfs.psEnforced = true
-	// 	hfs.mutex.Unlock()
-	// } else
 	if (currentThermal / 1000) < thresholdThermal {
 		hfs.mutex.Lock()
 		hfs.psEnforced = false
 		hfs.mutex.Unlock()
 
-		// url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
-		// ev := core.NewEvent(
-		// 	lib.Event_DISCOVERY,
-		// 	url,
-		// 	&core.DiscoveryEvent{
-		// 		URL:     url,
-		// 		ValueID: profileMap["performance"],
-		// 	},
-		// )
-		// hfs.dchan <- ev
 	}
-	//hfs.api.Logf(lib.LLERROR, "*** T E M P ***: %v", currentThermal/1000)
 
 }
 
@@ -629,7 +594,6 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 		CPUMaxFreq: cpuMaxFreqq,
 	}
 
-	//if bBoot == true {
 	url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
@@ -640,18 +604,6 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 		},
 	)
 	hfs.dchan <- ev
-	// } else {
-	// 	url := lib.NodeURLJoin(node.ID().String(), hostHightoLowFreqScalerURL)
-	// 	ev := core.NewEvent(
-	// 		lib.Event_DISCOVERY,
-	// 		url,
-	// 		&core.DiscoveryEvent{
-	// 			URL:     url,
-	// 			ValueID: currentScalingConfig.CurScalingGovernor,
-	// 		},
-	// 	)
-	// 	hfs.dchan <- ev
-	// }
 
 }
 
