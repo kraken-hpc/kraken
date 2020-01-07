@@ -12,6 +12,7 @@ package hostthermaldiscovery
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"reflect"
@@ -132,7 +133,7 @@ func init() {
 
 	// Discovers any temperature from 0 - 150 degrees celcius
 	for i := 0; i <= 150; i++ {
-		hostThermTempDisc[strconv.Itoa(i)] = reflect.ValueOf(i)
+		hostThermTempDisc[strconv.Itoa(i)] = reflect.ValueOf(uint32(i))
 	}
 
 	discovers[HostThermalTempURL] = hostThermTempDisc
@@ -279,7 +280,7 @@ func (hostDisc *HostDisc) discoverHostCPUTemp() {
 	)
 	hostDisc.dchan <- v
 
-	vid = strconv.Itoa(int(hostCPUTemp.CPUTemp) / 1000)
+	vid = strconv.Itoa(int(math.Round(float64(hostCPUTemp.CPUTemp) / 1000.0)))
 	url = lib.NodeURLJoin(hostDisc.api.Self().String(), HostThermalTempURL)
 
 	// Generating discovery event for CPU Thermal temp

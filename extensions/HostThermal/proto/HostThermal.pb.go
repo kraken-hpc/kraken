@@ -85,7 +85,7 @@ func (m *HostThermal) GetState() HostThermalCpuState {
 	return HostThermal_CPU_TEMP_NONE
 }
 
-func (m *HostThermal) GetTemp() int32 {
+func (m *HostThermal) GetTemp() uint32 {
 	if m != nil {
 		return m.Temp
 	}
