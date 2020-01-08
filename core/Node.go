@@ -148,12 +148,12 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 		fallthrough
 	case "/type.googleapis.com": // resolve extension
 		p, sub := lib.URLShift(sub)
-		n.mutex.RLock()
 		ext, ok := n.exts[lib.URLPush(root, p)]
 		if !ok {
 			e = fmt.Errorf("node does not have extension: %s", lib.URLPush(root, p))
 			return
 		}
+		n.mutex.RLock()
 		defer n.mutex.RUnlock()
 		return lib.ResolveURL(sub, reflect.ValueOf(ext))
 	case "Services":
