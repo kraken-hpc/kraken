@@ -144,7 +144,9 @@ func (n *Node) Message() proto.Message {
 func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 	root, sub := lib.URLShift(url)
 	switch root {
-	case "type.googleapis.com": // resolve extension
+	case "type.googleapis.com":
+		fallthrough
+	case "/type.googleapis.com": // resolve extension
 		p, sub := lib.URLShift(sub)
 		n.mutex.RLock()
 		ext, ok := n.exts[lib.URLPush(root, p)]
@@ -154,7 +156,9 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 		}
 		defer n.mutex.RUnlock()
 		return lib.ResolveURL(sub, reflect.ValueOf(ext))
-	case "Services": // resolve service
+	case "Services":
+		fallthrough
+	case "/Services": // resolve service
 		p, sub := lib.URLShift(sub)
 		srv := n.GetService(p)
 		if srv == nil {
