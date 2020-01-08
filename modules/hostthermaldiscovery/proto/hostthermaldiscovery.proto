@@ -13,17 +13,16 @@ package proto;
 message HostDiscoveryConfig {
     string polling_interval = 1;
     string temp_sensor_path = 2;
-    map<string, HostThermalThresholds> thermal_thresholds = 3;
+    string freq_sensor_url = 3;
+    bool log_thermal_data = 4;
+    string log_here = 5;
+    int32 lower_normal = 6;
+    int32 upper_normal = 7;
+
+    int32 lower_high = 8;
+    int32 upper_high = 9;
+
+    int32 lower_critical = 10;
+    int32 upper_critical = 11;
 }
 
-message HostThermalThresholds {
-    int32 lower_normal = 1;
-    int32 upper_normal = 2;
-
-    int32 lower_high = 3;
-    int32 upper_high = 4;
-
-    int32 lower_critical = 5;
-    int32 upper_critical = 6;
-
-}

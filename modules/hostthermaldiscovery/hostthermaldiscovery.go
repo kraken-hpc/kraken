@@ -7,8 +7,6 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
-
 package hostthermaldiscovery
 
 import (
@@ -25,7 +23,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
+	scalpb "github.com/hpc/kraken/extensions/HostFrequencyScaler/proto"
 	thpb "github.com/hpc/kraken/extensions/HostThermal/proto"
+
 	"github.com/hpc/kraken/lib"
 	pb "github.com/hpc/kraken/modules/hostthermaldiscovery/proto"
 )
@@ -42,6 +42,14 @@ const (
 	HostThermalStateURL = "type.googleapis.com/proto.HostThermal/State"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/hostthermaldiscovery/State"
+	// hostFreqScalerURL provides URL for host frequency scaler at host run time
+	hostFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/State"
+
+	// freqSensorPath holds frequency sensor path on pi node
+	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
+
+	// thermalSensorUrl holds thermal sensor path on pi node
+	thermalSensorUrl string = "/sys/devices/virtual/thermal/thermal_zone0/temp"
 )
 
 var _ lib.Module = (*HostDisc)(nil)
@@ -49,13 +57,21 @@ var _ lib.ModuleWithConfig = (*HostDisc)(nil)
 var _ lib.ModuleWithDiscovery = (*HostDisc)(nil)
 var _ lib.ModuleSelfService = (*HostDisc)(nil)
 
+var profileMap = map[string]string{
+	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
+	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+	"schedutil":   scalpb.HostFrequencyScaler_SCHEDUTIL.String(),
+}
+
 // HostDisc provides hostdiscovery module capabilities
 type HostDisc struct {
-	prevTemp   int32
-	api        lib.APIClient
-	cfg        *pb.HostDiscoveryConfig
-	dchan      chan<- lib.Event
-	pollTicker *time.Ticker
+	prevTemp      int32
+	file          *os.File
+	preFreqScaler string
+	api           lib.APIClient
+	cfg           *pb.HostDiscoveryConfig
+	dchan         chan<- lib.Event
+	pollTicker    *time.Ticker
 }
 
 // Name returns the FQDN of the module
@@ -64,18 +80,17 @@ func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hosttherm
 // NewConfig returns a fully initialized default config
 func (*HostDisc) NewConfig() proto.Message {
 	r := &pb.HostDiscoveryConfig{
-		PollingInterval: "10s",
-		TempSensorPath:  "/sys/devices/virtual/thermal/thermal_zone0/temp",
-		ThermalThresholds: map[string]*pb.HostThermalThresholds{
-			"CPUThermalThresholds": {
-				LowerNormal:   3000,
-				UpperNormal:   60000,
-				LowerHigh:     60000,
-				UpperHigh:     70000,
-				LowerCritical: 3000,
-				UpperCritical: 70000,
-			},
-		},
+		PollingInterval: "1s",
+		TempSensorPath:  thermalSensorUrl,
+		FreqSensorUrl:   freqSensorPath,
+		LogThermalData:  true,
+		LogHere:         "/tmp/ThermalLog.txt",
+		LowerNormal:     3000,
+		UpperNormal:     80000,
+		LowerHigh:       80000,
+		UpperHigh:       98000,
+		LowerCritical:   3000,
+		UpperCritical:   98000,
 	}
 	return r
 }
@@ -104,6 +119,7 @@ func init() {
 	module := &HostDisc{}
 	discovers := make(map[string]map[string]reflect.Value)
 	hostThermDisc := make(map[string]reflect.Value)
+	hostFreqScalerDiscs := make(map[string]reflect.Value)
 
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NONE)
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_NORMAL)
@@ -111,6 +127,11 @@ func init() {
 	hostThermDisc[thpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.HostThermal_CPU_TEMP_CRITICAL)
 
 	discovers[HostThermalStateURL] = hostThermDisc
+
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_NONE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_NONE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_PERFORMANCE)
+	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_POWER_SAVE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE)
+	discovers[hostFreqScalerURL] = hostFreqScalerDiscs
 
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
@@ -127,6 +148,13 @@ func init() {
 func (hostDisc *HostDisc) Init(api lib.APIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
+
+	var err error
+	hostDisc.file, err = os.OpenFile(hostDisc.cfg.GetLogHere(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
+	}
+
 }
 
 // Stop should perform a graceful exit
@@ -157,9 +185,66 @@ func (hostDisc *HostDisc) Entry() {
 		select {
 		case <-hostDisc.pollTicker.C:
 			go hostDisc.discoverHostCPUTemp()
+			go hostDisc.DiscFreqScaler()
+			if hostDisc.cfg.GetLogThermalData() == true {
+				go hostDisc.CapturingStatData()
+			}
+
 			break
 		}
 	}
+}
+
+// CapturingStatData logs thermal information
+func (hostDisc *HostDisc) CapturingStatData() {
+	freqScaler := hostDisc.preFreqScaler
+	temp := hostDisc.prevTemp
+	t := time.Now() // / int64(time.Millisecond)
+	record := fmt.Sprintf("%s,%d,%s\n", t.String(), temp, freqScaler)
+
+	_, err := hostDisc.file.WriteString(record)
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "failed opening file: %v", err)
+	}
+
+}
+
+// DiscFreqScaler cpu frequency scaler
+func (hostDisc *HostDisc) DiscFreqScaler() {
+
+	hostFreqScaler := hostDisc.ReadFreqScaler()
+
+	hostDisc.preFreqScaler = hostFreqScaler
+
+	vid := profileMap[hostFreqScaler]
+
+	url := lib.NodeURLJoin(hostDisc.api.Self().String(), hostFreqScalerURL)
+
+	// Generating discovery event for CPU Thermal state
+	v := core.NewEvent(
+		lib.Event_DISCOVERY,
+		url,
+		&core.DiscoveryEvent{
+
+			URL:     url,
+			ValueID: vid,
+		},
+	)
+	hostDisc.dchan <- v
+
+}
+
+// ReadFreqScaler cpu frequency scaler
+func (hostDisc *HostDisc) ReadFreqScaler() string {
+
+	basePath := hostDisc.cfg.GetFreqSensorUrl()
+	bscalingGovernor, err := ioutil.ReadFile(basePath + "scaling_governor")
+	if err != nil {
+		hostDisc.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
+		return ""
+	}
+
+	return strings.TrimSuffix(string(bscalingGovernor), "\n")
 }
 
 // discoverHostCPUTemp is used to acquire CPU thermal locally.
@@ -251,15 +336,14 @@ func (hostDisc *HostDisc) lambdaStateDiscovery(v CPUTempObj) (string, int32) {
 	cpuTemp := v.CPUTemp
 	cpuTempState := thpb.HostThermal_CPU_TEMP_NONE
 
-	cpuThermalThresholds := hostDisc.cfg.GetThermalThresholds()
-	lowerNormal := cpuThermalThresholds["CPUThermalThresholds"].GetLowerNormal()
-	upperNormal := cpuThermalThresholds["CPUThermalThresholds"].GetUpperNormal()
+	lowerNormal := hostDisc.cfg.GetLowerNormal()
+	upperNormal := hostDisc.cfg.GetUpperNormal()
 
-	lowerHigh := cpuThermalThresholds["CPUThermalThresholds"].GetLowerHigh()
-	upperHigh := cpuThermalThresholds["CPUThermalThresholds"].GetUpperHigh()
+	lowerHigh := hostDisc.cfg.GetLowerHigh()
+	upperHigh := hostDisc.cfg.GetUpperHigh()
 
-	lowerCritical := cpuThermalThresholds["CPUThermalThresholds"].GetLowerCritical()
-	upperCritical := cpuThermalThresholds["CPUThermalThresholds"].GetUpperCritical()
+	lowerCritical := hostDisc.cfg.GetLowerCritical()
+	upperCritical := hostDisc.cfg.GetUpperCritical()
 
 	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
 		cpuTempState = thpb.HostThermal_CPU_TEMP_CRITICAL

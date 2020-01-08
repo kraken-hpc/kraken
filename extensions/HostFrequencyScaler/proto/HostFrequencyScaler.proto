@@ -1,0 +1,23 @@
+/* HostFrequencyScaler.proto: describes host specific CPU frquency scaling policy objects
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>, Kevin Pelzel <kevinpelzel22@gmail.com>;J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+
+message HostFrequencyScaler{
+    enum ScalerState {
+        NONE = 0;
+        POWER_SAVE = 1;
+        PERFORMANCE = 2;
+        SCHEDUTIL = 3;
+                
+    }
+    ScalerState state = 1;
+    
+}
