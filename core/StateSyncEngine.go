@@ -724,9 +724,15 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	sse.sortQueue()
 	sse.Logf(DEBUG, "got a hello from: %s", rp.From.String())
 	if n.getParent() {
-		sse.query.Update(rp.Node)
+		_, e := sse.query.Update(rp.Node)
+		if e != nil {
+			sse.log.Logf(lib.LLERROR, "Received Error while updating cfg: %v", e)
+		}
 	} else {
-		sse.query.UpdateDsc(rp.Node)
+		_, e := sse.query.UpdateDsc(rp.Node)
+		if e != nil {
+			sse.log.Logf(lib.LLERROR, "Received Error while updating dsc for %s: %v", rp.From.String(), e)
+		}
 	}
 }
 
