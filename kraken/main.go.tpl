@@ -200,7 +200,11 @@ func main() {
 	// subscribe our listener
 	k.Ctx.SubChan <- sclist
 
-	k.Sme.Thaw()
+	// Thaw if full state
+	if len(parents) == 0 {
+		k.Sme.Thaw()
+	}
+
 	// wait forever
 	for {
 		select {

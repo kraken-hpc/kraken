@@ -413,6 +413,10 @@ func (sse *StateSyncEngine) callParent(p string) {
 	sse.query.Create(pn)
 
 	n.recv()
+	e = sse.query.Thaw()
+	if e != nil {
+		sse.Log(ERROR, e.Error())
+	}
 }
 
 func (sse *StateSyncEngine) nodeGetKey(id lib.NodeID) (key []byte, e error) {
