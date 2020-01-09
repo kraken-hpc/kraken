@@ -14,7 +14,6 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"sync"
 
@@ -387,8 +386,6 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 
 	r, e = lib.MessageDiff(n.pb, m.pb, prefix)
 
-	log.Printf("node: %s r: %v eright: %v eleft: %v", node.ID().String(), r, eright, eleft)
-
 	// handle extensions
 	for _, u := range eright {
 		nodeExt, ok := m.exts[u]
@@ -408,8 +405,6 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 	for _, u := range eleft {
 		r = append(r, fmt.Sprintf("%s%s", prefix, u))
 	}
-
-	log.Printf("node: %s r after extensions: %v", node.ID().String(), r)
 
 	// handle services
 	prefix = lib.URLPush(prefix, "Services")

@@ -1605,7 +1605,6 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		sme.Log(ERROR, e.Error())
 		return
 	}
-	sme.log.Logf(lib.LLDEBUG, "(node: %v) sme got value from url: %v", node, val)
 
 	// this is a discovery on a completed chain
 	if m.cur >= len(m.chain) {
@@ -1721,7 +1720,6 @@ func (sme *StateMutationEngine) handleEvent(v lib.Event) {
 			sme.activeMutex.Unlock()
 		}
 	case StateChange_UPDATE:
-		sme.log.Logf(lib.LLDEBUG, "sme got a state change update event for %v %v %v", node, url, sce.Value)
 		sme.updateMutation(node, url, sce.Value)
 	case StateChange_CFG_UPDATE:
 		// for a cfg update, we need to create a new chain
