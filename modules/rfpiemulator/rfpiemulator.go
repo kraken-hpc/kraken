@@ -281,14 +281,6 @@ func (rfPiEmu *RFPiEmu) GetNodeIPAddress() string {
 
 	return ip
 
-	/*
-		     hostname, err := os.Hostname()
-		     if err != nil {
-				 hostname = "nil"
-				 rfPiEmu.api.Logf(lib.LLERROR, "%v", err)
-		     }
-		     return hostname
-	*/
 }
 
 // randTemperature returns random temperature to simulate CPU temperature of pi node
@@ -300,7 +292,6 @@ func (rfPiEmu *RFPiEmu) randTemperature(min, max float64) float64 {
 // ReadCPUTemp reads CPU temperature of pi node
 func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
 	tempSensorPath := rfPiEmu.cfg.GetTempSensorPath()
-	//tempSensorPath := "/sys/devices/virtual/thermal/thermal_zone0/temp"
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
 	if err != nil {
 		rfPiEmu.api.Logf(lib.LLERROR, "temperature sensor read error on pi node: %v", err)
@@ -310,7 +301,7 @@ func (rfPiEmu *RFPiEmu) ReadCPUTemp() int {
 	if e != nil {
 		rfPiEmu.api.Logf(lib.LLERROR, "ascci to int conversion error: %v", e)
 	}
-	rfPiEmu.api.Logf(lib.LLERROR, "TEMP: %v", "PATH: %v", cpuTemp, tempSensorPath)
+	rfPiEmu.api.Logf(lib.LLDDDEBUG, "Node temperature: %v", cpuTemp)
 	return cpuTempInt
 }
 
@@ -325,7 +316,7 @@ func (rfPiEmu *RFPiEmu) GetCPUTemp(w http.ResponseWriter, r *http.Request) {
 	cpuTempObj.HostAddress = hostIP
 
 	tempVal := rfPiEmu.ReadCPUTemp()
-	//tempVal := randTemperature(1, 100)
+
 	cpuTempObj.CPUTemp = tempVal
 
 	jsonObj, err := json.Marshal(cpuTempObj)
@@ -384,7 +375,6 @@ func (rfPiEmu *RFPiEmu) ScaleCPUFreq(w http.ResponseWriter, r *http.Request) {
 		scalingMinFreq := []byte(strconv.Itoa(reqPayload.ScalingMinFreq))
 
 		basePath := rfPiEmu.cfg.GetFreqSensorPath()
-		//basePath := "/sys/devices/system/cpu/cpufreq/policy0/"
 
 		// Set the CPU frequency scaling parameters
 		_ = ioutil.WriteFile(basePath+"scaling_governor", scalingGovernor, 0644)
