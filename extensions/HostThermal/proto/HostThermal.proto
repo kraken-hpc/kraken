@@ -17,7 +17,6 @@ message HostThermal {
         CPU_TEMP_NORMAL = 2;
         CPU_TEMP_HIGH = 3;
         CPU_TEMP_CRITICAL = 4;
-        
     }
     cpuState state = 1;
 }
