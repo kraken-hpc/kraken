@@ -17,6 +17,7 @@ extensions:
   - github.com/hpc/kraken/extensions/HostThermal
   - github.com/hpc/kraken/extensions/HostFrequencyScaler
   - github.com/hpc/kraken/extensions/RFAggregatorServer
+
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi
