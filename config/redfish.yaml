@@ -26,4 +26,3 @@ modules:
   - github.com/hpc/kraken/modules/rfpiemulator
   - github.com/hpc/kraken/modules/websocket
   - github.com/hpc/kraken/modules/cpuburn
-  
