@@ -8,9 +8,10 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/otiai10/copy v1.0.1
+	github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776 // indirect
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
-	golang.org/x/crypto v0.0.0-20191122220453-ac88ee75c92c
+	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/net v0.0.0-20191125084936-ffdde1057850
 	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
 	golang.org/x/text v0.3.2 // indirect
