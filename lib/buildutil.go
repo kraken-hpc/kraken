@@ -18,10 +18,10 @@ import (
 	"strings"
 )
 
-// Simple search and replace
-// Search all lines in a file and replace all instances of srchStr
-// with replStr. ONLY WORKS FOR REGULAR FILES! Use DeepSearchandReplace()
-// if directories must be considered.
+// SimpleSearchAndReplace searches all lines in a file and replaces all
+// instances of the search string with the replace string.
+// This currently only works with regular text files.
+// Use DeepSearchandReplace if directories must be considered.
 func SimpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	// Try to open file
 	input, e := ioutil.ReadFile(filename)
@@ -51,10 +51,9 @@ func SimpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	return
 }
 
-// Deep search and replace
-// If filename is a directory, traverse it recursively until regular
-// files are reached, then perform a search and replace on them until
-// all files under the directory are searched and replaced.
+// DeepSearchAndReplace performs SimpleSearchAndReplace on the passed file if
+// it is a regular file. If the file is a directory, it recursively traverses it,
+// performing SimpleSearchAndReplace on all regular files.
 func DeepSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	// Get info of filename
 	var info os.FileInfo
