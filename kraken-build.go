@@ -293,6 +293,19 @@ func getModDir() (d string, e error) {
 	return
 }
 
+// checkUrootOpt checks if the u-root destination path has been set
+// and calls uKraken() if it is
+func checkUrootOpt(dstPath string) {
+	// Do we want to build source for u-root?
+	if dstPath != "" {
+		log.Printf("generating kraken source tree for u-root into \"%s\"", dstPath)
+		_, e = uKraken(dstPath, krakenDir)
+		if e != nil {
+			log.Fatalf("could not create source tree for u-root: %v", e)
+		}
+	}
+}
+
 func main() {
 	var e error
 	flag.Parse()
@@ -318,13 +331,7 @@ func main() {
 	log.Printf("using kraken at: %s", krakenDir)
 
 	// Do we want to build source for u-root?
-	if *uroot != "" {
-		log.Printf("generating kraken source tree for u-root into \"%s\"", *uroot)
-		_, e = uKraken(*uroot, krakenDir)
-		if e != nil {
-			log.Fatalf("could not create source tree for u-root: %v", e)
-		}
-	}
+	checkUroot(*uroot)
 
 	// create build dir
 	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
