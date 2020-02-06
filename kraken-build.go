@@ -117,7 +117,8 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-// Like CompileTemplates(), but does so for sources that will end up in u-root
+// uCompileTemplates is like CompileTemplates(), but does so for sources that
+// will end up as a u-root command
 func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
@@ -151,7 +152,7 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-// Generate kraken source tree for u-root command from krakenDir into outDir
+// uKraken generates a kraken source tree to be used as a u-root command
 func uKraken(outDir, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
 	e = os.MkdirAll(outDir, 0755)
