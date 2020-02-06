@@ -186,42 +186,32 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 		// Rename "kraken" dir to "kraken-tpl" to distinguish it as the template dir.
 		// The "kraken" dir will contain the kraken source files generated from the
 		// templates.
+		krakenTplDir := ""
 		if file == "kraken" {
-			krakenTplDir := file + "-tpl"
-
-			// Rename kraken -> kraken-tpl
-			if *verbose {
-				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, krakenTplDir, outDir)
-			}
-			inFile := path.Join(krakenDir, file)
-			outFile := path.Join(outDir, krakenTplDir)
-			e = cp.Copy(inFile, outFile)
-			if e != nil {
-				return
-			}
-
-			// Avoid import errors in generated source by modifying include path
-			e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
-			if e != nil {
-				return
-			}
-			// If not "kraken" dir, copy to outDir
+			krakenTplDir = file + "-tpl"
 		} else {
-			if *verbose {
+			krakenTplDir = file
+		}
+
+		// Rename kraken -> kraken-tpl
+		if *verbose {
+			if krakenTplDir != file {
+				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, krakenTplDir, outDir)
+			} else {
 				log.Printf("copying \"%s\" to \"%s\"", file, outDir)
 			}
-			inFile := path.Join(krakenDir, file)
-			outFile := path.Join(outDir, file)
-			e = cp.Copy(inFile, outFile)
-			if e != nil {
-				return
-			}
+		}
+		inFile := path.Join(krakenDir, file)
+		outFile := path.Join(outDir, krakenTplDir)
+		e = cp.Copy(inFile, outFile)
+		if e != nil {
+			return
+		}
 
-			// Avoid import errors in generated source by modifying include path
-			e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
-			if e != nil {
-				return
-			}
+		// Avoid import errors in generated source by modifying include path
+		e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
+		if e != nil {
+			return
 		}
 	}
 
