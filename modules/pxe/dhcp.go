@@ -201,7 +201,7 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
 			ev2 := core.NewEvent(
 				lib.Event_DISCOVERY,
-				url1,
+				url2,
 				&core.DiscoveryEvent{
 					URL:     url2,
 					ValueID: "NODE_INIT",
