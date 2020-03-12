@@ -218,11 +218,24 @@ func (k *Kraken) Bootstrap() {
 func (k *Kraken) Run() {
 	k.Log(INFO, "starting core services")
 
-	go k.Ede.Run()
-	go k.Sde.Run()
-	go k.Sse.Run()
-	go k.Sme.Run()
-	go k.Api.Run()
+	// each service needs to notify when it is ready
+	ready := make(chan interface{})
+
+	go k.Ede.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "EventDispatchEngine reported ready")
+	go k.Sme.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "StateMutationEngine reported ready")
+	go k.Sde.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "StateDifferenceEngine reported ready")
+	go k.Sse.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "StateSyncEngine reported ready")
+	go k.Api.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "API reported ready")
 
 	if len(k.Ctx.Parents) < 1 {
 		// set our own runstate and phystate, should we discover these instead?

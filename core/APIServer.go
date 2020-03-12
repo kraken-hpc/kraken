@@ -478,11 +478,12 @@ func (s *APIServer) LoggerInit(stream pb.API_LoggerInitServer) (e error) {
 }
 
 // Run starts the API service listener
-func (s *APIServer) Run() {
+func (s *APIServer) Run(ready chan<- interface{}) {
 	s.Log(INFO, "starting API")
 	srv := grpc.NewServer()
 	pb.RegisterAPIServer(srv, s)
 	reflection.Register(srv)
+	ready <- nil
 	if e := srv.Serve(s.ulist); e != nil {
 		s.Logf(CRITICAL, "couldn't start API service: %v", e)
 		return

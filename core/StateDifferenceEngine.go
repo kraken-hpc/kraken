@@ -302,7 +302,7 @@ func (n *StateDifferenceEngine) QueryChan() chan<- lib.Query {
 }
 
 // Run is a goroutine that manages queries
-func (n *StateDifferenceEngine) Run() {
+func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 	n.Log(INFO, "starting StateDifferenceEngine")
 	// we listen for queries as well as discovery events
 	dchan := make(chan lib.Event)
@@ -314,6 +314,7 @@ func (n *StateDifferenceEngine) Run() {
 	)
 	// subscribe our discovery listener
 	n.schan <- list
+	ready <- nil
 	for {
 		select {
 		case q := <-n.qc:
