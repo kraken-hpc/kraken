@@ -260,7 +260,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 }
 
 // Run is a goroutine that makes StateSyncEngine active
-func (sse *StateSyncEngine) Run() {
+func (sse *StateSyncEngine) Run(ready chan<- interface{}) {
 	rchan := make(chan recvPacket) // receive chan
 	echan := make(chan lib.Event)  // event chan
 	sse.Log(INFO, "starting StateSyncEngine")
@@ -318,6 +318,7 @@ func (sse *StateSyncEngine) Run() {
 
 	sse.Logf(INFO, "state sync is running for identity: %s", sse.self.String())
 
+	ready <- nil
 	for {
 		select {
 		case r := <-rchan: // received a hello

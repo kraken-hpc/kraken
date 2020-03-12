@@ -78,8 +78,9 @@ func (v *EventDispatchEngine) EventChan() chan<- []lib.Event { return v.echan }
 
 // Run is a goroutine than handles event dispatch and subscriptions
 // There's currently no way to stop this once it's started.
-func (v *EventDispatchEngine) Run() {
+func (v *EventDispatchEngine) Run(ready chan<- interface{}) {
 	v.Log(INFO, "starting EventDispatchEngine")
+	ready <- nil
 	for {
 		select {
 		case el := <-v.schan:

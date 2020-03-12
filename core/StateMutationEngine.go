@@ -417,7 +417,7 @@ func (sme *StateMutationEngine) QueryChan() chan<- lib.Query {
 
 // Run is a goroutine that listens for state changes and performs StateMutation magic
 // LOCKS: all
-func (sme *StateMutationEngine) Run() {
+func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 	// on run we import all mutations in the registry
 	sme.graphMutex.Lock()
 	for mod := range Registry.Mutations {
@@ -465,6 +465,7 @@ func (sme *StateMutationEngine) Run() {
 		}()
 	}
 
+	ready <- nil
 	for {
 		select {
 		case q := <-sme.qc:

@@ -236,7 +236,7 @@ type StateDifferenceEngine interface {
 	SetValueDsc(url string, v reflect.Value) (r reflect.Value, e error)
 	QueryChan() chan<- Query
 	// goroutine that manages engine queries
-	Run()
+	Run(chan<- interface{})
 }
 
 // An EventDispatchEngine subscribes to event sources and re-transmits events
@@ -248,7 +248,7 @@ type EventDispatchEngine interface {
 	// Send an EventListener to subscribe, or modify a subscription
 	SubscriptionChan() chan<- EventListener
 	EventChan() chan<- []Event
-	Run() // goroutine
+	Run(chan<- interface{}) // goroutine
 }
 
 // An EventListener decies if an event should be provided on this subscription.
@@ -395,7 +395,7 @@ type StateMutationEngine interface {
 	RegisterMutation(module, id string, mut StateMutation) error
 	NodeMatch(node Node) int
 	PathExists(start Node, end Node) (bool, error)
-	Run()
+	Run(chan<- interface{})
 }
 
 /*
