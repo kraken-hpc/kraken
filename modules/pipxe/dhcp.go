@@ -315,7 +315,7 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
 			ev2 := core.NewEvent(
 				lib.Event_DISCOVERY,
-				url1,
+				url2,
 				&core.DiscoveryEvent{
 					URL:     url2,
 					ValueID: "NODE_INIT",
