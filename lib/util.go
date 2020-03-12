@@ -113,8 +113,8 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 	case reflect.Interface, reflect.Map:
 		fallthrough
 	default:
-		log.Printf("not yet implemented: %v", a.Kind())
-		log.Printf("unknown type")
+		// log.Printf("not yet implemented: %v", a.Kind())
+		// log.Printf("unknown type")
 	}
 	return
 }
