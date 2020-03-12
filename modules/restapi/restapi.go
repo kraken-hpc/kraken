@@ -240,10 +240,14 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 				for key, val := range enumValueMap {
 					enumOptions[val] = key
 				}
-
+				// If JSONName doesn't exists then it is the same as OrigName
+				name := p.JSONName
+				if name == "" {
+					name = p.OrigName
+				}
 				enum := extension{
-					Name:    p.OrigName,
-					Url:     lib.URLPush(k, p.OrigName),
+					Name:    name,
+					Url:     lib.URLPush(k, name),
 					Options: enumOptions,
 				}
 				extSlice = append(extSlice, enum)
