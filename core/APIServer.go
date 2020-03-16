@@ -309,19 +309,12 @@ func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_Servic
 		Command: pb.ServiceControl_INIT,
 		Config:  any,
 	})
-	if srv.Config() != nil {
-		e = stream.Send(&pb.ServiceControl{Command: pb.ServiceControl_UPDATE, Config: srv.Config()})
-		if e != nil {
-			s.Logf(ERROR, "send error: %v", e)
-		}
-	}
 	c := make(chan lib.ServiceControl)
 	srv.SetCtl(c)
 	for {
 		ctl := <-c
 		stream.Send(&pb.ServiceControl{
 			Command: pb.ServiceControl_Command(ctl.Command),
-			Config:  ctl.Config,
 		})
 	}
 }

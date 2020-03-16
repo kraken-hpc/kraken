@@ -249,7 +249,7 @@ func (a *APIClient) ServiceInit(id string, module string) (c <-chan lib.ServiceC
 			if e != nil {
 				return
 			}
-			cc <- lib.ServiceControl{Command: lib.ServiceControl_Command(ctl.Command), Config: ctl.Config}
+			cc <- lib.ServiceControl{Command: lib.ServiceControl_Command(ctl.Command)}
 		}
 	}()
 	c = cc

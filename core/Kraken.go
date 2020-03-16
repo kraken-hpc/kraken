@@ -70,7 +70,8 @@ type ContextRPC struct {
 /////////////////
 
 var _ lib.Module = (*Kraken)(nil)
-var _ lib.ServiceInstance = (*Kraken)(nil)
+
+//var _ lib.ServiceInstance = (*Kraken)(nil)
 
 // A Kraken is a mythical giant squid-beast.
 type Kraken struct {
