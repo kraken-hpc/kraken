@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 
 	"github.com/golang/protobuf/ptypes"
 
@@ -38,6 +39,7 @@ type ServiceInstance struct {
 	wchan  chan<- lib.ServiceInstanceUpdate
 	state  lib.ServiceState // note: these states mean a slightly different: RUN means process is running, INIT means nothing
 	m      lib.ModuleSelfService
+	mutex  *sync.Mutex
 }
 
 // NewServiceInstance provides a new, initialized ServiceInstance object
@@ -47,6 +49,7 @@ func NewServiceInstance(id, module string, entry func()) *ServiceInstance {
 		module: module,
 		entry:  entry,
 		cmd:    nil,
+		mutex:  &sync.Mutex{},
 	}
 	si.setState((lib.Service_STOP)) // we're obviously stopped right now
 	si.exe, _ = os.Executable()
@@ -61,6 +64,8 @@ func (si *ServiceInstance) Module() string { return si.module }
 
 // GetState returns the current run state of the service
 func (si *ServiceInstance) GetState() lib.ServiceState {
+	si.mutex.Lock()
+	defer si.mutex.Unlock()
 	return si.state
 }
 
@@ -106,6 +111,8 @@ func (si *ServiceInstance) SetSock(sock string) {
 
 // setState sets the state, but should only be done internally.  This makes sure we notify any watcher
 func (si *ServiceInstance) setState(state lib.ServiceState) {
+	si.mutex.Lock()
+	defer si.mutex.Unlock()
 	si.state = state
 	if si.wchan != nil {
 		si.wchan <- lib.ServiceInstanceUpdate{
@@ -125,6 +132,8 @@ func (si *ServiceInstance) watcher() {
 }
 
 func (si *ServiceInstance) start() (e error) {
+	si.mutex.Lock()
+	defer si.mutex.Unlock()
 	if si.GetState() == lib.Service_RUN {
 		return fmt.Errorf("cannot start service instance not in stop state")
 	}
