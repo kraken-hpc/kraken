@@ -136,7 +136,7 @@ func init() {
 	discovers[ModuleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
-	si := core.NewServiceInstance("hostthermaldiscovery", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("hostthermaldiscovery", module.Name(), module.Entry)
 
 	// Register it all
 	core.Registry.RegisterModule(module)

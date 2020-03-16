@@ -291,7 +291,7 @@ func kernelLucasLehmer() {
 
 func init() {
 	module := &CPUBurn{}
-	si := core.NewServiceInstance("cpuburn", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("cpuburn", module.Name(), module.Entry)
 	core.Registry.RegisterModule(module)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, map[string]map[string]reflect.Value{

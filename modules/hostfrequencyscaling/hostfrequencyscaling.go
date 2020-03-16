@@ -321,7 +321,7 @@ func init() {
 	discovers := make(map[string]map[string]reflect.Value)
 	hostFreqScalerDiscs := make(map[string]reflect.Value)
 	hostThermDiscs := make(map[string]reflect.Value)
-	si := core.NewServiceInstance("hostfrequencyscaling", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("hostfrequencyscaling", module.Name(), module.Entry)
 
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NONE)
 	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL)
