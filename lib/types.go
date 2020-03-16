@@ -475,15 +475,24 @@ const (
 type ServiceControl struct {
 	Command ServiceControl_Command
 }
+
+// ServiceInstanceUpdate is sent to watchers
+type ServiceInstanceUpdate struct {
+	ID    string
+	State ServiceState
+	Error error
+}
+
 type ServiceInstance interface {
-	ID() string                   // Get ID for service instance
-	Module() string               // Name of module this is an instance of
-	GetState() ServiceState       // Return the current process state
-	UpdateConfig()                // Tell process to update its config
-	Start()                       // Tell process to start
-	Stop()                        // Tell process to stop
-	Watch(chan<- ServiceState)    // Tell process to report state changes over this chan
-	SetCtl(chan<- ServiceControl) // Where to send service control messages
+	ID() string                         // Get ID for service instance
+	Module() string                     // Name of module this is an instance of
+	GetState() ServiceState             // Return the current process state
+	UpdateConfig()                      // Tell process to update its config
+	Start()                             // Tell process to start
+	Stop()                              // Tell process to stop
+	Watch(chan<- ServiceInstanceUpdate) // Tell process to report state changes over this chan
+	SetCtl(chan<- ServiceControl)       // Where to send service control messages
+	SetSock(string)                     // Set the path to the API socket
 }
 
 // A ServiceManager handles the lifecycle of external services

@@ -35,7 +35,7 @@ type ServiceInstance struct {
 	sock   string
 	cmd    *exec.Cmd
 	ctl    chan<- lib.ServiceControl
-	wchan  chan<- lib.ServiceState
+	wchan  chan<- lib.ServiceInstanceUpdate
 	state  lib.ServiceState // note: these states mean a slightly different: RUN means process is running, INIT means nothing
 	m      lib.ModuleSelfService
 }
@@ -90,7 +90,7 @@ func (si *ServiceInstance) Stop() {
 }
 
 // Watch provides a channel where process state changes will be reported
-func (si *ServiceInstance) Watch(wchan chan<- lib.ServiceState) {
+func (si *ServiceInstance) Watch(wchan chan<- lib.ServiceInstanceUpdate) {
 	si.wchan = wchan
 }
 
@@ -99,11 +99,19 @@ func (si *ServiceInstance) SetCtl(ctl chan<- lib.ServiceControl) {
 	si.ctl = ctl
 }
 
+// SetSock sets the path to the API socket
+func (si *ServiceInstance) SetSock(sock string) {
+	si.sock = sock
+}
+
 // setState sets the state, but should only be done internally.  This makes sure we notify any watcher
 func (si *ServiceInstance) setState(state lib.ServiceState) {
 	si.state = state
 	if si.wchan != nil {
-		si.wchan <- si.state
+		si.wchan <- lib.ServiceInstanceUpdate{
+			ID:    si.id,
+			State: si.state,
+		}
 	}
 }
 
