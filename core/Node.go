@@ -506,10 +506,15 @@ func newNode() *Node {
 	for i := range Registry.ServiceInstances {
 		for j := range Registry.ServiceInstances[i] {
 			si := Registry.ServiceInstances[i][j]
-			n.AddService(&pb.ServiceInstance{
+			srv := &pb.ServiceInstance{
 				Id:     si.ID(),
 				Module: si.Module(),
-			})
+			}
+			if mc, ok := Registry.Modules[si.Module()].(lib.ModuleWithConfig); ok {
+				any, _ := ptypes.MarshalAny(mc.NewConfig())
+				srv.Config = any
+			}
+			n.AddService(srv)
 		}
 	}
 	return n
