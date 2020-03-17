@@ -511,7 +511,7 @@ func newNode() *Node {
 				Module: si.Module(),
 			}
 			if mc, ok := Registry.Modules[si.Module()].(lib.ModuleWithConfig); ok {
-				any, _ := ptypes.MarshalAny(mc.NewConfig())
+				any, _ := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
 				srv.Config = any
 			}
 			n.AddService(srv)
