@@ -103,6 +103,6 @@ func main() {
 
 	// wait forever
 	for {
-
+		select {}
 	}
 }
