@@ -137,8 +137,19 @@ func (sm *ServiceManager) GetService(si string) lib.ServiceInstance {
 
 func (sm *ServiceManager) processStateChange(v *StateChangeEvent) {
 	// extract SI
-	us := lib.URLToSlice(v.URL)
-	si := us[1]
+	_, url := lib.NodeURLSplit(v.URL)
+	us := lib.URLToSlice(url)
+	si := ""
+	// this makes sure we don't get tripped up by leading slashes
+	for i := range us {
+		if us[i] == "Services" {
+			si = us[i+1]
+		}
+	}
+	if si == "" {
+		sm.log.Logf(lib.LLDEBUG, "failed to parse URL for /Services state change: %s", v.URL)
+		return
+	}
 	sm.syncService(si)
 }
 
