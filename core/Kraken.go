@@ -38,6 +38,7 @@ type Context struct {
 	SSE     ContextSSE
 	SME     ContextSME
 	RPC     ContextRPC
+	Sm      lib.ServiceManager // API needs this
 	sdqChan chan lib.Query
 	smqChan chan lib.Query
 }
@@ -202,8 +203,9 @@ func (k *Kraken) Bootstrap() {
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
 	k.Sde = NewStateDifferenceEngine(k.Ctx, k.Ctx.sdqChan)
-	k.Sm = NewServiceManager(k.Ctx, "unix:"+k.Ctx.RPC.Path)
 	k.Ctx.Query = *NewQueryEngine(k.Ctx.sdqChan, k.Ctx.smqChan)
+	k.Sm = NewServiceManager(k.Ctx, "unix:"+k.Ctx.RPC.Path)
+	k.Ctx.Sm = k.Sm // API needs this
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
 	k.Sme = NewStateMutationEngine(k.Ctx, k.Ctx.smqChan)
@@ -243,7 +245,7 @@ func (k *Kraken) Run() {
 
 	if len(k.Ctx.Parents) < 1 {
 		// set our own runstate and phystate, should we discover these instead?
-		n, _ := k.Ctx.Query.ReadDsc(k.Ctx.Self)
+		n, _ := k.Ctx.Query.Read(k.Ctx.Self)
 		dn, _ := k.Ctx.Query.ReadDsc(k.Ctx.Self)
 		n.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))
 		dn.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))

@@ -71,6 +71,7 @@ func NewAPIServer(ctx Context) *APIServer {
 		em:    NewEventEmitter(lib.Event_API),
 		schan: ctx.SubChan,
 		self:  ctx.Self,
+		sm:    ctx.Sm,
 	}
 	api.log.SetModule("API")
 	return api
@@ -300,7 +301,7 @@ func (s *APIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Q
  */
 
 func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_ServiceInitServer) (e error) {
-	srv := s.sm.Service(sir.GetId())
+	srv := s.sm.GetService(sir.GetId())
 
 	self, _ := s.query.Read(s.self)
 	any, _ := ptypes.MarshalAny(self.Message())

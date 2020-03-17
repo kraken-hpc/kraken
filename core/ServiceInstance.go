@@ -134,7 +134,7 @@ func (si *ServiceInstance) watcher() {
 func (si *ServiceInstance) start() (e error) {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
-	if si.GetState() == lib.Service_RUN {
+	if si.state == lib.Service_RUN {
 		return fmt.Errorf("cannot start service instance not in stop state")
 	}
 	if _, e = os.Stat(si.exe); os.IsNotExist(e) {

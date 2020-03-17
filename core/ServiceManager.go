@@ -22,6 +22,8 @@ import (
 // ServiceManager Object /
 /////////////////////////
 
+var _ lib.ServiceManager = (*ServiceManager)(nil)
+
 type ServiceManager struct {
 	srv    map[string]lib.ServiceInstance // map of si IDs to ServiceInstances
 	mutex  *sync.Mutex
@@ -30,6 +32,7 @@ type ServiceManager struct {
 	echan  chan lib.Event
 	wchan  chan lib.ServiceInstanceUpdate
 	ctx    Context
+	query  *QueryEngine
 	log    lib.Logger
 }
 
@@ -42,6 +45,7 @@ func NewServiceManager(ctx Context, sock string) *ServiceManager {
 		wchan: make(chan lib.ServiceInstanceUpdate),
 		ctx:   ctx,
 		log:   &ctx.Logger,
+		query: &ctx.Query,
 	}
 	sm.log.SetModule("ServiceManager")
 	return sm
@@ -78,6 +82,7 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 	go func() {
 		sm.log.Logf(lib.LLDEBUG, "starting initial service sync")
 		for _, si := range sm.srv {
+			sm.log.Logf(lib.LLDDEBUG, "starting initial service sync: %s", si.ID())
 			sm.syncService(si.ID())
 		}
 	}()
@@ -152,6 +157,7 @@ func (sm *ServiceManager) processUpdate(su lib.ServiceInstanceUpdate) {
 
 // syncService is what actually does most of the work.  It compares cfg to dsc and decides what to do
 func (sm *ServiceManager) syncService(si string) {
+	sm.log.Logf(lib.LLDDEBUG, "syncing service: %s", si)
 	srv := sm.GetService(si)
 	if srv == nil {
 		sm.log.Logf(lib.LLERROR, "tried to sync non-existent service: %s", si)
@@ -161,7 +167,7 @@ func (sm *ServiceManager) syncService(si string) {
 	d := sm.getServiceStateDsc(si)
 
 	if c == d { // nothing to do
-		sm.log.Logf(lib.LLDDEBUG, "service already synchronized: %s (%+v)", si, c)
+		sm.log.Logf(lib.LLDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
 		return
 	}
 	if d == pb.ServiceInstance_ERROR { // don't clear errors
@@ -170,9 +176,11 @@ func (sm *ServiceManager) syncService(si string) {
 	switch c {
 	case pb.ServiceInstance_RUN: // we're supposed to be running
 		if d != pb.ServiceInstance_INIT { // did we already try to start?
+			sm.log.Logf(lib.LLDDEBUG, "starting service: %s", si)
 			srv.Start() // startup
 		}
 	case pb.ServiceInstance_STOP: // we're supposed to be stopped
+		sm.log.Logf(lib.LLDDEBUG, "stopping service: %s", si)
 		srv.Stop() // stop
 	}
 }
@@ -180,21 +188,21 @@ func (sm *ServiceManager) syncService(si string) {
 // Some helper functions...
 
 func (sm *ServiceManager) getServiceStateCfg(si string) pb.ServiceInstance_ServiceState {
-	n, _ := sm.ctx.Query.Read(sm.ctx.Self)
+	n, _ := sm.query.Read(sm.ctx.Self)
 	v, _ := n.GetValue(sm.stateURL(si))
 	return pb.ServiceInstance_ServiceState(v.Int())
 }
 
 func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_ServiceState {
-	n, _ := sm.ctx.Query.ReadDsc(sm.ctx.Self)
+	n, _ := sm.query.ReadDsc(sm.ctx.Self)
 	v, _ := n.GetValue(sm.stateURL(si))
 	return pb.ServiceInstance_ServiceState(v.Int())
 }
 
 func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance_ServiceState) {
-	n, _ := sm.ctx.Query.ReadDsc(sm.ctx.Self)
+	n, _ := sm.query.ReadDsc(sm.ctx.Self)
 	n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
-	sm.ctx.Query.UpdateDsc(n)
+	sm.query.UpdateDsc(n)
 }
 
 func (sm *ServiceManager) stateURL(si string) string {

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	proto "github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
 	pb "github.com/hpc/kraken/core/proto"
 )
 
@@ -497,17 +496,10 @@ type ServiceInstance interface {
 
 // A ServiceManager handles the lifecycle of external services
 type ServiceManager interface {
-	AddService(ServiceInstance) error
-	AddServiceByModule(id string, name string, cfg *any.Any) error
-	DelService(name string) error
-	GetServiceIDs() []string
-
-	Service(id string) ServiceInstance // returns a service by ID, nil if not found
-
-	RunService(id string) error
-	StopService(id string) error
-
-	SyncNode(n Node) map[string]ServiceState
+	AddService(ServiceInstance)
+	DelService(string)
+	GetService(string) ServiceInstance
+	Run(chan<- interface{})
 }
 
 /*
