@@ -167,14 +167,15 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 
 // implement lib.ServiceInstance
 // this is a bit of a hack
-func (sse *StateSyncEngine) ID() string                       { return sse.Name() }
-func (sse *StateSyncEngine) Module() string                   { return sse.Name() }
-func (sse *StateSyncEngine) Start()                           {} //NOP
-func (sse *StateSyncEngine) Stop()                            {} //NOP
-func (sse *StateSyncEngine) GetState() lib.ServiceState       { return lib.Service_RUN }
-func (sse *StateSyncEngine) UpdateConfig()                    {} //NOP
-func (sse *StateSyncEngine) Watch(chan<- lib.ServiceState)    {} //NOP
-func (sse *StateSyncEngine) SetCtl(chan<- lib.ServiceControl) {} //NOP
+func (sse *StateSyncEngine) ID() string                             { return sse.Name() }
+func (sse *StateSyncEngine) Module() string                         { return sse.Name() }
+func (sse *StateSyncEngine) Start()                                 {} //NOP
+func (sse *StateSyncEngine) Stop()                                  {} //NOP
+func (sse *StateSyncEngine) GetState() lib.ServiceState             { return lib.Service_RUN }
+func (sse *StateSyncEngine) UpdateConfig()                          {} //NOP
+func (sse *StateSyncEngine) Watch(chan<- lib.ServiceInstanceUpdate) {} //NOP
+func (sse *StateSyncEngine) SetCtl(chan<- lib.ServiceControl)       {} //NOP
+func (sse *StateSyncEngine) SetSock(string)                         {} //NOP
 
 // implement lib.Module
 func (*StateSyncEngine) Name() string { return "sse" }

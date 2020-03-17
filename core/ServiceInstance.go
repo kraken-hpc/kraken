@@ -156,7 +156,7 @@ func (si *ServiceInstance) start() (e error) {
 
 // moduleExecute does all of the necessary steps to start the service instance
 // this is the actual entry point for a new module process
-func moduleExecute(id, module, sock string) {
+func ModuleExecute(id, module, sock string) {
 	m, ok := Registry.Modules[module]
 	if !ok {
 		fmt.Printf("trying to launch non-existent module: %s", module)

@@ -30,17 +30,16 @@ import (
 // Context contains information about the current running context
 // such as who we are, and to whom we belong.
 type Context struct {
-	Services *ServiceManager
-	Logger   ServiceLogger
-	Query    QueryEngine
-	SubChan  chan<- lib.EventListener
-	Self     lib.NodeID
-	Parents  []string
-	SSE      ContextSSE
-	SME      ContextSME
-	RPC      ContextRPC
-	sdqChan  chan lib.Query
-	smqChan  chan lib.Query
+	Logger  ServiceLogger
+	Query   QueryEngine
+	SubChan chan<- lib.EventListener
+	Self    lib.NodeID
+	Parents []string
+	SSE     ContextSSE
+	SME     ContextSME
+	RPC     ContextRPC
+	sdqChan chan lib.Query
+	smqChan chan lib.Query
 }
 
 type ContextSSE struct {
@@ -81,6 +80,7 @@ type Kraken struct {
 	Sse *StateSyncEngine
 	Sme *StateMutationEngine
 	Api *APIServer
+	Sm  *ServiceManager
 
 	// Un-exported
 	em  *EventEmitter
@@ -202,7 +202,7 @@ func (k *Kraken) Bootstrap() {
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
 	k.Sde = NewStateDifferenceEngine(k.Ctx, k.Ctx.sdqChan)
-	k.Ctx.Services = NewServiceManager("unix:" + k.Ctx.RPC.Path)
+	k.Sm = NewServiceManager(k.Ctx, "unix:"+k.Ctx.RPC.Path)
 	k.Ctx.Query = *NewQueryEngine(k.Ctx.sdqChan, k.Ctx.smqChan)
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
@@ -237,6 +237,9 @@ func (k *Kraken) Run() {
 	go k.Api.Run(ready)
 	<-ready
 	k.Log(lib.LLINFO, "API reported ready")
+	go k.Sm.Run(ready)
+	<-ready
+	k.Log(lib.LLINFO, "ServiceManager reported ready")
 
 	if len(k.Ctx.Parents) < 1 {
 		// set our own runstate and phystate, should we discover these instead?

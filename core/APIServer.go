@@ -69,7 +69,6 @@ func NewAPIServer(ctx Context) *APIServer {
 		query: &ctx.Query,
 		log:   &ctx.Logger,
 		em:    NewEventEmitter(lib.Event_API),
-		sm:    ctx.Services,
 		schan: ctx.SubChan,
 		self:  ctx.Self,
 	}
