@@ -17,12 +17,14 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib"
 
 	_ "net/http/pprof"
 
 	cpb "github.com/hpc/kraken/core/proto"
+	rpb "github.com/hpc/kraken/modules/restapi/proto"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -73,15 +75,24 @@ func main() {
 
 	qe := core.NewQueryEngine(k.Sde.QueryChan(), k.Sme.QueryChan())
 	// we'll modify ourselves a bit to get running
-	self, _ := qe.Read(k.Ctx.Self)
+	self, e := qe.Read(k.Ctx.Self)
+	if e != nil {
+		k.Logf(lib.LLERROR, "couldn't read our own node object: %v", e)
+	}
 
 	// if we're full-state, we start restapi automatically
 	if len(parents) == 0 {
-		self.SetValues(map[string]reflect.Value{
-			"/Services/restapi/State":       reflect.ValueOf(cpb.ServiceInstance_RUN),
-			"/Services/restapi/Config/Addr": reflect.ValueOf(*ipapi),
-			"/Services/restapi/Config/Port": reflect.ValueOf(3141),
-		})
+		conf := &rpb.RestAPIConfig{
+			Addr: *ipapi,
+			Port: 3141,
+		}
+		any, _ := ptypes.MarshalAny(conf)
+		if _, e := self.SetValue("/Services/restapi/Config", reflect.ValueOf(any)); e != nil {
+			k.Logf(lib.LLERROR, "couldn't set value /Services/restapi/Config -> %+v: %v", reflect.ValueOf(any), e)
+		}
+		if _, e := self.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_RUN)); e != nil {
+			k.Logf(lib.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
+		}
 	}
 	qe.Update(self)
 

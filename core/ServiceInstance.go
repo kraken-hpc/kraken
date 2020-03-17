@@ -231,7 +231,7 @@ func ModuleExecute(id, module, sock string) {
 		srv := n.GetService(id)
 		p, e := Registry.Resolve(srv.GetConfig().GetTypeUrl())
 		if e != nil {
-			api.Logf(ERROR, "resolve config error: %v\n", e)
+			api.Logf(ERROR, "resolve config error (%s): %v\n", srv.GetConfig().GetTypeUrl(), e)
 			return
 		}
 		e = ptypes.UnmarshalAny(srv.GetConfig(), p)
