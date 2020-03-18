@@ -12,6 +12,7 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -81,13 +82,14 @@ type mutationPath struct {
 	cmplt bool
 	// curSeen is a slice of URLs that we've seen (correct) changes in the current mut
 	// 	This is important to keep track of muts that change more than one URL
-	curSeen []string
-	start   lib.Node
-	end     lib.Node
-	gstart  *mutationNode
-	gend    *mutationNode
-	chain   []*mutationEdge
-	timer   *time.Timer
+	curSeen    []string
+	start      lib.Node
+	end        lib.Node
+	gstart     *mutationNode
+	gend       *mutationNode
+	chain      []*mutationEdge
+	timer      *time.Timer
+	waitingFor string // the SI we're currently waiting for
 }
 
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
@@ -116,10 +118,13 @@ type StateMutationEngine struct {
 	qc          chan lib.Query
 	schan       chan<- lib.EventListener // subscription channel
 	echan       chan lib.Event
+	sichan      chan lib.Event
 	selist      *EventListener
+	silist      *EventListener
 	run         bool                     // are we running?
 	active      map[string]*mutationPath // active mutations
-	activeMutex *sync.Mutex              // active needs some synchronization, or we can get in bad places
+	waiting     map[string][]*mutationPath
+	activeMutex *sync.Mutex // active (and waiting) needs some synchronization, or we can get in bad places
 	query       *QueryEngine
 	log         lib.Logger
 	self        lib.NodeID
@@ -133,6 +138,7 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 		muts:        []lib.StateMutation{},
 		mutResolver: make(map[lib.StateMutation][2]string),
 		active:      make(map[string]*mutationPath),
+		waiting:     make(map[string][]*mutationPath),
 		activeMutex: &sync.Mutex{},
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
@@ -144,6 +150,7 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 		qc:          qc,
 		run:         false,
 		echan:       make(chan lib.Event),
+		sichan:      make(chan lib.Event),
 		query:       &ctx.Query,
 		schan:       ctx.SubChan,
 		log:         &ctx.Logger,
@@ -158,10 +165,10 @@ func NewStateMutationEngine(ctx Context, qc chan lib.Query) *StateMutationEngine
 // RegisterMutation injects new mutaitons into the SME. muts[i] should match callback[i]
 // We take a list so that we only call onUpdate once
 // LOCKS: graphMutex (RW)
-func (sme *StateMutationEngine) RegisterMutation(module, id string, mut lib.StateMutation) (e error) {
+func (sme *StateMutationEngine) RegisterMutation(si, id string, mut lib.StateMutation) (e error) {
 	sme.graphMutex.Lock()
 	sme.muts = append(sme.muts, mut)
-	sme.mutResolver[mut] = [2]string{module, id}
+	sme.mutResolver[mut] = [2]string{si, id}
 	sme.graphMutex.Unlock()
 	sme.onUpdate()
 	return
@@ -455,6 +462,24 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 	// subscribe our listener
 	sme.schan <- sme.selist
 
+	smurl := regexp.MustCompile(`^\/?Services\/`)
+	sme.silist = NewEventListener(
+		"StateMutationEngine-SI",
+		lib.Event_STATE_CHANGE,
+		func(v lib.Event) bool {
+			node, url := lib.NodeURLSplit(v.URL())
+			if !NewNodeID(node).Equal(sme.self) {
+				return false
+			}
+			if smurl.MatchString(url) {
+				return true
+			}
+			return false
+		},
+		func(v lib.Event) error { return ChanSender(v, sme.sichan) },
+	)
+	sme.schan <- sme.silist
+
 	debugchan := make(chan interface{})
 	if sme.GetLoggerLevel() >= DDEBUG {
 		go func() {
@@ -557,6 +582,9 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 				sme.handleEvent(v)
 			}
 			break
+		case v := <-sme.sichan:
+			// Got a service change
+			sme.handleServiceEvent(v.Data().(*StateChangeEvent))
 		case <-debugchan:
 			sme.Logf(DDEBUG, "There are %d active mutations.", len(sme.active))
 			break
@@ -1324,6 +1352,9 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 	sme.activeMutex.Unlock()
 	sme.Logf(DEBUG, "started new mutation for %s (1/%d).", nid.String(), len(p.chain))
 	if sme.mutationInContext(end, p.chain[p.cur].mut) {
+		if sme.waitForServices(p) {
+			return
+		}
 		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", p.chain[p.cur].mut.Timeout().String())
 		sme.emitMutation(end, start, p.chain[p.cur].mut)
 		if p.chain[p.cur].mut.Timeout() != 0 {
@@ -1335,6 +1366,110 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		}
 	} else {
 		sme.Log(DDEBUG, "mutation is not in our context.")
+	}
+}
+
+// Assumes that path is already locked
+// LOCKS: activeMutex
+func (sme *StateMutationEngine) waitForServices(p *mutationPath) (wait bool) {
+	m, _ := sme.mutResolver[p.chain[p.cur].mut] // what ServiceInstance do we depend on?
+	// is there a current waitFor queue for this SI?
+	si := m[0]
+
+	sme.activeMutex.Lock()
+	defer sme.activeMutex.Unlock()
+	if _, ok := sme.waiting[si]; ok {
+		// queue already exists, just add ourselves to it
+		sme.waiting[si] = append(sme.waiting[si], p)
+		p.waitingFor = si
+		sme.Logf(INFO, "%s is waiting for service %s", p.end.ID().String(), si)
+		return true
+	}
+
+	// queue doesn't already exist, is service running?  Is this too expensive?
+	url := lib.NodeURLJoin(sme.self.String(), lib.URLPush(lib.URLPush("/Services", si), "State"))
+	v, e := sme.query.GetValueDsc(url)
+	if e != nil {
+		sme.Logf(ERROR, "waitForServices could not lookup service state (%s): %v", url, e)
+		return
+	}
+	if pb.ServiceInstance_ServiceState(v.Int()) != pb.ServiceInstance_RUN {
+		// Mutation was requested for a service that isn't running yet
+		// 1. Set it to run
+		if _, e := sme.query.SetValue(url, reflect.ValueOf(pb.ServiceInstance_RUN)); e != nil {
+			sme.Logf(ERROR, "waitForServices failed to set service state (%s): %v", url, e)
+			// we still continue
+		}
+		// 3. Create a waitlist of this SI
+		sme.waiting[si] = []*mutationPath{p}
+		p.waitingFor = si
+		sme.Logf(INFO, "%s is waiting for service %s", p.end.ID().String(), si)
+		return true
+	}
+	return
+}
+
+// unwaitForService clears waiting status for path
+// assumes activeMutex is already locked
+func (sme *StateMutationEngine) unwaitForService(p *mutationPath) {
+	if p.waitingFor != "" {
+		queue := sme.waiting[p.waitingFor]
+		for i := range queue {
+			if queue[i] == p {
+				// order isn't important
+				queue[i] = queue[len(queue)-1]
+				sme.waiting[p.waitingFor] = queue[:len(queue)-1]
+				break
+			}
+		}
+		p.waitingFor = ""
+	}
+}
+
+func (sme *StateMutationEngine) handleServiceEvent(v *StateChangeEvent) {
+	if v.Type != StateChange_UPDATE {
+		return
+	} // DSC update
+
+	_, url := lib.NodeURLSplit(v.URL)
+	us := lib.URLToSlice(url)
+	if us[len(us)-1] != "State" {
+		// not a change in service state
+		return
+	}
+
+	if pb.ServiceInstance_ServiceState(v.Value.Int()) != pb.ServiceInstance_RUN {
+		return
+	} // service discovered run state
+
+	// get SI
+	si := ""
+	// this makes sure we don't get tripped up by leading slashes
+	for i := range us {
+		if us[i] == "Services" {
+			si = us[i+1]
+		}
+	}
+	if si == "" {
+		sme.Logf(lib.LLDEBUG, "failed to parse URL for /Services state change: %s", v.URL)
+		return
+	}
+
+	// OK, let's resume any waiting chains
+	sme.activeMutex.Lock()
+	queue, ok := sme.waiting[si]
+	if ok {
+		delete(sme.waiting, si)
+	} else {
+		queue = []*mutationPath{}
+	}
+	sme.activeMutex.Unlock()
+	for _, p := range queue {
+		p.mutex.Lock()
+		p.waitingFor = ""
+		p.cur-- // we have to rewind one to advance.  This could even mean we go negative
+		sme.advanceMutation(p.end.ID().String(), p)
+		p.mutex.Unlock()
 	}
 }
 
@@ -1479,6 +1614,9 @@ func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
 	m.curSeen = []string{}
 	sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur+1, len(m.chain))
 	if sme.mutationInContext(m.end, m.chain[m.cur].mut) {
+		if sme.waitForServices(m) {
+			return
+		}
 		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", m.chain[m.cur].mut.Timeout().String())
 		sme.emitMutation(m.end, m.start, m.chain[m.cur].mut)
 		if m.chain[m.cur].mut.Timeout() != 0 {
@@ -1584,13 +1722,17 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 func (sme *StateMutationEngine) updateMutation(node string, url string, val reflect.Value) {
 	sme.activeMutex.Lock()
 	m, ok := sme.active[node]
-	sme.activeMutex.Unlock()
 	if !ok {
 		// this shouldn't happen
 		sme.Logf(DDEBUG, "call to updateMutation, but no mutation exists %s", node)
 		sme.startNewMutation(node)
+		sme.activeMutex.Unlock()
 		return
 	}
+	// we should reset waiting status
+	sme.unwaitForService(m)
+	sme.activeMutex.Unlock()
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
