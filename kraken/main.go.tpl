@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 
 	"github.com/golang/protobuf/ptypes"
@@ -45,10 +44,15 @@ func main() {
 	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
 
 	// Launch as base Kraken or module?
-	me := filepath.Base(os.Args[0])
-	log.Logf(lib.LLNOTICE, "I am: %s", me)
-	if me != "kraken" {
-		id := os.Getenv("KRAKEN_ID")
+	//me := filepath.Base(os.Args[0])
+
+	id := os.Getenv("KRAKEN_ID")
+	if id == "" {
+		id = "kraken"
+	}
+	log.Logf(lib.LLNOTICE, "I am: %s", id)
+
+	if id != "kraken" {
 		module := os.Getenv("KRAKEN_MODULE")
 		sock := os.Getenv("KRAKEN_SOCK")
 		if m, ok := core.Registry.Modules[module]; ok {
