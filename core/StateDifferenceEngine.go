@@ -177,7 +177,7 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (cfg): %v", e)
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_CFG_UPDATE, url, reflect.ValueOf(r)))
+	go n.EmitOne(NewStateChangeEvent(StateChange_CFG_UPDATE, url, r))
 	return
 }
 
@@ -194,7 +194,7 @@ func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r refl
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (dsc): %v", e)
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_UPDATE, url, reflect.ValueOf(r)))
+	go n.EmitOne(NewStateChangeEvent(StateChange_UPDATE, url, r))
 	return
 }
 
