@@ -27,6 +27,8 @@ import (
 // Auxilliary objects /
 //////////////////////
 
+const AddrURL = "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip"
+
 // Context contains information about the current running context
 // such as who we are, and to whom we belong.
 type Context struct {
@@ -84,25 +86,31 @@ type Kraken struct {
 	Sm  *ServiceManager
 
 	// Un-exported
-	em  *EventEmitter
-	log *WriterLogger
+	em   *EventEmitter
+	log  lib.Logger
+	self lib.Node
 }
 
 // NewKraken creates a new Kracken object with proper intialization
-func NewKraken(id string, ip string, parents []string, llevel lib.LoggerLevel) *Kraken {
+func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
+	// FIXME: we probably shouldn't rely on this
+	ipv, _ := self.GetValue(AddrURL)
+	ip := net.IP(ipv.Bytes())
+
 	k := &Kraken{
 		Ctx: Context{
-			Self:    NewNodeID(id),
+			Self:    self.ID(),
 			Parents: parents,
 			Logger:  ServiceLogger{},
 		},
-		em:  NewEventEmitter(lib.Event_CONTROL),
-		log: &WriterLogger{},
+		em:   NewEventEmitter(lib.Event_CONTROL),
+		log:  logger,
+		self: self,
 	}
 	// defaults
 	k.Ctx.SSE = ContextSSE{
 		Network:   "udp4",
-		Addr:      ip,
+		Addr:      ip.String(),
 		Port:      31415,
 		AddrURL:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		HelloTime: 10 * time.Second,
@@ -113,11 +121,11 @@ func NewKraken(id string, ip string, parents []string, llevel lib.LoggerLevel) *
 	}
 	k.Ctx.RPC = ContextRPC{
 		Network: "tcp",
-		Addr:    ip,
+		Addr:    ip.String(),
 		Port:    31415,
 		Path:    "/tmp/kraken.sock",
 	}
-	k.log.SetLoggerLevel(llevel)
+	k.SetModule("kraken")
 	return k
 }
 
@@ -152,11 +160,6 @@ func (k *Kraken) Release() {
 // Bootstrap creates all service instances in the correct order
 // with all of the correct plumbing
 func (k *Kraken) Bootstrap() {
-	// Setup logger
-	k.log.RegisterWriter(os.Stderr)
-	k.SetModule("kraken")
-	//k.SetLoggerLevel(lib.LLDEBUG)
-
 	k.Log(NOTICE, "releasing the Kraken...")
 	k.Logf(INFO, "my ID is: %s", k.Ctx.Self.String())
 	if len(k.Ctx.Parents) < 1 {
@@ -202,7 +205,7 @@ func (k *Kraken) Bootstrap() {
 
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
-	k.Sde = NewStateDifferenceEngine(k.Ctx, k.Ctx.sdqChan)
+	k.Sde = NewStateDifferenceEngine(k.self, k.Ctx, k.Ctx.sdqChan)
 	k.Ctx.Query = *NewQueryEngine(k.Ctx.sdqChan, k.Ctx.smqChan)
 	k.Sm = NewServiceManager(k.Ctx, "unix:"+k.Ctx.RPC.Path)
 	k.Ctx.Sm = k.Sm // API needs this
