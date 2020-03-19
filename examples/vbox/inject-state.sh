@@ -13,10 +13,5 @@ set -o pipefail
 KRAKEN_IP=${1:-"192.168.57.10"}
 KRAKEN_PORT=${2:-"3141"}
 
-# start microservices
-curl -X PUT -H "Content-type: application/json" -d @support/state/services-on.json "http://${KRAKEN_IP}:${KRAKEN_PORT}/cfg/nodes"
-
-sleep 1
-
 # inject node state
 curl -X POST -H "Content-type: application/json" -d @support/state/kr1-4.json "http://${KRAKEN_IP}:${KRAKEN_PORT}/cfg/nodes"
