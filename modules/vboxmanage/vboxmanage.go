@@ -126,7 +126,7 @@ func (*VBM) NewConfig() proto.Message {
 		Servers: map[string]*pb.VBMServer{
 			"vbm": {
 				Name: "vbm",
-				Ip:   "localhost",
+				Ip:   "vboxmanage.local",
 				Port: 8269,
 			},
 		},
@@ -513,6 +513,7 @@ func init() {
 	}
 	discovers["/PhysState"] = drstate
 	discovers["/PhysState"]["PHYS_UNKNOWN"] = reflect.ValueOf(cpb.Node_PHYS_UNKNOWN)
+	discovers["/PhysState"]["PHYS_HANG"] = reflect.ValueOf(cpb.Node_PHYS_HANG)
 	discovers["/RunState"] = map[string]reflect.Value{
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
