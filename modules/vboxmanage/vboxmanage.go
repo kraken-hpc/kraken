@@ -492,7 +492,7 @@ func init() {
 	mutations := make(map[string]lib.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	drstate := make(map[string]reflect.Value)
-	si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry)
 
 	for m := range muts {
 		dur, _ := time.ParseDuration(muts[m].timeout)

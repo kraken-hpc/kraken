@@ -10,13 +10,11 @@
 package core
 
 import (
-	"fmt"
-	"os"
-	"os/exec"
-	"time"
+	"reflect"
+	"regexp"
+	"sync"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/any"
+	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib"
 )
 
@@ -27,190 +25,197 @@ import (
 var _ lib.ServiceManager = (*ServiceManager)(nil)
 
 type ServiceManager struct {
-	srv  map[string]lib.ServiceInstance
-	sock string
+	srv    map[string]lib.ServiceInstance // map of si IDs to ServiceInstances
+	mutex  *sync.Mutex
+	sock   string // socket that we use for API comms
+	sclist lib.EventListener
+	echan  chan lib.Event
+	wchan  chan lib.ServiceInstanceUpdate
+	ctx    Context
+	query  *QueryEngine
+	log    lib.Logger
 }
 
-func NewServiceManager(sock string) *ServiceManager {
+func NewServiceManager(ctx Context, sock string) *ServiceManager {
 	sm := &ServiceManager{
-		srv:  make(map[string]lib.ServiceInstance),
-		sock: sock,
+		srv:   make(map[string]lib.ServiceInstance),
+		mutex: &sync.Mutex{},
+		sock:  sock,
+		echan: make(chan lib.Event),
+		wchan: make(chan lib.ServiceInstanceUpdate),
+		ctx:   ctx,
+		log:   &ctx.Logger,
+		query: &ctx.Query,
 	}
+	sm.log.SetModule("ServiceManager")
 	return sm
 }
 
-func (sm *ServiceManager) AddService(s lib.ServiceInstance) (e error) {
-	if _, ok := sm.srv[s.ID()]; ok {
-		return fmt.Errorf("service by this ID already exists: %s", s.ID())
-	}
-	sm.srv[s.ID()] = s
-	return
-}
+func (sm *ServiceManager) Run(ready chan<- interface{}) {
+	// subscribe to STATE_CHANGE events for "/Services"
+	smurl := regexp.MustCompile(`^\/?Services\/`)
+	sm.sclist = NewEventListener(
+		"ServiceManager",
+		lib.Event_STATE_CHANGE,
+		func(v lib.Event) bool {
+			node, url := lib.NodeURLSplit(v.URL())
+			if !NewNodeID(node).Equal(sm.ctx.Self) {
+				return false
+			}
+			if smurl.MatchString(url) {
+				return true
+			}
+			return false
+		},
+		func(v lib.Event) error { return ChanSender(v, sm.echan) },
+	)
+	sm.ctx.SubChan <- sm.sclist
 
-// AddServiceByURL adds a service that corresponds to a know module URL
-func (sm *ServiceManager) AddServiceByModule(id, module string, cfg *any.Any) (e error) {
-	if m, ok := Registry.Modules[module]; ok {
-		if s, ok := m.(lib.ModuleSelfService); ok {
-			// TODO: it would be easy to expand this so there could be multiple instances of the same service
-			return sm.AddService(NewServiceInstance(id, s.Name(), s.Entry, cfg))
+	// initialize service instances
+	for m := range Registry.ServiceInstances {
+		for _, si := range Registry.ServiceInstances[m] {
+			sm.log.Logf(lib.LLINFO, "adding service: %s", si.ID())
+			sm.AddService(si)
 		}
-		return fmt.Errorf("module is not runnable: %s", module)
 	}
-	return fmt.Errorf("module not found by url: %s", module)
-}
 
-func (sm *ServiceManager) DelService(id string) (e error) {
-	if s, ok := sm.srv[id]; ok {
-		if s.State() == lib.Service_RUN {
-			return fmt.Errorf("service is running, stop before deleting: %s", id)
+	go func() {
+		sm.log.Logf(lib.LLDEBUG, "starting initial service sync")
+		for _, si := range sm.srv {
+			sm.log.Logf(lib.LLDDEBUG, "starting initial service sync: %s", si.ID())
+			sm.syncService(si.ID())
 		}
-		delete(sm.srv, id)
+	}()
+
+	// ready to go
+	ready <- nil
+
+	// main listening loop
+	for {
+		select {
+		case v := <-sm.echan:
+			// state change for services
+			sm.log.Logf(lib.LLDDEBUG, "processing state change event: %s", v.URL())
+			go sm.processStateChange(v.Data().(*StateChangeEvent))
+		case su := <-sm.wchan:
+			// si changed process state
+			sm.log.Logf(lib.LLDDEBUG, "processing SI state update: %s -> %+v", su.ID, su.State)
+			go sm.processUpdate(su)
+		}
 	}
-	return fmt.Errorf("cannot delete non-existent service: %s", id)
 }
 
-func (sm *ServiceManager) Service(id string) (si lib.ServiceInstance) {
-	var ok bool
-	if si, ok = sm.srv[id]; ok {
-		return
+func (sm *ServiceManager) AddService(si lib.ServiceInstance) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+	if _, ok := sm.srv[si.ID()]; ok {
+		sm.log.Logf(lib.LLERROR, "tried to add service that already exists: %s", si.ID())
+	}
+	sm.srv[si.ID()] = si
+	si.Watch(sm.wchan)
+	si.SetSock(sm.sock)
+}
+
+func (sm *ServiceManager) DelService(si string) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+	if si, ok := sm.srv[si]; ok {
+		si.Watch(nil) // we don't want to watch this anymore
+		si.SetSock("")
+		delete(sm.srv, si.ID())
+	}
+}
+
+func (sm *ServiceManager) GetService(si string) lib.ServiceInstance {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+	if si, ok := sm.srv[si]; ok {
+		return si
 	}
 	return nil
 }
 
-func (sm *ServiceManager) RunService(id string) (e error) {
-	if s, ok := sm.srv[id]; ok {
-		if s.State() != lib.Service_RUN {
-			if e = sm.start(s); e == nil {
-				s.SetState(lib.Service_RUN)
-			}
-			return
-		}
-		return fmt.Errorf("service is in state, %d, cannot start", s.State())
-	}
-	return fmt.Errorf("cannot run non-existent service: %s", id)
-}
-
-func (sm *ServiceManager) StopService(id string) (e error) {
-	if s, ok := sm.srv[id]; ok {
-		if s.State() == lib.Service_RUN {
-			s.Stop()
-			s.SetCmd(nil)
-			return
-		}
-		return fmt.Errorf("service is in state, %d, cannot stop", s.State())
-	}
-	return fmt.Errorf("cannot stop non-existent service: %s", id)
-}
-
-func (sm *ServiceManager) GetServiceIDs() []string {
-	r := []string{}
-	for k := range sm.srv {
-		r = append(r, k)
-	}
-	return r
-}
-
-func (sm *ServiceManager) syncState(s lib.ServiceInstance, state lib.ServiceState) lib.ServiceState {
-	r := lib.Service_UNKNOWN
-	if s.GetState() != state {
-		switch state {
-		case lib.Service_RUN:
-			e := sm.RunService(s.ID())
-			if e != nil {
-			}
-			r = lib.Service_INIT
-			break
-		case lib.Service_STOP:
-			s.Stop() // we'll have 3 seconds to gracefully stop
-			go func() {
-				time.Sleep(3 * time.Second)
-				sm.kill(s)
-			}()
-			r = lib.Service_STOP
-			break
-		default: // don't do anything
+func (sm *ServiceManager) processStateChange(v *StateChangeEvent) {
+	// extract SI
+	_, url := lib.NodeURLSplit(v.URL)
+	us := lib.URLToSlice(url)
+	si := ""
+	// this makes sure we don't get tripped up by leading slashes
+	for i := range us {
+		if us[i] == "Services" {
+			si = us[i+1]
 		}
 	}
-	return r
-}
-
-// SyncNode synchronizes service info between the state store of self and the service manager
-// It reports the current discoverable state of all services
-// NOTE: This is probablly very inefficient
-// the returned map is what we have "discovered"
-func (sm *ServiceManager) SyncNode(n lib.Node) map[string]lib.ServiceState {
-	r := make(map[string]lib.ServiceState)
-	sids := sm.GetServiceIDs()
-	for _, srv := range n.GetServices() {
-		for i, s := range sids {
-			if s == srv.ID() {
-				sids = append(sids[:i], sids[i+1:]...)
-			}
-		}
-		if s, ok := sm.srv[srv.ID()]; ok {
-			if !proto.Equal(s.Config(), srv.Config()) {
-				s.UpdateConfig(srv.Config())
-			}
-			if ss := sm.syncState(s, srv.State()); ss != lib.Service_UNKNOWN {
-				r[srv.ID()] = ss
-			}
-		} else {
-			e := sm.AddServiceByModule(srv.ID(), srv.Module(), srv.Config())
-			if e != nil {
-				return r
-			}
-			if ss := sm.syncState(sm.srv[srv.ID()], srv.State()); ss != lib.Service_UNKNOWN {
-				r[srv.ID()] = ss
-			}
-		}
-	}
-	// sids is now a list of services we're not supposed to have anymore
-	for _, id := range sids {
-		sm.srv[id].Stop()
-		go func() {
-			time.Sleep(3 * time.Second)
-			sm.kill(sm.srv[id])
-		}()
-		sm.DelService(id)
-	}
-	return r
-}
-
-func (sm *ServiceManager) start(s lib.ServiceInstance) (e error) {
-	if s.State() == lib.Service_RUN {
-		return fmt.Errorf("service is already running")
-	}
-	if _, e = os.Stat(s.Exe()); os.IsNotExist(e) {
-		return e
-	}
-	// TODO: we should probably do more sanity checks here...
-	cmd := exec.Command(s.Exe())
-	cmd.Args = []string{"[kraken:" + s.ID() + "]"}
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(),
-		"KRAKEN_SOCK="+sm.sock,
-		"KRAKEN_MODULE="+s.Module(),
-		"KRAKEN_ID="+s.ID())
-	e = cmd.Start()
-	s.SetCmd(cmd)
-	s.SetState(lib.Service_RUN)
-	return
-}
-
-func (sm *ServiceManager) kill(s lib.ServiceInstance) (e error) {
-	cmd := s.Cmd()
-	if cmd == nil || cmd.Process == nil {
+	if si == "" {
+		sm.log.Logf(lib.LLDEBUG, "failed to parse URL for /Services state change: %s", v.URL)
 		return
 	}
-	/*
-		if s.State() != lib.Service_RUN {
-			return fmt.Errorf("cannot kill a process that isn't running")
+	sm.syncService(si)
+}
+
+func (sm *ServiceManager) processUpdate(su lib.ServiceInstanceUpdate) {
+	// set the state in the SDE
+	switch su.State {
+	case lib.Service_STOP:
+		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_STOP)
+	case lib.Service_RUN:
+		// this is actually pb state INIT; it's up to
+		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_INIT)
+	case lib.Service_ERROR:
+		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_ERROR)
+	}
+}
+
+// syncService is what actually does most of the work.  It compares cfg to dsc and decides what to do
+func (sm *ServiceManager) syncService(si string) {
+	sm.log.Logf(lib.LLDDEBUG, "syncing service: %s", si)
+	srv := sm.GetService(si)
+	if srv == nil {
+		sm.log.Logf(lib.LLERROR, "tried to sync non-existent service: %s", si)
+		return
+	}
+	c := sm.getServiceStateCfg(si)
+	d := sm.getServiceStateDsc(si)
+
+	if c == d { // nothing to do
+		sm.log.Logf(lib.LLDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
+		return
+	}
+	if d == pb.ServiceInstance_ERROR { // don't clear errors
+		return
+	}
+	switch c {
+	case pb.ServiceInstance_RUN: // we're supposed to be running
+		if d != pb.ServiceInstance_INIT { // did we already try to start?
+			sm.log.Logf(lib.LLDDEBUG, "starting service: %s", si)
+			srv.Start() // startup
 		}
-	*/
-	s.SetState(lib.Service_STOP)
-	cmd.Process.Kill()
-	cmd.Process.Wait()
-	return cmd.Process.Release()
+	case pb.ServiceInstance_STOP: // we're supposed to be stopped
+		sm.log.Logf(lib.LLDDEBUG, "stopping service: %s", si)
+		srv.Stop() // stop
+	}
+}
+
+// Some helper functions...
+
+func (sm *ServiceManager) getServiceStateCfg(si string) pb.ServiceInstance_ServiceState {
+	n, _ := sm.query.Read(sm.ctx.Self)
+	v, _ := n.GetValue(sm.stateURL(si))
+	return pb.ServiceInstance_ServiceState(v.Int())
+}
+
+func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_ServiceState {
+	n, _ := sm.query.ReadDsc(sm.ctx.Self)
+	v, _ := n.GetValue(sm.stateURL(si))
+	return pb.ServiceInstance_ServiceState(v.Int())
+}
+
+func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance_ServiceState) {
+	n, _ := sm.query.ReadDsc(sm.ctx.Self)
+	n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
+	sm.query.UpdateDsc(n)
+}
+
+func (sm *ServiceManager) stateURL(si string) string {
+	return lib.URLPush(lib.URLPush("/Services", si), "State")
 }

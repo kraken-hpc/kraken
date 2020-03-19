@@ -287,7 +287,6 @@ func init() {
 		"websocket",
 		module.Name(),
 		module.Entry,
-		nil,
 	)
 
 	discovers := make(map[string]map[string]reflect.Value)

@@ -159,8 +159,8 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	services := nself.GetServices()
 	found := false
 	for _, srv := range services {
-		if srv.Module() == "github.com/hpc/kraken/modules/websocket" {
-			if srv.State() == lib.Service_RUN {
+		if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
+			if srv.GetState() == cpb.ServiceInstance_RUN {
 				found = true
 			}
 		}
@@ -689,7 +689,6 @@ func init() {
 		"restapi",
 		module.Name(),
 		module.Entry,
-		nil,
 	)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
 		si.ID(): si,

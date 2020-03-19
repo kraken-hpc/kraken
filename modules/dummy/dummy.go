@@ -223,7 +223,7 @@ func init() {
 	module := &Dummy{}
 	core.Registry.RegisterModule(module)
 	pdsc := make(map[string]reflect.Value)
-	si := core.NewServiceInstance("dummy", module.Name(), module.Entry, nil)
+	si := core.NewServiceInstance("dummy", module.Name(), module.Entry)
 
 	for k, v := range muts {
 		pdsc[v[1]] = reflect.ValueOf(v[1])
@@ -247,7 +247,6 @@ func init() {
 	discovers["/Platform"] = pdsc
 	discovers["/Services/dummy/State"] = map[string]reflect.Value{
 		"Run": reflect.ValueOf(corepb.ServiceInstance_RUN)}
-	si.SetState(lib.Service_STOP)
 	core.Registry.RegisterDiscoverable(si, discovers)
 	core.Registry.RegisterMutations(si, mutations)
 	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
