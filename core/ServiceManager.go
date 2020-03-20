@@ -200,19 +200,31 @@ func (sm *ServiceManager) syncService(si string) {
 
 func (sm *ServiceManager) getServiceStateCfg(si string) pb.ServiceInstance_ServiceState {
 	n, _ := sm.query.Read(sm.ctx.Self)
-	v, _ := n.GetValue(sm.stateURL(si))
+	v, e := n.GetValue(sm.stateURL(si))
+	if e != nil {
+		sm.log.Logf(lib.LLERROR, "failed to get cfg state value (%s): %s", sm.stateURL(si), e.Error())
+		return pb.ServiceInstance_UNKNOWN
+	}
 	return pb.ServiceInstance_ServiceState(v.Int())
 }
 
 func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_ServiceState {
 	n, _ := sm.query.ReadDsc(sm.ctx.Self)
-	v, _ := n.GetValue(sm.stateURL(si))
+	v, e := n.GetValue(sm.stateURL(si))
+	if e != nil {
+		sm.log.Logf(lib.LLERROR, "failed to get dsc state value (%s): %s", sm.stateURL(si), e.Error())
+		return pb.ServiceInstance_UNKNOWN
+	}
 	return pb.ServiceInstance_ServiceState(v.Int())
 }
 
 func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance_ServiceState) {
 	n, _ := sm.query.ReadDsc(sm.ctx.Self)
-	n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
+	_, e := n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
+	if e != nil {
+		sm.log.Logf(lib.LLERROR, "failed to set dsc state value (%s): %s", sm.stateURL(si), e.Error())
+		return
+	}
 	sm.query.UpdateDsc(n)
 }
 
