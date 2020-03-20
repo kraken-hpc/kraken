@@ -1376,6 +1376,11 @@ func (sme *StateMutationEngine) waitForServices(p *mutationPath) (wait bool) {
 	// is there a current waitFor queue for this SI?
 	si := m[0]
 
+	// we don't wait for core mutations
+	if si == "core" {
+		return
+	}
+
 	sme.activeMutex.Lock()
 	defer sme.activeMutex.Unlock()
 	if _, ok := sme.waiting[si]; ok {
