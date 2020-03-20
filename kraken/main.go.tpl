@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 
 	"github.com/golang/protobuf/ptypes"
@@ -24,27 +23,13 @@ import (
 	_ "net/http/pprof"
 
 	cpb "github.com/hpc/kraken/core/proto"
+	ip4pb "github.com/hpc/kraken/extensions/IPv4/proto"
 	rpb "github.com/hpc/kraken/modules/restapi/proto"
 	uuid "github.com/satori/go.uuid"
 )
 
 func main() {
-	me := filepath.Base(os.Args[0])
-	fmt.Printf("I am: %s\n", me)
-	if me != "kraken" {
-		id := os.Getenv("KRAKEN_ID")
-		module := os.Getenv("KRAKEN_MODULE")
-		sock := os.Getenv("KRAKEN_SOCK")
-		if m, ok := core.Registry.Modules[module]; ok {
-			if _, ok := m.(lib.ModuleSelfService); ok {
-				fmt.Printf("module entry point: %s\n", module)
-				core.ModuleExecute(id, module, sock)
-				return
-			}
-		}
-		fmt.Printf("could not start module: %s\n", module)
-		return
-	}
+	// Argument parsing
 	idstr := flag.String("id", "123e4567-e89b-12d3-a456-426655440000", "specify a UUID for this node")
 	ip := flag.String("ip", "127.0.0.1", "what is my IP (for communications and listening)")
 	ipapi := flag.String("ipapi", "127.0.0.1", "what IP to use for the ReST API")
@@ -52,49 +37,120 @@ func main() {
 	llevel := flag.Int("log", 3, "set the log level (0-9)")
 	flag.Parse()
 
+	// Create a new logger interface
+	log := &core.WriterLogger{}
+	log.RegisterWriter(os.Stderr)
+	log.SetModule("main")
+	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
+
+	// Launch as base Kraken or module?
+	//me := filepath.Base(os.Args[0])
+
+	id := os.Getenv("KRAKEN_ID")
+	if id == "" {
+		id = "kraken"
+	}
+	log.Logf(lib.LLNOTICE, "I am: %s", id)
+
+	if id != "kraken" {
+		module := os.Getenv("KRAKEN_MODULE")
+		sock := os.Getenv("KRAKEN_SOCK")
+		if m, ok := core.Registry.Modules[module]; ok {
+			if _, ok := m.(lib.ModuleSelfService); ok {
+				log.Logf(lib.LLNOTICE, "module entry point: %s", module)
+				core.ModuleExecute(id, module, sock)
+				return
+			}
+		}
+		log.Logf(lib.LLCRITICAL, "could not start module: %s", module)
+		return
+	}
+
+	// Check that the parent IP is sane
 	parents := []string{}
 	if len(*parent) > 0 {
 		parents = append(parents, *parent)
 		ip := net.ParseIP(*parent)
 		if ip == nil {
-			fmt.Printf("bad parent IP: %s\n", *parent)
+			fmt.Printf("bad parent IP: %s", *parent)
 			flag.PrintDefaults()
 			return
 		}
 	}
 
+	// check that the UUID is sane
 	_, e := uuid.FromString(*idstr)
 	if e != nil {
-		fmt.Printf("bad UUID: %s, %v\n", *idstr, e)
+		fmt.Printf("bad UUID: %s, %v", *idstr, e)
 		flag.PrintDefaults()
 		return
 	}
 
-	k := core.NewKraken(*idstr, *ip, parents, lib.LoggerLevel(*llevel))
-	k.Release()
+	// Build our starting node (CFG) state based on command line arguments
+	self := core.NewNodeWithID(*idstr)
 
-	qe := core.NewQueryEngine(k.Sde.QueryChan(), k.Sme.QueryChan())
-	// we'll modify ourselves a bit to get running
-	self, e := qe.Read(k.Ctx.Self)
-	if e != nil {
-		k.Logf(lib.LLERROR, "couldn't read our own node object: %v", e)
-	}
-
-	// if we're full-state, we start restapi automatically
-	if len(parents) == 0 {
+	{ // Enable the restapi by default
 		conf := &rpb.RestAPIConfig{
 			Addr: *ipapi,
 			Port: 3141,
 		}
 		any, _ := ptypes.MarshalAny(conf)
 		if _, e := self.SetValue("/Services/restapi/Config", reflect.ValueOf(any)); e != nil {
-			k.Logf(lib.LLERROR, "couldn't set value /Services/restapi/Config -> %+v: %v", reflect.ValueOf(any), e)
+			log.Logf(lib.LLERROR, "couldn't set value /Services/restapi/Config -> %+v: %v", reflect.ValueOf(any), e)
 		}
 		if _, e := self.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_RUN)); e != nil {
-			k.Logf(lib.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
+			log.Logf(lib.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
 		}
 	}
-	qe.Update(self)
+
+	{ // Populate interface0 information based on IP
+		netIP := net.ParseIP(*ip)
+		if netIP == nil {
+			log.Logf(lib.LLCRITICAL, "could not parse IP address: %s", *ip)
+		}
+		iface := net.Interface{}
+		network := net.IPNet{}
+		ifaces, e := net.Interfaces()
+		if e != nil {
+			log.Logf(lib.LLCRITICAL, "failed to get system interfaces: %s", e.Error())
+			return
+		}
+		for _, i := range ifaces {
+			as, e := i.Addrs()
+			if e != nil {
+				continue
+			}
+			for _, a := range as {
+				ip, n, _ := net.ParseCIDR(a.String())
+				if ip.To4().Equal(netIP) {
+					// this is our interface
+					iface = i
+					network = *n
+				}
+			}
+		}
+		if iface.Name == "" {
+			log.Logf(lib.LLCRITICAL, "could not find interface for ip %s", *ip)
+			return
+		}
+		log.Logf(lib.LLDEBUG, "using interface: %s", iface.Name)
+		pb := &ip4pb.IPv4OverEthernet_ConfiguredInterface{
+			Eth: &ip4pb.Ethernet{
+				Iface: iface.Name,
+				Mac:   iface.HardwareAddr,
+				Mtu:   uint32(iface.MTU),
+			},
+			Ip: &ip4pb.IPv4{
+				Ip:     netIP.To4(),
+				Subnet: network.Mask,
+			},
+		}
+		self.SetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0", reflect.ValueOf(pb))
+	}
+
+	// Launch Kraken
+	k := core.NewKraken(self, parents, log)
+	k.Release()
 
 	// Thaw if full state
 	if len(parents) == 0 {

@@ -12,7 +12,6 @@ package core
 
 import (
 	"fmt"
-	"net"
 	"reflect"
 
 	pb "github.com/hpc/kraken/core/proto"
@@ -86,7 +85,7 @@ type StateDifferenceEngine struct {
 }
 
 // NewStateDifferenceEngine initializes a new StateDifferenceEngine object given a Context
-func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEngine {
+func NewStateDifferenceEngine(me lib.Node, ctx Context, qc chan lib.Query) *StateDifferenceEngine {
 	n := &StateDifferenceEngine{}
 	n.dsc = NewState()
 	n.cfg = NewState()
@@ -95,11 +94,6 @@ func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEn
 	n.schan = ctx.SubChan
 	n.log = &ctx.Logger
 	n.log.SetModule("StateDifferenceEngine")
-	// every engine should know a little something about itself
-	me := NewNodeWithID(ctx.Self.String())
-	if _, e := me.SetValue(ctx.SSE.AddrURL, reflect.ValueOf([]byte(net.ParseIP(ctx.SSE.Addr).To4()))); e != nil {
-		n.Logf(CRITICAL, "failed to set our own IP: %v\n", e)
-	}
 	n.Create(me)
 	return n
 }
