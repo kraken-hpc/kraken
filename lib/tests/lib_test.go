@@ -8,6 +8,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	pb "github.com/hpc/kraken/core/proto"
+	ipb "github.com/hpc/kraken/extensions/IPv4/proto"
 	. "github.com/hpc/kraken/lib"
 )
 
@@ -19,15 +20,15 @@ func TestDiff(t *testing.T) {
 	}
 	n2 := &pb.Node{
 		Nodename:  "node2",
-		RunState:  pb.Node_LAYER0,
+		RunState:  pb.Node_SYNC,
 		PhysState: pb.Node_POWER_ON,
 	}
-	i1 := &pb.IPv4{
+	i1 := &ipb.IPv4{
 		Ip:     net.ParseIP("192.168.1.1").To4(),
 		Subnet: net.ParseIP("255.255.255.0").To4(),
 	}
 	ia1, _ := ptypes.MarshalAny(i1)
-	i2 := &pb.IPv4{
+	i2 := &ipb.IPv4{
 		Ip:     net.ParseIP("192.168.1.2").To4(),
 		Subnet: net.ParseIP("255.255.255.0").To4(),
 	}

@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib"
+	cpb "github.com/hpc/kraken/core/proto"
 	pbd "github.com/hpc/kraken/modules/dummy/proto"
 )
 
 func main() {
 
-	var s lib.ServiceInstance
 	api := core.NewAPIClient(os.Args[1])
 
 	ns, e := api.QueryReadAll()
@@ -31,8 +31,7 @@ func main() {
 	}
 	any, _ := ptypes.MarshalAny(dconf)
 
-	s = ns[0].GetService("dummy0")
-	s.UpdateConfig(any)
+	ns[0].SetValue("/Services/dummy0/Config", reflect.ValueOf(any))
 	api.QueryUpdate(ns[0])
 
 	fmt.Println("waiting 10s")
@@ -40,17 +39,15 @@ func main() {
 
 	self := ns[0].ID().String()
 
-	fmt.Println("stopping dummy0")
+	fmt.Println("stopping restapi")
 	me, _ := api.QueryRead(self)
-	s = me.GetService("dummy0")
-	s.SetState(lib.Service_STOP)
+	me.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_STOP))
 	api.QueryUpdate(me)
 
 	fmt.Println("waiting 10s")
 	time.Sleep(10 * time.Second)
 
-	fmt.Println("starting dummy0")
-	s = me.GetService("dummy0")
-	s.SetState(lib.Service_RUN)
+	fmt.Println("starting restapi")
+	me.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_RUN))
 	api.QueryUpdate(me)
 }
