@@ -43,6 +43,7 @@ func NewNodeWithID(id string) *Node {
 	//n := newNode()
 	n := NewNodeFromJSON([]byte(nodeFixture))
 	n.pb.Id = NewNodeID(id).Binary()
+	n.indexServices()
 	return n
 }
 
@@ -503,20 +504,7 @@ func newNode() *Node {
 	for _, e := range Registry.Extensions {
 		n.AddExtension(e.New())
 	}
-	for i := range Registry.ServiceInstances {
-		for j := range Registry.ServiceInstances[i] {
-			si := Registry.ServiceInstances[i][j]
-			srv := &pb.ServiceInstance{
-				Id:     si.ID(),
-				Module: si.Module(),
-			}
-			if mc, ok := Registry.Modules[si.Module()].(lib.ModuleWithConfig); ok {
-				any, _ := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
-				srv.Config = any
-			}
-			n.AddService(srv)
-		}
-	}
+	n.indexServices()
 	return n
 }
 
@@ -553,6 +541,24 @@ func (n *Node) indexServices() {
 	n.srvs = map[string]*pb.ServiceInstance{}
 	for _, si := range n.pb.GetServices() {
 		n.srvs[si.Id] = si
+	}
+	// we always want a stub for every service, so add ones that weren't indexed
+	for i := range Registry.ServiceInstances {
+		for j := range Registry.ServiceInstances[i] {
+			si := Registry.ServiceInstances[i][j]
+			if _, ok := n.srvs[si.ID()]; ok {
+				continue // we already have this one, skip
+			}
+			srv := &pb.ServiceInstance{
+				Id:     si.ID(),
+				Module: si.Module(),
+			}
+			if mc, ok := Registry.Modules[si.Module()].(lib.ModuleWithConfig); ok {
+				any, _ := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
+				srv.Config = any
+			}
+			n.AddService(srv)
+		}
 	}
 }
 
