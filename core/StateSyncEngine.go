@@ -851,7 +851,7 @@ func init() {
 			map[string]reflect.Value{},
 			lib.StateMutationContext_CHILD,
 			time.Second*90, // FIXME: don't hardcode values
-			[3]string{"core", "/PhysState", "HANG"},
+			[3]string{"sse", "/PhysState", "HANG"},
 		),
 	}
 	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
