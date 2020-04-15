@@ -17,13 +17,7 @@
     chdir: "{{ kr_src_dir }}"
 
 - name: Build kraken
-  shell: "./{{ kr_build }} {{ kr_build_args }} -dir {{ kr_build_dir }} -config {{ kr_conf_file }}"
+  shell: "./{{ kr_build }} {{ kr_build_args }} -config {{ kr_conf_file }}"
   args:
-    creates: "{{ kr_build_dir }}/{{ kr_target }}"
+    creates: "{{ kr_build_dir }}/kraken"
     chdir: "{{ kr_src_dir }}"
-
-- name: Symlink local kraken
-  file:
-    src: "{{ kr_build_dir }}/{{ kr_target }}"
-    dest: "{{ kr_link_dir }}/kraken"
-    state: link
