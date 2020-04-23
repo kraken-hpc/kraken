@@ -48,13 +48,14 @@ for i; do
     esac
 done
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 2 ]; then
     usage
     exit 1 
 fi 
 
 STARTDIR=$PWD
-ARCH=$1
+KRAKEN_BUILDDIR=$1
+ARCH=$2
 TMPDIR=$(mktemp -d)
 
 if [ -z ${GOPATH+x} ]; then
@@ -63,14 +64,13 @@ if [ -z ${GOPATH+x} ]; then
 fi
 
 if [ -z ${KRAKEN_BUILDDIR+x} ]; then
-    KRAKEN_BUILDDIR="$KRAKEN_SOURCEDIR/build"
     echo "No kraken_build_dir specified. I need it to include in initramfs!"
     usage
     exit 1
 fi
 
 # Check that kraken build dir is not empty
-if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ];
+if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ]; then
     echo "$KRAKEN_BUILDDIR is empty; build it before running this"
     exit 1
 fi
