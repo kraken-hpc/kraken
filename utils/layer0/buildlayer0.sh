@@ -17,16 +17,15 @@
 ###
 
 usage() {
-        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] [-k <kraken_source_dir>] [-B <kraken_build_dir>] <arch>"
+        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] <kraken_build_dir> <arch>"
         echo "  <arch> should be the GOARCH we want to build (e.g. arm64, amd64...)"
         echo "  <out_file> is the file the image should be written to.  (default: initramfs.<date>.<img>.cpio.gz)"
         echo "  <base_dir> is an optional base directory containing file/directory structure (default: none)"
         echo "             that should be added to the image"
-        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/hpc/kraken)"
-        echo "  <kraken_build_dir> is specifies an alternate path to where to look for built kraken binaries (default: kraken_source_dir/build)"
+        echo "  <kraken_build_dir> is specifies where to look for generated kraken source tree for u-root"
 }
 
-opts=$(getopt o:b:k:B: $*)
+opts=$(getopt o:b: $*)
 if [ $? != 0 ]; then
     usage
     exit
@@ -43,14 +42,6 @@ for i; do
         -b)
             echo "Using base dir $2"
             BASEDIR="$2"
-            shift; shift;;
-        -k)
-            echo "Using kraken source dir $2"
-            KRAKEN_SOURCEDIR=$2
-            shift; shift;;
-        -B)
-            echo "Using kraken build dir $2"
-            KRAKEN_BUILDDIR=$2
             shift; shift;;
         --)
             shift; break;;
@@ -70,29 +61,19 @@ if [ -z ${GOPATH+x} ]; then
     GOPATH=$HOME/go
 fi
 
-if [ -z ${KRAKEN_SOURCEDIR+x} ]; then
-    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
-    echo "Using kraken source dir $KRAKEN_SOURCEDIR"
-fi
-
 if [ -z ${KRAKEN_BUILDDIR+x} ]; then
     KRAKEN_BUILDDIR="$KRAKEN_SOURCEDIR/build"
-    echo "Using kraken build dir $KRAKEN_BUILDDIR"
+    echo "No kraken_build_dir specified. I need it to include in initramfs!"
+    usage
+    exit 1
 fi
 
-# make a temporary directory for our base
-TMPDIR=$(mktemp -d)
-echo "Using tmpdir: $TMPDIR"
-mkdir -p $TMPDIR/base/bin
-
-KRAKEN="$KRAKEN_BUILDDIR/kraken-linux-$ARCH"
-if [ ! -f $KRAKEN ]; then
-    echo "$KRAKEN doesn't exist, built it before running this"
-    rm -rf $TMPDIR
-    exit
+# Check that kraken build dir is not empty
+if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ];
+    echo "$KRAKEN_BUILDDIR is empty; build it before running this"
+    exit 1
 fi
-echo "Using $KRAKEN"
-cp -v $KRAKEN $TMPDIR/base/bin/kraken
+echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
 # make pre-requisite binaries
 (
