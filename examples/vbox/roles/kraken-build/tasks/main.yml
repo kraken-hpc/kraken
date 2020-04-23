@@ -19,5 +19,5 @@
 - name: Build kraken
   shell: "./{{ kr_build }} {{ kr_build_args }} -config {{ kr_conf_file }}"
   args:
-    creates: "{{ kr_build_dir }}/kraken"
+    creates: "{{ kr_build_dir }}"
     chdir: "{{ kr_src_dir }}"
