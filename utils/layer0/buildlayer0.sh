@@ -55,6 +55,7 @@ fi
 
 STARTDIR=$PWD
 ARCH=$1
+TMPDIR=$(mktemp -d)
 
 if [ -z ${GOPATH+x} ]; then
     echo "GOPATH isn't set, using $HOME/go"
@@ -75,13 +76,6 @@ if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ];
 fi
 echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
-# make pre-requisite binaries
-(
-    cd $TMPDIR/base/bin
-    echo "Build uinit..."
-    GOARCH=$ARCH CGO_ENABLED=0 go build "${KRAKEN_SOURCEDIR}/utils/layer0/uinit/uinit.go"
-)
-
 # copy base_dir over tmpdir if it's set
 if [ ! -z ${BASEDIR+x} ]; then 
         echo "Overlaying ${BASEDIR}..."
@@ -94,12 +88,13 @@ echo "Creating base cpio..."
     find . | cpio -oc > $TMPDIR/base.cpio
 )
 
+# Check that u-root is installed, clone it if not
 if [ ! -x $GOPATH/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio
+GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio "$KRAKEN_BUILDDIR" "${KRAKEN_SOURCEDIR}/utils/layer0/uinit"
 
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
