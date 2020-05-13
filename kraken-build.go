@@ -193,7 +193,6 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 			krakenTplDir = file
 		}
 
-		// Rename kraken -> kraken-tpl
 		if *verbose {
 			if krakenTplDir != file {
 				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, krakenTplDir, outDir)
@@ -201,11 +200,26 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 				log.Printf("copying \"%s\" to \"%s\"", file, outDir)
 			}
 		}
+
+		// Copy each file from krakenDir to outDir (-uroot destination)
 		inFile := path.Join(krakenDir, file)
 		outFile := path.Join(outDir, krakenTplDir)
 		e = cp.Copy(inFile, outFile)
 		if e != nil {
-			return
+			// Overwrite preexisting file(s) if -force passed
+			if *force {
+				// TODO: Write/Use a better copy() function
+				// Doing so would make this block of code
+				// simpler and shorter.
+				if e = os.RemoveAll(outFile); e != nil {
+					return
+				}
+				if e = cp.Copy(inFile, outFile); e != nil {
+					return
+				}
+			} else {
+				return
+			}
 		}
 
 		// Avoid import errors in generated source by modifying include path
