@@ -13,7 +13,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/hpc/kraken/lib"
+	"github.com/synackd/kraken/lib"
 	"go/build"
 	"io/ioutil"
 	"log"
@@ -29,7 +29,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-const KrModStr string = "module github.com/hpc/kraken"
+const KrModStr string = "module github.com/synackd/kraken"
 
 // globals (set by flags)
 var (
@@ -301,7 +301,7 @@ func getModDir() (d string, e error) {
 
 	// couldn't open go.mod; obviously not in pwd, try for GOPATh
 	var p *build.Package
-	if p, e = build.Default.Import("github.com/hpc/kraken", "", build.FindOnly); e == nil {
+	if p, e = build.Default.Import("github.com/synackd/kraken", "", build.FindOnly); e == nil {
 		d = p.Dir
 		return
 	}
