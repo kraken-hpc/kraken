@@ -140,7 +140,8 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 				}
 
 				// Avoid import path errors in generated source files
-				e = lib.DeepSearchAndReplace(filepath.Join(tmpDir, target), "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
+				// TODO: REMOVE THIS WHEN MERGED INTO MASTER
+				e = lib.DeepSearchAndReplace(filepath.Join(tmpDir, target), "hpc/kraken", "synackd/kraken")
 				if e != nil {
 					return
 				}
@@ -223,7 +224,8 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 		}
 
 		// Avoid import errors in generated source by modifying include path
-		e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "u-root/u-root/cmds/exp/kraken")
+		// TODO: REMOVE THIS WHEN MERGED INTO MASTER
+		e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "synackd/kraken")
 		if e != nil {
 			return
 		}
