@@ -18,4 +18,4 @@ require (
 
 go 1.13
 
-replace github.com/hpc/kraken => github.com/synackd/kraken v0.0.0-20200603194547-1bac8a65a6f7
+replace github.com/hpc/kraken => ./
