@@ -1,5 +1,6 @@
 # kraken-build.go: describes a build for a Virtualbox testbed
 targets:
+  'u-root':
   'linux-amd64':
     os: 'linux'
     arch: 'amd64'

@@ -8,16 +8,14 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/otiai10/copy v1.0.1
-	github.com/otiai10/curr v0.0.0-20190513014714-f5a3d24e5776 // indirect
+	github.com/otiai10/curr v1.0.0 // indirect
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
-	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/net v0.0.0-20191125084936-ffdde1057850
-	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
 	google.golang.org/grpc v1.25.1
 	gopkg.in/yaml.v2 v2.2.7
 )
 
 go 1.13
+
+replace github.com/hpc/kraken => github.com/synackd/kraken v0.0.0-20200603194547-1bac8a65a6f7

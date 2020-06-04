@@ -13,7 +13,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/synackd/kraken/lib"
 	"go/build"
 	"io/ioutil"
 	"log"
@@ -29,7 +28,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-const KrModStr string = "module github.com/synackd/kraken"
+const KrModStr string = "module github.com/hpc/kraken"
 
 // globals (set by flags)
 var (
@@ -40,7 +39,6 @@ var (
 	verbose   = flag.Bool("v", false, "verbose will print extra information about the build process")
 	race      = flag.Bool("race", false, "build with -race, warning: enables CGO")
 	pprof     = flag.Bool("pprof", false, "build with pprof support")
-	uroot     = flag.String("uroot", "", "generate a source tree of kraken that can be embedded into u-root; requires dst path")
 )
 
 // config
@@ -139,13 +137,6 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 					return
 				}
 
-				// Avoid import path errors in generated source files
-				// TODO: REMOVE THIS WHEN MERGED INTO MASTER
-				e = lib.DeepSearchAndReplace(filepath.Join(tmpDir, target), "hpc/kraken", "synackd/kraken")
-				if e != nil {
-					return
-				}
-
 				targets = append(targets, target)
 			}
 		}
@@ -222,13 +213,6 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 				return
 			}
 		}
-
-		// Avoid import errors in generated source by modifying include path
-		// TODO: REMOVE THIS WHEN MERGED INTO MASTER
-		e = lib.DeepSearchAndReplace(outFile, "hpc/kraken", "synackd/kraken")
-		if e != nil {
-			return
-		}
 	}
 
 	// Rename "main.go" to "kraken.go" for better identification in u-root
@@ -301,25 +285,12 @@ func getModDir() (d string, e error) {
 
 	// couldn't open go.mod; obviously not in pwd, try for GOPATh
 	var p *build.Package
-	if p, e = build.Default.Import("github.com/synackd/kraken", "", build.FindOnly); e == nil {
+	if p, e = build.Default.Import("github.com/hpc/kraken", "", build.FindOnly); e == nil {
 		d = p.Dir
 		return
 	}
 	e = fmt.Errorf("couldn't find craken in either PWD or GOPATH")
 	return
-}
-
-// checkUrootOpt checks if the u-root destination path has been set
-// and calls uKraken() if it is
-func checkUrootOpt(dstPath, krakenDir string) {
-	// Do we want to build source for u-root?
-	if dstPath != "" {
-		log.Printf("generating kraken source tree for u-root into \"%s\"", dstPath)
-		_, e := uKraken(dstPath, krakenDir)
-		if e != nil {
-			log.Fatalf("could not create source tree for u-root: %v", e)
-		}
-	}
 }
 
 func main() {
@@ -346,9 +317,6 @@ func main() {
 	}
 	log.Printf("using kraken at: %s", krakenDir)
 
-	// Do we want to build source for u-root?
-	checkUrootOpt(*uroot, krakenDir)
-
 	// create build dir
 	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
 		if e = os.Mkdir(*buildDir, 0755); e != nil {
@@ -370,23 +338,42 @@ func main() {
 
 	// build
 	for t := range cfg.Targets {
-		log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
-		if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
-			log.Printf("failed to build %s: %v", t, e)
-			continue
-		}
-		path := filepath.Join(*buildDir, "kraken-"+t)
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			if *force {
-				log.Printf("force was specified, overwriting old build: %s", path)
-				os.Remove(path)
-			} else {
-				log.Printf("refusing to overwrite old build, use -force to override: %s", path)
+		if t == "u-root" {
+			log.Printf("building: %s", t)
+
+			// Create separate directory for generated source in case
+			// other binaries are built here
+			urootBuildDir := filepath.Join(*buildDir, "u-root")
+			if _, e = os.Stat(urootBuildDir); os.IsNotExist(e) {
+				if e = os.Mkdir(urootBuildDir, 0755); e != nil {
+					log.Fatalf("could not create build directory: %v", e)
+				}
 			}
-		}
-		if e = os.Link(filepath.Join(tmpDir, "main"), path); e != nil {
-			log.Printf("failed to link executable %s: %v", path, e)
-			continue
+
+			// Perform uroot source generation
+			_, e := uKraken(urootBuildDir, krakenDir)
+			if e != nil {
+				log.Fatalf("could not create source tree for u-root: %v", e)
+			}
+		} else {
+			log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
+			if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
+				log.Printf("failed to build %s: %v", t, e)
+				continue
+			}
+			path := filepath.Join(*buildDir, "kraken-"+t)
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				if *force {
+					log.Printf("force was specified, overwriting old build: %s", path)
+					os.Remove(path)
+				} else {
+					log.Printf("refusing to overwrite old build, use -force to override: %s", path)
+				}
+			}
+			if e = os.Link(filepath.Join(tmpDir, "main"), path); e != nil {
+				log.Printf("failed to link executable %s: %v", path, e)
+				continue
+			}
 		}
 	}
 

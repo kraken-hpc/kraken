@@ -1,8 +1,6 @@
 # kraken-build.go: describes a build for embedding in UEFI firmware
 targets:
-  'linux-arm64':
-    os: 'linux'
-    arch: 'arm64'
+  'u-root':
 
 # included extensions
 extensions:
