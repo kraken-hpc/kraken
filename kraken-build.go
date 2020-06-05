@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/hpc/kraken/lib"
 	"go/build"
 	"io/ioutil"
 	"log"
@@ -214,6 +215,22 @@ func buildUrootKraken(outDir, krakenDir string) (targets []string, e error) {
 				return
 			}
 		}
+	}
+
+	// ServiceInstance.go: BusyBox cannot handle argv[0] not being kraken.
+	// TODO: Use one replace for both lines.
+	siPath := path.Join(outDir, "core/ServiceInstance.go")
+	e = lib.SimpleSearchAndReplace(siPath,
+		"si.cmd = exec.Command(si.exe)",
+		"si.cmd = exec.Command(\"kraken\")")
+	if e != nil {
+		return
+	}
+	e = lib.SimpleSearchAndReplace(siPath,
+		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
+		"")
+	if e != nil {
+		return
 	}
 
 	// Rename "main.go" to "kraken.go" for better identification in u-root
