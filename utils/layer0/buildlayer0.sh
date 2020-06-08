@@ -96,6 +96,9 @@ fi
 echo "Creating image..."
 GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio "$KRAKEN_BUILDDIR"/u-root/kraken "${KRAKEN_SOURCEDIR}/utils/layer0/uinit"
 
+echo "CONTENTS:"
+cpio -itv < $TMPDIR/initramfs.cpio
+
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
 
