@@ -1,10 +1,8 @@
 ---
 #- name: go get kraken
 #  shell: "go get {{ kr_url }}"
-#  environment:
-#    GOPATH: "/home/vagrant/go"
 #  args:
-#    creates: "{{ kr_src_dir }}"
+#    creates: "{{ kr_build }}"
 
 - name: git clone kraken
   git:
