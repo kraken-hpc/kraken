@@ -25,7 +25,7 @@
     mode: 0600
 
 - name: Create boot image
-  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz {{ kr_build_dir }} amd64 2>&1 >~/buildlayer0.log"
+  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -k {{ kr_src_dir }} amd64 2>&1 >~/buildlayer0.log"
   args:
     chdir: "{{ kr_tftp_dir }}"
     creates: initramfs.cpio.gz

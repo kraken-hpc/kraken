@@ -17,15 +17,17 @@
 ###
 
 usage() {
-        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] <kraken_build_dir> <arch>"
+        echo "Usage: $0 [-o <out_file>] [-b <base_dir>] [-k <kraken_source_dir>] [-B <kraken_build_dir>] <arch>"
         echo "  <arch> should be the GOARCH we want to build (e.g. arm64, amd64...)"
         echo "  <out_file> is the file the image should be written to.  (default: initramfs.<date>.<img>.cpio.gz)"
         echo "  <base_dir> is an optional base directory containing file/directory structure (default: none)"
         echo "             that should be added to the image"
-        echo "  <kraken_build_dir> is specifies where to look for generated kraken source tree for u-root"
+        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/hpc/kraken)"
+        echo "  <kraken_build_dir> specifies an alternate path where to look for the generated kraken source"
+        echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
 
-opts=$(getopt o:b: $*)
+opts=$(getopt o:b:k:B: $*)
 if [ $? != 0 ]; then
     usage
     exit
@@ -43,19 +45,26 @@ for i; do
             echo "Using base dir $2"
             BASEDIR="$2"
             shift; shift;;
+        -k)
+            echo "Using kraken source dir $2"
+            KRAKEN_SOURCEDIR=$2
+            shift; shift;;
+        -B)
+            echo "Using kraken build dir $2"
+            KRAKEN_BUILDDIR=$2
+            shift; shift;;
         --)
             shift; break;;
     esac
 done
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 1 ]; then
     usage
     exit 1 
 fi 
 
 STARTDIR=$PWD
-KRAKEN_BUILDDIR=$1
-ARCH=$2
+ARCH=$1
 TMPDIR=$(mktemp -d)
 
 if [ -z ${GOPATH+x} ]; then
@@ -63,10 +72,14 @@ if [ -z ${GOPATH+x} ]; then
     GOPATH=$HOME/go
 fi
 
+if [ -z ${KRAKEN_SOURCEDIR+x} ]; then
+    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
+    echo "Using kraken source dir $KRAKEN_SOURCEDIR"
+fi
+
 if [ -z ${KRAKEN_BUILDDIR+x} ]; then
-    echo "No kraken_build_dir specified. I need it to include in initramfs!"
-    usage
-    exit 1
+    KRAKEN_BUILDDIR="$KRAKEN_SOURCEDIR/build"
+    echo "Using kraken build dir $KRAKEN_BUILDDIR"
 fi
 
 # Check that kraken build dir is not empty
