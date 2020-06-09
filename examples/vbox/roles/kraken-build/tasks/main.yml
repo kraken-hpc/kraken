@@ -1,14 +1,23 @@
 ---
 #- name: go get kraken
 #  shell: "go get {{ kr_url }}"
+#  environment:
+#    GOPATH: "/home/vagrant/go"
 #  args:
-#    creates: "{{ kr_build }}"
+#    creates: "{{ kr_src_dir }}"
 
-- name: go get kraken
+- name: git clone kraken
   git:
     repo: "{{ kr_repo }}"
     dest: "{{ kr_src_dir }}"
     version: "{{ kr_repo_version }}"
+
+- name: go get kraken (to get dependencies)
+  shell: "go get -u"
+  environment:
+    GOPATH: "/home/vagrant/go"
+  args:
+    chdir: "{{ kr_src_dir }}"
 
 - name: Build kraken-build
   shell: "go build {{ kr_build }}.go"
