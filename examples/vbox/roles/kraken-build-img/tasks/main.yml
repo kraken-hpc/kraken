@@ -28,7 +28,7 @@
   shell: "go get {{ uroot_url }}"
 
 - name: Create boot image
-  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -k {{ kr_src_dir }} amd64 2>&1 >~/buildlayer0.log"
+  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64 2>&1 >~/buildlayer0.log"
   args:
     chdir: "{{ kr_tftp_dir }}"
     creates: initramfs.cpio.gz
