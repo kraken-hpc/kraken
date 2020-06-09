@@ -13,9 +13,12 @@
     version: "{{ kr_repo_version }}"
 
 - name: go get kraken (to get dependencies)
-  shell: "go get -u"
-  environment:
-    GOPATH: "/home/vagrant/go"
+  shell: "go get"
+  args:
+    chdir: "{{ kr_src_dir }}"
+
+- name: go mod vendor kraken (for u-root)
+  shell: "go mod vendor"
   args:
     chdir: "{{ kr_src_dir }}"
 
