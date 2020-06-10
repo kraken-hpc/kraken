@@ -155,9 +155,9 @@ func main() {
 			Background: true,
 		},
 		{
-			Cmd:        "/bin/kraken",
+			Cmd:        "/bbin/kraken",
 			Background: true,
-			Args:       []string{"/bin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID, "-log", logLevel},
+			Args:       []string{"/bbin/kraken", "-ip", myIP, "-parent", myParent, "-id", myID, "-log", logLevel},
 		},
 		{
 			Cmd:        "/bbin/elvish",
