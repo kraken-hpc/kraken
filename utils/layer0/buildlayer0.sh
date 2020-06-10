@@ -107,7 +107,7 @@ if [ ! -x $GOPATH/bin/u-root ]; then
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit} 2>&1
+GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio github.com/u-root/u-root/cmds/core/* github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit} 2>&1
 
 echo "CONTENTS:"
 cpio -itv < $TMPDIR/initramfs.cpio
