@@ -138,6 +138,20 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 					return
 				}
 
+				// Use import paths of generated files for u-root instead of the main
+				// kraken ones
+				var from, to, targetPath string
+				from = "hpc/kraken/"
+				to = "hpc/kraken/build/u-root/"
+				targetPath = path.Join(tmpDir, target)
+				if *verbose {
+					log.Printf("%s: %s -> %s", targetPath, from, to)
+				}
+				e = lib.SimpleSearchAndReplace(targetPath, from, to)
+				if e != nil {
+					return
+				}
+
 				targets = append(targets, target)
 			}
 		}
@@ -147,7 +161,7 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 
 // buildUrootKraken generates a kraken source tree for a u-root build target,
 // in order to be used as a u-root command in an initramfs
-func buildUrootKraken(outDir, krakenDir string) (targets []string, e error) {
+func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
 	e = os.MkdirAll(outDir, 0755)
 	if e != nil {
@@ -175,45 +189,145 @@ func buildUrootKraken(outDir, krakenDir string) (targets []string, e error) {
 	}
 
 	// Copy needed files from krakenDir to outDir
-	files := []string{"config", "core", "extensions", "kraken", "lib", "modules", "utils", "go.mod", "go.sum"}
+	files := []string{"core", "lib", "extensions", "modules"}
 	for _, file := range files {
-		// Rename "kraken" dir to "kraken-tpl" to distinguish it as the template dir.
-		// The "kraken" dir will contain the kraken source files generated from the
-		// templates.
-		krakenTplDir := ""
-		if file == "kraken" {
-			krakenTplDir = file + "-tpl"
-		} else {
-			krakenTplDir = file
-		}
-
 		if *verbose {
-			if krakenTplDir != file {
-				log.Printf("copying \"%s\" (\"%s\") to \"%s\"", file, krakenTplDir, outDir)
-			} else {
-				log.Printf("copying \"%s\" to \"%s\"", file, outDir)
-			}
+			log.Printf("copying \"%s\" to \"%s\"", file, outDir)
 		}
 
-		// Copy each file from krakenDir to outDir (-uroot destination)
+		// Copy each file from krakenDir to outDir (u-root destination)
 		inFile := path.Join(krakenDir, file)
-		outFile := path.Join(outDir, krakenTplDir)
-		e = cp.Copy(inFile, outFile)
-		if e != nil {
-			// Overwrite preexisting file(s) if -force passed
-			if *force {
-				// TODO: Write/Use a better copy() function
-				// Doing so would make this block of code
-				// simpler and shorter.
-				if e = os.RemoveAll(outFile); e != nil {
-					return
-				}
-				if e = cp.Copy(inFile, outFile); e != nil {
-					return
-				}
-			} else {
+		outFile := path.Join(outDir, file)
+
+		// Specially handle extensions and modules (only copy those that
+		// are specified by the config file)
+		if file == "extensions" {
+			// Create "extensions" dir in u-root build dir
+			var extStat os.FileInfo
+			if extStat, e = os.Stat(inFile); e != nil {
+				log.Printf("could not get file information for %s", inFile)
 				return
 			}
+			if e = os.Mkdir(outFile, extStat.Mode()); e != nil {
+				if *force {
+					if e = os.RemoveAll(outFile); e != nil {
+						return
+					}
+					if e = os.Mkdir(outFile, extStat.Mode()); e != nil {
+						return
+					}
+				} else {
+					log.Printf("error creating \"%s\" directory; use '-force' to override", outFile)
+					return
+				}
+			}
+
+			for _, extension := range config.Extensions {
+				// Get name of specified extension in config file
+				extName := path.Base(extension)
+
+				// Copy extension from regular "extensions" directory to
+				// that in the u-root directory
+				extFrom := filepath.Join(inFile, extName)
+				extTo := filepath.Join(outFile, extName)
+				e = cp.Copy(extFrom, extTo)
+				if e != nil {
+					// Overwrite preexisting file(s) if -force passed
+					if *force {
+						// TODO: Write/Use a better copy() function
+						// Doing so would make this block of code
+						// simpler and shorter.
+						if e = os.RemoveAll(extTo); e != nil {
+							return
+						}
+						if e = cp.Copy(extFrom, extTo); e != nil {
+							return
+						}
+					} else {
+						log.Printf("unable to copy %s to %s; use '-force' to override", extFrom, extTo)
+						return
+					}
+				}
+			}
+		} else if file == "modules" {
+			// Create "modules" dir in u-root build dir
+			var modStat os.FileInfo
+			if modStat, e = os.Stat(inFile); e != nil {
+				log.Printf("could not get file information for %s", inFile)
+				return
+			}
+			if e = os.Mkdir(outFile, modStat.Mode()); e != nil {
+				if *force {
+					if e = os.RemoveAll(outFile); e != nil {
+						return
+					}
+					if e = os.Mkdir(outFile, modStat.Mode()); e != nil {
+						return
+					}
+				} else {
+					log.Printf("error creating \"%s\" directory; use '-force' to override", outFile)
+					return
+				}
+			}
+
+			for _, module := range config.Modules {
+				// Get name of specified module in config file
+				modName := path.Base(module)
+
+				// Copy module from regular "modules" directory to
+				// that in the u-root directory
+				modFrom := filepath.Join(inFile, modName)
+				modTo := filepath.Join(outFile, modName)
+				e = cp.Copy(modFrom, modTo)
+				if e != nil {
+					// Overwrite preexisting file(s) if -force passed
+					if *force {
+						// TODO: Write/Use a better copy() function
+						// Doing so would make this block of code
+						// simpler and shorter.
+						if e = os.RemoveAll(modTo); e != nil {
+							return
+						}
+						if e = cp.Copy(modFrom, modTo); e != nil {
+							return
+						}
+					} else {
+						log.Printf("unable to copy %s to %s; use '-force' to override", modFrom, modTo)
+						return
+					}
+				}
+			}
+		} else {
+			e = cp.Copy(inFile, outFile)
+			if e != nil {
+				// Overwrite preexisting file(s) if -force passed
+				if *force {
+					// TODO: Write/Use a better copy() function
+					// Doing so would make this block of code
+					// simpler and shorter.
+					if e = os.RemoveAll(outFile); e != nil {
+						return
+					}
+					if e = cp.Copy(inFile, outFile); e != nil {
+						return
+					}
+				} else {
+					log.Printf("unable to copy %s to %s; use '-force' to override", inFile, outFile)
+					return
+				}
+			}
+		}
+
+		// Replace regular import paths in all of the generated source files with
+		// import paths using the build dir path
+		var from, to string
+		from = "hpc/kraken/"
+		to = "hpc/kraken/build/u-root/"
+		if *verbose {
+			log.Printf("%s: %s -> %s", outFile, from, to)
+		}
+		if e = lib.DeepSearchAndReplace(outFile, from, to); e != nil {
+			return
 		}
 	}
 
@@ -237,7 +351,7 @@ func buildUrootKraken(outDir, krakenDir string) (targets []string, e error) {
 	pathMainGo := path.Join(srcDir, "main.go")
 	pathKrakenGo := path.Join(srcDir, "kraken.go")
 	if *verbose {
-		log.Printf("renaming \"%s\" to \"%s", pathMainGo, pathKrakenGo)
+		log.Printf("renaming \"%s\" to \"%s\"", pathMainGo, pathKrakenGo)
 	}
 	e = os.Rename(pathMainGo, pathKrakenGo)
 
@@ -384,7 +498,7 @@ func krakenBuild(cfg *Config, krakenDir, tmpDir string) (e error) {
 		}
 
 		// Perform uroot source generation
-		_, e := buildUrootKraken(urootBuildDir, krakenDir)
+		_, e := buildUrootKraken(cfg, urootBuildDir, krakenDir)
 		if e != nil {
 			log.Fatalf("could not create source tree for u-root: %v", e)
 		}
