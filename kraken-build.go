@@ -293,21 +293,34 @@ func getModDir() (d string, e error) {
 	return
 }
 
+// readConfig reads in a YAML configuration for kraken and
+// returns a Config struct populated with its values
+func readConfig(cfgFile string) (cfg *Config, e error) {
+	var cfgBytes []byte
+	cfgBytes, e = ioutil.ReadFile(cfgFile)
+	if e != nil {
+		e = fmt.Errorf("could not read config file: %v", e)
+		return
+	}
+
+	cfg = &Config{}
+	if e = yaml.Unmarshal(cfgBytes, cfg); e != nil {
+		e = fmt.Errorf("could not read config: %v", e)
+		return
+	}
+	if *pprof {
+		cfg.Pprof = true
+	}
+	return
+}
+
 func main() {
 	var e error
 	flag.Parse()
 
 	// read config
-	cfgBytes, e := ioutil.ReadFile(*cfgFile)
-	if e != nil {
-		log.Fatalf("could not read config file: %v", e)
-	}
-	cfg = &Config{}
-	if e = yaml.Unmarshal(cfgBytes, cfg); e != nil {
-		log.Fatalf("could not read config: %v", e)
-	}
-	if *pprof {
-		cfg.Pprof = true
+	if cfg, e = readConfig(*cfgFile); e != nil {
+		log.Fatalf("error reading config file \"%s\": %v", *cfgFile, e)
 	}
 
 	// Get kraken source tree root (and module directory)
