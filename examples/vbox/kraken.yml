@@ -2,7 +2,7 @@
 - hosts: kraken
   vars:
     kr_repo: https://github.com/synackd/kraken.git
-    kr_repo_version: "uroot-as-target"
+    kr_repo_version: "u-kraken"
     kr_build_args: "-v -force"
   roles:
     - common
