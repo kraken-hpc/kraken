@@ -89,7 +89,7 @@ func compileTemplate(tplFile, tmpDir string) (target string, e error) {
 	return
 }
 
-func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
+func compileMainTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
@@ -115,9 +115,9 @@ func compileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-// uCompileTemplates is like CompileTemplates(), but does so for sources that
+// compileMainTemplates is like CompileMainTemplates, but does so for sources that
 // will end up as a u-root command
-func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
+func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
@@ -144,8 +144,9 @@ func uCompileTemplates(krakenDir, tmpDir string) (targets []string, e error) {
 	return
 }
 
-// uKraken generates a kraken source tree to be used as a u-root command
-func uKraken(outDir, krakenDir string) (targets []string, e error) {
+// buildUrootKraken generates a kraken source tree for a u-root build target,
+// in order to be used as a u-root command in an initramfs
+func buildUrootKraken(outDir, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
 	e = os.MkdirAll(outDir, 0755)
 	if e != nil {
@@ -162,7 +163,7 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
-	_, e = uCompileTemplates(krakenDir, srcDir)
+	_, e = compileUrootTemplates(krakenDir, srcDir)
 	if e != nil {
 		log.Printf("error compiling templates for u-root-embeddable kraken source tree")
 		return
@@ -226,7 +227,8 @@ func uKraken(outDir, krakenDir string) (targets []string, e error) {
 	return
 }
 
-func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e error) {
+// buildMainKraken builds a kraken binary for a non-u-root build target.
+func buildMainKraken(dir string, fromTemplates []string, tName string, t Target, verbose bool) (e error) {
 	// setup log file
 	var f *os.File
 	if verbose {
@@ -264,6 +266,19 @@ func buildKraken(dir string, fromTemplates []string, t Target, verbose bool) (e 
 	cmd.Stdout = f
 	cmd.Stderr = f
 	e = cmd.Run()
+
+	path := filepath.Join(*buildDir, "kraken-"+tName)
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		if *force {
+			log.Printf("force was specified, overwriting old build: %s", path)
+			os.Remove(path)
+		} else {
+			log.Printf("refusing to overwrite old build, use -force to override: %s", path)
+		}
+	}
+	if e = os.Link(filepath.Join(dir, "main"), path); e != nil {
+		e = fmt.Errorf("failed to link executable %s: %v", path, e)
+	}
 	return
 }
 
@@ -314,6 +329,73 @@ func readConfig(cfgFile string) (cfg *Config, e error) {
 	return
 }
 
+// krakenBuild is the wrapper function that builds kraken. It reads
+// the Config struct, compiles the necessary templates, and
+// builds kraken for the specified build targets.
+func krakenBuild(cfg *Config, krakenDir, tmpDir string) (e error) {
+	// Determine which build targets are present to only
+	// compile needed templates.
+	var haveUrootTarget, haveOtherTarget bool = false, false
+	if _, ok := cfg.Targets["u-root"]; ok {
+		haveUrootTarget = true
+	}
+	for t := range cfg.Targets {
+		if t != "u-root" {
+			haveOtherTarget = true
+			break
+		}
+	}
+
+	// Create build dir
+	log.Printf("setting up build environment")
+	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
+		if e = os.Mkdir(*buildDir, 0755); e != nil {
+			log.Fatalf("could not create build directory: %v", e)
+		}
+	}
+
+	if haveUrootTarget {
+		urootBuildDir := filepath.Join(*buildDir, "u-root")
+		log.Printf("building: kraken source tree for u-root located at: %s", urootBuildDir)
+
+		// Create separate directory for generated source
+		// to distinguish from other build targets
+		if _, e = os.Stat(urootBuildDir); os.IsNotExist(e) {
+			if e = os.Mkdir(urootBuildDir, 0755); e != nil {
+				log.Fatalf("could not create build directory: %v", e)
+			}
+		}
+
+		// Perform uroot source generation
+		_, e := buildUrootKraken(urootBuildDir, krakenDir)
+		if e != nil {
+			log.Fatalf("could not create source tree for u-root: %v", e)
+		}
+	}
+	if haveOtherTarget {
+		// Create temporary dir for compiled templates
+		os.Mkdir(tmpDir, 0755)
+
+		var fromTemplates []string
+		if fromTemplates, e = compileMainTemplates(krakenDir, tmpDir); e != nil {
+			e = fmt.Errorf("could not compile templates: %v", e)
+			return
+		}
+
+		// Build kraken for each non-u-root build target
+		for t := range cfg.Targets {
+			if t != "u-root" {
+				log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
+				if e = buildMainKraken(tmpDir, fromTemplates, t, cfg.Targets[t], *verbose); e != nil {
+					log.Printf("failed to build %s: %v", t, e)
+					continue
+				}
+			}
+		}
+	}
+	return
+}
+
 func main() {
 	var e error
 	flag.Parse()
@@ -330,64 +412,12 @@ func main() {
 	}
 	log.Printf("using kraken at: %s", krakenDir)
 
-	// create build dir
-	if _, e = os.Stat(*buildDir); os.IsNotExist(e) {
-		if e = os.Mkdir(*buildDir, 0755); e != nil {
-			log.Fatalf("could not create build directory: %v", e)
-		}
-	}
-
+	// Specify where temp directory should be for compiled templates
 	tmpDir := filepath.Join(krakenDir, "tmp") // make an option to change where this is?
-	os.Mkdir(tmpDir, 0755)
-
-	// setup build environment
-	log.Println("setting up build environment")
-
-	// build templates
-	var fromTemplates []string
-	if fromTemplates, e = compileTemplates(krakenDir, tmpDir); e != nil {
-		log.Fatalf("could not compile templates: %v", e)
-	}
 
 	// build
-	for t := range cfg.Targets {
-		if t == "u-root" {
-			log.Printf("building: %s", t)
-
-			// Create separate directory for generated source in case
-			// other binaries are built here
-			urootBuildDir := filepath.Join(*buildDir, "u-root")
-			if _, e = os.Stat(urootBuildDir); os.IsNotExist(e) {
-				if e = os.Mkdir(urootBuildDir, 0755); e != nil {
-					log.Fatalf("could not create build directory: %v", e)
-				}
-			}
-
-			// Perform uroot source generation
-			_, e := uKraken(urootBuildDir, krakenDir)
-			if e != nil {
-				log.Fatalf("could not create source tree for u-root: %v", e)
-			}
-		} else {
-			log.Printf("building: %s (GOOS: %s, GOARCH; %s)", t, cfg.Targets[t].Os, cfg.Targets[t].Arch)
-			if e = buildKraken(tmpDir, fromTemplates, cfg.Targets[t], *verbose); e != nil {
-				log.Printf("failed to build %s: %v", t, e)
-				continue
-			}
-			path := filepath.Join(*buildDir, "kraken-"+t)
-			if _, err := os.Stat(path); !os.IsNotExist(err) {
-				if *force {
-					log.Printf("force was specified, overwriting old build: %s", path)
-					os.Remove(path)
-				} else {
-					log.Printf("refusing to overwrite old build, use -force to override: %s", path)
-				}
-			}
-			if e = os.Link(filepath.Join(tmpDir, "main"), path); e != nil {
-				log.Printf("failed to link executable %s: %v", path, e)
-				continue
-			}
-		}
+	if e = krakenBuild(cfg, krakenDir, tmpDir); e != nil {
+		log.Fatalf("failed to build: %v", e)
 	}
 
 	if !*noCleanup { // cleanup now
