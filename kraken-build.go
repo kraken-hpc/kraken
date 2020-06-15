@@ -335,14 +335,8 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 	// TODO: Use one replace for both lines.
 	siPath := path.Join(outDir, "core/ServiceInstance.go")
 	e = lib.SimpleSearchAndReplace(siPath,
-		"si.cmd = exec.Command(si.exe)",
-		"si.cmd = exec.Command(\"kraken\")")
-	if e != nil {
-		return
-	}
-	e = lib.SimpleSearchAndReplace(siPath,
 		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
-		"")
+		"si.cmd.Args = []string{os.Args[0]}")
 	if e != nil {
 		return
 	}
