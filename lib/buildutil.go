@@ -11,10 +11,12 @@
 package lib
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -51,6 +53,36 @@ func SimpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	return
 }
 
+// SimpleRegexReplace applies a regular expression to the passed file and replaces
+// matches with a string which supports capturing groups, etc.
+func SimpleRegexReplace(filename, src, repl string) (e error) {
+	// Get file perms
+	var fInfo os.FileInfo
+	if fInfo, e = os.Stat(filename); e != nil {
+		e = fmt.Errorf("could not stat %s: %v", filename, e)
+		return
+	}
+
+	// Open file
+	var fileContents []byte
+	if fileContents, e = ioutil.ReadFile(filename); e != nil {
+		e = fmt.Errorf("could not read %s: %v", filename, e)
+		return
+	}
+
+	// Replace src with repl
+	var newContents []byte
+	re := regexp.MustCompile(src)
+	newContents = re.ReplaceAll(fileContents, []byte(repl))
+
+	// Replace file
+	if e = ioutil.WriteFile(filename, newContents, fInfo.Mode()); e != nil {
+		e = fmt.Errorf("could not write %s: %v", filename, e)
+	}
+
+	return
+}
+
 // DeepSearchAndReplace performs SimpleSearchAndReplace on the passed file if
 // it is a regular file. If the file is a directory, it recursively traverses it,
 // performing SimpleSearchAndReplace on all regular files.
@@ -76,6 +108,40 @@ func DeepSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	} else {
 		// If not, perform a simple search and replace on the file
 		e = SimpleSearchAndReplace(filename, srchStr, replStr)
+	}
+
+	return
+}
+
+// DeepRegexReplace performs SimpleRegexReplace on the passed file if it is
+// a regular file. If the file is a directory, it recursively traverses it,
+// performing SimpleRegexReplace on all of its regular files.
+func DeepRegexReplace(filename, src, repl string) (e error) {
+	// What type of file is this?
+	var info os.FileInfo
+	if info, e = os.Lstat(filename); e != nil {
+		e = fmt.Errorf("could not stat %s: %v", filename, e)
+		return
+	}
+
+	// If file is a directory, recurse until regular file is found
+	if info.IsDir() {
+		var contents []os.FileInfo
+		if contents, e = ioutil.ReadDir(filename); e != nil {
+			e = fmt.Errorf("could not read %s: %v", filename, e)
+			return
+		}
+		for _, file := range contents {
+			filePath := filepath.Join(filename, file.Name())
+			if e = DeepRegexReplace(filePath, src, repl); e != nil {
+				e = fmt.Errorf("could not deep regex replacement in %s: %v", filePath, e)
+				return
+			}
+		}
+	} else {
+		if e = SimpleRegexReplace(filename, src, repl); e != nil {
+			e = fmt.Errorf("could not perform simple regex replacement on %s: %v", filename, e)
+		}
 	}
 
 	return

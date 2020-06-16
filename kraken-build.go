@@ -284,13 +284,14 @@ func copySources(src, dst string) (e error) {
 func modifySources(dir string) (e error) {
 	// Replace regular import paths in all of the generated source files with
 	// import paths using the build dir path
-	var from, to string
-	from = "hpc/kraken/"
-	to = "hpc/kraken/build/u-root/"
+	var from, to, base string
+	base = "\"github.com/hpc/kraken/"
+	from = base + "(?:build/u-root/)?"
+	to = base + "build/u-root/"
 	if *verbose {
-		log.Printf("%s: %s -> %s", dir, from, to)
+		log.Printf("%s: updating import paths to match u-root build dir", dir)
 	}
-	if e = lib.DeepSearchAndReplace(dir, from, to); e != nil {
+	if e = lib.DeepRegexReplace(dir, from, to); e != nil {
 		e = fmt.Errorf("unable to replace import paths for files in %s: %v", dir, e)
 		return
 	}
