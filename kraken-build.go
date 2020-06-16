@@ -159,6 +159,112 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 	return
 }
 
+// copyModules reads a Config struct and copies only the modules specified
+// from source to destination
+func copyModules(src, dst string, config *Config) (e error) {
+	// Create "modules" dir in u-root build dir
+	var modStat os.FileInfo
+	if modStat, e = os.Stat(src); e != nil {
+		log.Printf("could not get file information for %s", src)
+		return
+	}
+	if e = os.Mkdir(dst, modStat.Mode()); e != nil {
+		if *force {
+			if e = os.RemoveAll(dst); e != nil {
+				return
+			}
+			if e = os.Mkdir(dst, modStat.Mode()); e != nil {
+				return
+			}
+		} else {
+			log.Printf("error creating \"%s\" directory; use '-force' to override", dst)
+			return
+		}
+	}
+
+	for _, module := range config.Modules {
+		// Get name of specified module in config file
+		modName := path.Base(module)
+
+		// Copy module from regular "modules" directory to
+		// that in the u-root directory
+		modFrom := filepath.Join(src, modName)
+		modTo := filepath.Join(dst, modName)
+		e = cp.Copy(modFrom, modTo)
+		if e != nil {
+			// Overwrite preexisting file(s) if -force passed
+			if *force {
+				// TODO: Write/Use a better copy() function
+				// Doing so would make this block of code
+				// simpler and shorter.
+				if e = os.RemoveAll(modTo); e != nil {
+					return
+				}
+				if e = cp.Copy(modFrom, modTo); e != nil {
+					return
+				}
+			} else {
+				log.Printf("unable to copy %s to %s; use '-force' to override", modFrom, modTo)
+				return
+			}
+		}
+	}
+	return
+}
+
+// copyExtensions reads a Config struct and copies only the extensions
+// specified from source to destination
+func copyExtensions(src, dst string, config *Config) (e error) {
+	// Create "extensions" dir in u-root build dir
+	var extStat os.FileInfo
+	if extStat, e = os.Stat(src); e != nil {
+		log.Printf("could not get file information for %s", src)
+		return
+	}
+	if e = os.Mkdir(dst, extStat.Mode()); e != nil {
+		if *force {
+			if e = os.RemoveAll(dst); e != nil {
+				return
+			}
+			if e = os.Mkdir(dst, extStat.Mode()); e != nil {
+				return
+			}
+		} else {
+			log.Printf("error creating \"%s\" directory; use '-force' to override", dst)
+			return
+		}
+	}
+
+	for _, extension := range config.Extensions {
+		// Get name of specified extension in config file
+		extName := path.Base(extension)
+
+		// Copy extension from regular "extensions" directory to
+		// that in the u-root directory
+		extFrom := filepath.Join(src, extName)
+		extTo := filepath.Join(dst, extName)
+		e = cp.Copy(extFrom, extTo)
+		if e != nil {
+			// Overwrite preexisting file(s) if -force passed
+			if *force {
+				// TODO: Write/Use a better copy() function
+				// Doing so would make this block of code
+				// simpler and shorter.
+				if e = os.RemoveAll(extTo); e != nil {
+					return
+				}
+				if e = cp.Copy(extFrom, extTo); e != nil {
+					return
+				}
+			} else {
+				log.Printf("unable to copy %s to %s; use '-force' to override", extFrom, extTo)
+				return
+			}
+		}
+	}
+	return
+}
+
 // buildUrootKraken generates a kraken source tree for a u-root build target,
 // in order to be used as a u-root command in an initramfs
 func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []string, e error) {
@@ -201,103 +307,18 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 
 		// Specially handle extensions and modules (only copy those that
 		// are specified by the config file)
-		if file == "extensions" {
-			// Create "extensions" dir in u-root build dir
-			var extStat os.FileInfo
-			if extStat, e = os.Stat(inFile); e != nil {
-				log.Printf("could not get file information for %s", inFile)
+		switch file {
+		case "extensions":
+			if e = copyExtensions(inFile, outFile, config); e != nil {
+				e = fmt.Errorf("unable to copy extensions from %s to %s: %v", inFile, outFile, e)
 				return
 			}
-			if e = os.Mkdir(outFile, extStat.Mode()); e != nil {
-				if *force {
-					if e = os.RemoveAll(outFile); e != nil {
-						return
-					}
-					if e = os.Mkdir(outFile, extStat.Mode()); e != nil {
-						return
-					}
-				} else {
-					log.Printf("error creating \"%s\" directory; use '-force' to override", outFile)
-					return
-				}
-			}
-
-			for _, extension := range config.Extensions {
-				// Get name of specified extension in config file
-				extName := path.Base(extension)
-
-				// Copy extension from regular "extensions" directory to
-				// that in the u-root directory
-				extFrom := filepath.Join(inFile, extName)
-				extTo := filepath.Join(outFile, extName)
-				e = cp.Copy(extFrom, extTo)
-				if e != nil {
-					// Overwrite preexisting file(s) if -force passed
-					if *force {
-						// TODO: Write/Use a better copy() function
-						// Doing so would make this block of code
-						// simpler and shorter.
-						if e = os.RemoveAll(extTo); e != nil {
-							return
-						}
-						if e = cp.Copy(extFrom, extTo); e != nil {
-							return
-						}
-					} else {
-						log.Printf("unable to copy %s to %s; use '-force' to override", extFrom, extTo)
-						return
-					}
-				}
-			}
-		} else if file == "modules" {
-			// Create "modules" dir in u-root build dir
-			var modStat os.FileInfo
-			if modStat, e = os.Stat(inFile); e != nil {
-				log.Printf("could not get file information for %s", inFile)
+		case "modules":
+			if e = copyModules(inFile, outFile, config); e != nil {
+				e = fmt.Errorf("unable to copy modules from %s to %s: %v", inFile, outFile, e)
 				return
 			}
-			if e = os.Mkdir(outFile, modStat.Mode()); e != nil {
-				if *force {
-					if e = os.RemoveAll(outFile); e != nil {
-						return
-					}
-					if e = os.Mkdir(outFile, modStat.Mode()); e != nil {
-						return
-					}
-				} else {
-					log.Printf("error creating \"%s\" directory; use '-force' to override", outFile)
-					return
-				}
-			}
-
-			for _, module := range config.Modules {
-				// Get name of specified module in config file
-				modName := path.Base(module)
-
-				// Copy module from regular "modules" directory to
-				// that in the u-root directory
-				modFrom := filepath.Join(inFile, modName)
-				modTo := filepath.Join(outFile, modName)
-				e = cp.Copy(modFrom, modTo)
-				if e != nil {
-					// Overwrite preexisting file(s) if -force passed
-					if *force {
-						// TODO: Write/Use a better copy() function
-						// Doing so would make this block of code
-						// simpler and shorter.
-						if e = os.RemoveAll(modTo); e != nil {
-							return
-						}
-						if e = cp.Copy(modFrom, modTo); e != nil {
-							return
-						}
-					} else {
-						log.Printf("unable to copy %s to %s; use '-force' to override", modFrom, modTo)
-						return
-					}
-				}
-			}
-		} else {
+		default:
 			e = cp.Copy(inFile, outFile)
 			if e != nil {
 				// Overwrite preexisting file(s) if -force passed
