@@ -258,6 +258,28 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 	return
 }
 
+// copySources copies kraken source files from src to dst
+func copySources(src, dst string) (e error) {
+	if e = cp.Copy(src, dst); e != nil {
+		// Overwrite preexisting file(s) if -force passed
+		if *force {
+			// TODO: Write/Use a better copy() function
+			// Doing so would make this block of code
+			// simpler and shorter.
+			if e = os.RemoveAll(dst); e != nil {
+				return
+			}
+			if e = cp.Copy(src, dst); e != nil {
+				return
+			}
+		} else {
+			log.Printf("%s exists; refusing to copy; use '-force' to override", dst)
+			return
+		}
+	}
+	return
+}
+
 // buildUrootKraken generates a kraken source tree for a u-root build target,
 // in order to be used as a u-root command in an initramfs
 func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []string, e error) {
@@ -310,22 +332,9 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 				return
 			}
 		default:
-			if e = cp.Copy(inFile, outFile); e != nil {
-				// Overwrite preexisting file(s) if -force passed
-				if *force {
-					// TODO: Write/Use a better copy() function
-					// Doing so would make this block of code
-					// simpler and shorter.
-					if e = os.RemoveAll(outFile); e != nil {
-						return
-					}
-					if e = cp.Copy(inFile, outFile); e != nil {
-						return
-					}
-				} else {
-					log.Printf("unable to copy %s to %s; use '-force' to override", inFile, outFile)
-					return
-				}
+			if e = copySources(inFile, outFile); e != nil {
+				e = fmt.Errorf("unable to copy sources from %s to %s: %v", inFile, outFile, e)
+				return
 			}
 		}
 
