@@ -94,8 +94,7 @@ func compileMainTemplates(krakenDir, tmpDir string) (targets []string, e error) 
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
-	files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken"))
-	if e != nil {
+	if files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken")); e != nil {
 		return
 	}
 	for _, f := range files {
@@ -105,8 +104,7 @@ func compileMainTemplates(krakenDir, tmpDir string) (targets []string, e error) 
 					log.Printf("executing template: %s", f.Name())
 				}
 				var target string
-				target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir)
-				if e != nil {
+				if target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir); e != nil {
 					return
 				}
 				targets = append(targets, target)
@@ -122,8 +120,7 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
-	files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken"))
-	if e != nil {
+	if files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken")); e != nil {
 		return
 	}
 	for _, f := range files {
@@ -133,8 +130,7 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 					log.Printf("executing template: %s", f.Name())
 				}
 				var target string
-				target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir)
-				if e != nil {
+				if target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir); e != nil {
 					return
 				}
 
@@ -147,8 +143,7 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 				if *verbose {
 					log.Printf("%s: %s -> %s", targetPath, from, to)
 				}
-				e = lib.SimpleSearchAndReplace(targetPath, from, to)
-				if e != nil {
+				if e = lib.SimpleSearchAndReplace(targetPath, from, to); e != nil {
 					return
 				}
 
@@ -190,8 +185,7 @@ func copyModules(src, dst string, config *Config) (e error) {
 		// that in the u-root directory
 		modFrom := filepath.Join(src, modName)
 		modTo := filepath.Join(dst, modName)
-		e = cp.Copy(modFrom, modTo)
-		if e != nil {
+		if e = cp.Copy(modFrom, modTo); e != nil {
 			// Overwrite preexisting file(s) if -force passed
 			if *force {
 				// TODO: Write/Use a better copy() function
@@ -243,8 +237,7 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 		// that in the u-root directory
 		extFrom := filepath.Join(src, extName)
 		extTo := filepath.Join(dst, extName)
-		e = cp.Copy(extFrom, extTo)
-		if e != nil {
+		if e = cp.Copy(extFrom, extTo); e != nil {
 			// Overwrite preexisting file(s) if -force passed
 			if *force {
 				// TODO: Write/Use a better copy() function
@@ -269,8 +262,7 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 // in order to be used as a u-root command in an initramfs
 func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []string, e error) {
 	// Create output directory if nonexistent
-	e = os.MkdirAll(outDir, 0755)
-	if e != nil {
+	if e = os.MkdirAll(outDir, 0755); e != nil {
 		log.Printf("error locating/creating directory for u-root-embeddable kraken source tree")
 		return
 	} else {
@@ -284,8 +276,7 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
-	_, e = compileUrootTemplates(krakenDir, srcDir)
-	if e != nil {
+	if _, e = compileUrootTemplates(krakenDir, srcDir); e != nil {
 		log.Printf("error compiling templates for u-root-embeddable kraken source tree")
 		return
 	} else {
@@ -319,8 +310,7 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 				return
 			}
 		default:
-			e = cp.Copy(inFile, outFile)
-			if e != nil {
+			if e = cp.Copy(inFile, outFile); e != nil {
 				// Overwrite preexisting file(s) if -force passed
 				if *force {
 					// TODO: Write/Use a better copy() function
@@ -380,8 +370,7 @@ func buildMainKraken(dir string, fromTemplates []string, tName string, t Target,
 	if verbose {
 		f = os.Stderr
 	} else {
-		f, e = os.OpenFile(filepath.Join(dir, "log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if e != nil {
+		if f, e = os.OpenFile(filepath.Join(dir, "log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644); e != nil {
 			return e
 		}
 		defer f.Close()
@@ -458,8 +447,7 @@ func getModDir() (d string, e error) {
 // returns a Config struct populated with its values
 func readConfig(cfgFile string) (cfg *Config, e error) {
 	var cfgBytes []byte
-	cfgBytes, e = ioutil.ReadFile(cfgFile)
-	if e != nil {
+	if cfgBytes, e = ioutil.ReadFile(cfgFile); e != nil {
 		e = fmt.Errorf("could not read config file: %v", e)
 		return
 	}
@@ -513,8 +501,7 @@ func krakenBuild(cfg *Config, krakenDir, tmpDir string) (e error) {
 		}
 
 		// Perform uroot source generation
-		_, e := buildUrootKraken(cfg, urootBuildDir, krakenDir)
-		if e != nil {
+		if _, e = buildUrootKraken(cfg, urootBuildDir, krakenDir); e != nil {
 			log.Fatalf("could not create source tree for u-root: %v", e)
 		}
 	}
