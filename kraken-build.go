@@ -280,6 +280,45 @@ func copySources(src, dst string) (e error) {
 	return
 }
 
+// modifySources modifies the source files in the passed dir to satisfy u-root
+func modifySources(dir string) (e error) {
+	// Replace regular import paths in all of the generated source files with
+	// import paths using the build dir path
+	var from, to string
+	from = "hpc/kraken/"
+	to = "hpc/kraken/build/u-root/"
+	if *verbose {
+		log.Printf("%s: %s -> %s", dir, from, to)
+	}
+	if e = lib.DeepSearchAndReplace(dir, from, to); e != nil {
+		e = fmt.Errorf("unable to replace import paths for files in %s: %v", dir, e)
+		return
+	}
+
+	// ServiceInstance.go: BusyBox cannot handle argv[0] not being kraken.
+	// TODO: Use one replace for both lines.
+	siPath := path.Join(dir, "core/ServiceInstance.go")
+	e = lib.SimpleSearchAndReplace(siPath,
+		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
+		"si.cmd.Args = []string{os.Args[0]}")
+	if e != nil {
+		e = fmt.Errorf("unable to modify %s: %v", siPath, e)
+		return
+	}
+
+	// Rename "main.go" to "kraken.go" for better identification in u-root
+	kDir := path.Join(dir, "kraken")
+	pathMainGo := path.Join(kDir, "main.go")
+	pathKrakenGo := path.Join(kDir, "kraken.go")
+	if *verbose {
+		log.Printf("renaming \"%s\" to \"%s\"", pathMainGo, pathKrakenGo)
+	}
+	if e = os.Rename(pathMainGo, pathKrakenGo); e != nil {
+		e = fmt.Errorf("unavle to rename %s into %s: %v", pathMainGo, pathKrakenGo, e)
+	}
+	return
+}
+
 // buildUrootKraken generates a kraken source tree for a u-root build target,
 // in order to be used as a u-root command in an initramfs
 func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []string, e error) {
@@ -337,37 +376,13 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 				return
 			}
 		}
-
-		// Replace regular import paths in all of the generated source files with
-		// import paths using the build dir path
-		var from, to string
-		from = "hpc/kraken/"
-		to = "hpc/kraken/build/u-root/"
-		if *verbose {
-			log.Printf("%s: %s -> %s", outFile, from, to)
-		}
-		if e = lib.DeepSearchAndReplace(outFile, from, to); e != nil {
-			return
-		}
 	}
 
-	// ServiceInstance.go: BusyBox cannot handle argv[0] not being kraken.
-	// TODO: Use one replace for both lines.
-	siPath := path.Join(outDir, "core/ServiceInstance.go")
-	e = lib.SimpleSearchAndReplace(siPath,
-		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
-		"si.cmd.Args = []string{os.Args[0]}")
-	if e != nil {
+	// Make necessary changes to copied source to satisfy u-root
+	if e = modifySources(outDir); e != nil {
+		e = fmt.Errorf("unable to modify sources: %v", e)
 		return
 	}
-
-	// Rename "main.go" to "kraken.go" for better identification in u-root
-	pathMainGo := path.Join(srcDir, "main.go")
-	pathKrakenGo := path.Join(srcDir, "kraken.go")
-	if *verbose {
-		log.Printf("renaming \"%s\" to \"%s\"", pathMainGo, pathKrakenGo)
-	}
-	e = os.Rename(pathMainGo, pathKrakenGo)
 
 	return
 }
