@@ -1,7 +1,6 @@
 /* buildutil.go: provides useful methods used in building Kraken
  *
- * Author: J. Lowell Wofford <lowell@lanl.gov>
- *         Devon Bautista <devontbautista@gmail.com>
+ * Author: Devon Bautista <devontbautista@gmail.com>
  *
  * This software is open source software available under the BSD-3 license.
  * Copyright (c) 2018, Triad National Security, LLC
@@ -20,11 +19,11 @@ import (
 	"strings"
 )
 
-// SimpleSearchAndReplace searches all lines in a file and replaces all
-// instances of the search string with the replace string.
-// This currently only works with regular text files.
-// Use DeepSearchandReplace if directories must be considered.
-func SimpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
+// simpleSearchAndReplace searches all lines in a file and replaces all
+// instances of srchStr with replStr.
+// This is a helper function for SearchAndReplace only works with regular
+// files.
+func simpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	// Try to open file
 	input, e := ioutil.ReadFile(filename)
 	if e != nil {
@@ -53,9 +52,10 @@ func SimpleSearchAndReplace(filename, srchStr, replStr string) (e error) {
 	return
 }
 
-// SimpleRegexReplace applies a regular expression to the passed file and replaces
-// matches with a string which supports capturing groups, etc.
-func SimpleRegexReplace(filename, src, repl string) (e error) {
+// simpleRegexReplace applies a regular expression src to filename and replaces
+// matches with repl, which supports formatting specified in the regexp package.
+// This is a helper function for RegexReplace and only works on regular files.
+func simpleRegexReplace(filename, src, repl string) (e error) {
 	// Get file perms
 	var fInfo os.FileInfo
 	if fInfo, e = os.Stat(filename); e != nil {
@@ -83,10 +83,10 @@ func SimpleRegexReplace(filename, src, repl string) (e error) {
 	return
 }
 
-// DeepSearchAndReplace performs SimpleSearchAndReplace on the passed file if
-// it is a regular file. If the file is a directory, it recursively traverses it,
-// performing SimpleSearchAndReplace on all regular files.
-func DeepSearchAndReplace(filename, srchStr, replStr string) (e error) {
+// SearchAndReplace replaces all instances of srchStr in filename with replStr.
+// If filename is a directory, it does this recursively for all files and
+// directories contained in it.
+func SearchAndReplace(filename, srchStr, replStr string) (e error) {
 	// Get info of filename
 	var info os.FileInfo
 	info, e = os.Lstat(filename)
@@ -100,23 +100,24 @@ func DeepSearchAndReplace(filename, srchStr, replStr string) (e error) {
 		var contents []os.FileInfo
 		contents, e = ioutil.ReadDir(filename)
 		for _, content := range contents {
-			e = DeepSearchAndReplace(filepath.Join(filename, content.Name()), srchStr, replStr)
+			e = SearchAndReplace(filepath.Join(filename, content.Name()), srchStr, replStr)
 			if e != nil {
 				return
 			}
 		}
 	} else {
 		// If not, perform a simple search and replace on the file
-		e = SimpleSearchAndReplace(filename, srchStr, replStr)
+		e = simpleSearchAndReplace(filename, srchStr, replStr)
 	}
 
 	return
 }
 
-// DeepRegexReplace performs SimpleRegexReplace on the passed file if it is
-// a regular file. If the file is a directory, it recursively traverses it,
-// performing SimpleRegexReplace on all of its regular files.
-func DeepRegexReplace(filename, src, repl string) (e error) {
+// RegexReplace applies the regular expression src to filename and replaces
+// matches with repl. If filename is a directory, it does this recursively
+// for all files and directories contained in it. The replace string repl
+// supports formatting according to the regexp package.
+func RegexReplace(filename, src, repl string) (e error) {
 	// What type of file is this?
 	var info os.FileInfo
 	if info, e = os.Lstat(filename); e != nil {
@@ -133,13 +134,13 @@ func DeepRegexReplace(filename, src, repl string) (e error) {
 		}
 		for _, file := range contents {
 			filePath := filepath.Join(filename, file.Name())
-			if e = DeepRegexReplace(filePath, src, repl); e != nil {
+			if e = RegexReplace(filePath, src, repl); e != nil {
 				e = fmt.Errorf("could not deep regex replacement in %s: %v", filePath, e)
 				return
 			}
 		}
 	} else {
-		if e = SimpleRegexReplace(filename, src, repl); e != nil {
+		if e = simpleRegexReplace(filename, src, repl); e != nil {
 			e = fmt.Errorf("could not perform simple regex replacement on %s: %v", filename, e)
 		}
 	}

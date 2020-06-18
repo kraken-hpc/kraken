@@ -143,7 +143,7 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 				if *verbose {
 					log.Printf("%s: %s -> %s", targetPath, from, to)
 				}
-				if e = lib.SimpleSearchAndReplace(targetPath, from, to); e != nil {
+				if e = lib.SearchAndReplace(targetPath, from, to); e != nil {
 					return
 				}
 
@@ -291,7 +291,7 @@ func modifySources(dir string) (e error) {
 	if *verbose {
 		log.Printf("%s: updating import paths to match u-root build dir", dir)
 	}
-	if e = lib.DeepRegexReplace(dir, from, to); e != nil {
+	if e = lib.RegexReplace(dir, from, to); e != nil {
 		e = fmt.Errorf("unable to replace import paths for files in %s: %v", dir, e)
 		return
 	}
@@ -299,7 +299,7 @@ func modifySources(dir string) (e error) {
 	// ServiceInstance.go: BusyBox cannot handle argv[0] not being kraken.
 	// TODO: Use one replace for both lines.
 	siPath := path.Join(dir, "core/ServiceInstance.go")
-	e = lib.SimpleSearchAndReplace(siPath,
+	e = lib.SearchAndReplace(siPath,
 		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
 		"si.cmd.Args = []string{os.Args[0]}")
 	if e != nil {
