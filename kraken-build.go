@@ -315,7 +315,7 @@ func modifySources(dir string) (e error) {
 		log.Printf("renaming \"%s\" to \"%s\"", pathMainGo, pathKrakenGo)
 	}
 	if e = os.Rename(pathMainGo, pathKrakenGo); e != nil {
-		e = fmt.Errorf("unavle to rename %s into %s: %v", pathMainGo, pathKrakenGo, e)
+		e = fmt.Errorf("unable to rename %s into %s: %v", pathMainGo, pathKrakenGo, e)
 	}
 	return
 }
