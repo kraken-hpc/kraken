@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/template"
 
-	cp "github.com/otiai10/copy"
+	cp "github.com/hpc/kraken/lib/copy"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -160,6 +160,14 @@ func copyModules(src, dst string, config *Config) (e error) {
 		}
 	}
 
+	// Create copy options
+	opts := cp.GetDefaultOptions()
+	opts.Recursive = true
+	// Overwrite preexisting file(s) if -force passed
+	if *force {
+		opts.Clobber = true
+	}
+
 	for _, module := range config.Modules {
 		// Get name of specified module in config file
 		modName := path.Base(module)
@@ -168,22 +176,8 @@ func copyModules(src, dst string, config *Config) (e error) {
 		// that in the u-root directory
 		modFrom := filepath.Join(src, modName)
 		modTo := filepath.Join(dst, modName)
-		if e = cp.Copy(modFrom, modTo); e != nil {
-			// Overwrite preexisting file(s) if -force passed
-			if *force {
-				// TODO: Write/Use a better copy() function
-				// Doing so would make this block of code
-				// simpler and shorter.
-				if e = os.RemoveAll(modTo); e != nil {
-					return
-				}
-				if e = cp.Copy(modFrom, modTo); e != nil {
-					return
-				}
-			} else {
-				log.Printf("unable to copy %s to %s; use '-force' to override", modFrom, modTo)
-				return
-			}
+		if e = opts.Copy(modFrom, modTo); e != nil {
+			return
 		}
 	}
 	return
@@ -212,6 +206,13 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 		}
 	}
 
+	// Create copy options
+	opts := cp.GetDefaultOptions()
+	opts.Recursive = true
+	if *force {
+		opts.Clobber = true
+	}
+
 	for _, extension := range config.Extensions {
 		// Get name of specified extension in config file
 		extName := path.Base(extension)
@@ -220,22 +221,8 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 		// that in the u-root directory
 		extFrom := filepath.Join(src, extName)
 		extTo := filepath.Join(dst, extName)
-		if e = cp.Copy(extFrom, extTo); e != nil {
-			// Overwrite preexisting file(s) if -force passed
-			if *force {
-				// TODO: Write/Use a better copy() function
-				// Doing so would make this block of code
-				// simpler and shorter.
-				if e = os.RemoveAll(extTo); e != nil {
-					return
-				}
-				if e = cp.Copy(extFrom, extTo); e != nil {
-					return
-				}
-			} else {
-				log.Printf("unable to copy %s to %s; use '-force' to override", extFrom, extTo)
-				return
-			}
+		if e = opts.Copy(extFrom, extTo); e != nil {
+			return
 		}
 	}
 	return
@@ -243,23 +230,15 @@ func copyExtensions(src, dst string, config *Config) (e error) {
 
 // copySources copies kraken source files from src to dst
 func copySources(src, dst string) (e error) {
-	if e = cp.Copy(src, dst); e != nil {
-		// Overwrite preexisting file(s) if -force passed
-		if *force {
-			// TODO: Write/Use a better copy() function
-			// Doing so would make this block of code
-			// simpler and shorter.
-			if e = os.RemoveAll(dst); e != nil {
-				return
-			}
-			if e = cp.Copy(src, dst); e != nil {
-				return
-			}
-		} else {
-			log.Printf("%s exists; refusing to copy; use '-force' to override", dst)
-			return
-		}
+	// Create copy options
+	opts := cp.GetDefaultOptions()
+	opts.Recursive = true
+	// Overwrite preexisting file(s) if -force passed
+	if *force {
+		opts.Clobber = true
 	}
+
+	e = opts.Copy(src, dst)
 	return
 }
 

@@ -7,8 +7,6 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
-	github.com/otiai10/copy v1.0.1
-	github.com/otiai10/curr v1.0.0 // indirect
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/net v0.0.0-20191125084936-ffdde1057850
