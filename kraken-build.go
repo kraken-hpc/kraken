@@ -119,6 +119,7 @@ func compileTemplates(krakenDir, tmpDir string, forUroot bool) (targets []string
 					targPath := path.Join(tmpDir, target)
 					// TODO: Dynamically find kraken's import path
 					// instead of hard-coding it.
+					// See: https://github.com/hpc/kraken/issues/184
 					from := "hpc/kraken/"
 					to := "hpc/kraken/build/u-root/"
 					if *verbose {
