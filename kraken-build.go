@@ -280,7 +280,8 @@ func modifySources(dir string) (e error) {
 	}
 
 	// ServiceInstance.go: BusyBox cannot handle argv[0] not being kraken.
-	// TODO: Use one replace for both lines.
+	// TODO: This is a hack that deserves a better fix.
+	// See: https://github.com/hpc/kraken/issues/185
 	siPath := path.Join(dir, "core/ServiceInstance.go")
 	e = lib.SearchAndReplace(siPath,
 		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
