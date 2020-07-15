@@ -90,33 +90,12 @@ func compileTemplate(tplFile, tmpDir string) (target string, e error) {
 	return
 }
 
-func compileMainTemplates(krakenDir, tmpDir string) (targets []string, e error) {
-	var files []os.FileInfo
-	re, _ := regexp.Compile(".*\\.go\\.tpl$")
-	// build a list of all of the templates
-	if files, e = ioutil.ReadDir(filepath.Join(krakenDir, "kraken")); e != nil {
-		return
-	}
-	for _, f := range files {
-		if f.Mode().IsRegular() {
-			if re.MatchString(f.Name()) { // ends in .go.tpl?
-				if *verbose {
-					log.Printf("executing template: %s", f.Name())
-				}
-				var target string
-				if target, e = compileTemplate(filepath.Join(krakenDir, "kraken", f.Name()), tmpDir); e != nil {
-					return
-				}
-				targets = append(targets, target)
-			}
-		}
-	}
-	return
-}
-
-// compileMainTemplates is like CompileMainTemplates, but does so for sources that
-// will end up as a u-root command
-func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error) {
+// compileTemplates looks for Go templates (*.go.tpl) in krakenDir and
+// compiles them into tmpDir. If forUroot is true, the compiled templates
+// will have their import paths modified to use dependencies included
+// with the generated source tree instead of those in the normal kraken
+// source tree.
+func compileTemplates(krakenDir, tmpDir string, forUroot bool) (targets []string, e error) {
 	var files []os.FileInfo
 	re, _ := regexp.Compile(".*\\.go\\.tpl$")
 	// build a list of all of the templates
@@ -136,15 +115,18 @@ func compileUrootTemplates(krakenDir, tmpDir string) (targets []string, e error)
 
 				// Use import paths of generated files for u-root instead of the main
 				// kraken ones
-				var from, to, targetPath string
-				from = "hpc/kraken/"
-				to = "hpc/kraken/build/u-root/"
-				targetPath = path.Join(tmpDir, target)
-				if *verbose {
-					log.Printf("%s: %s -> %s", targetPath, from, to)
-				}
-				if e = lib.SearchAndReplace(targetPath, from, to); e != nil {
-					return
+				if forUroot {
+					targPath := path.Join(tmpDir, target)
+					// TODO: Dynamically find kraken's import path
+					// instead of hard-coding it.
+					from := "hpc/kraken/"
+					to := "hpc/kraken/build/u-root/"
+					if *verbose {
+						log.Printf("%s: %s -> %s", targPath, from, to)
+					}
+					if e = lib.SearchAndReplace(targPath, from, to); e != nil {
+						return
+					}
 				}
 
 				targets = append(targets, target)
@@ -338,7 +320,7 @@ func buildUrootKraken(config *Config, outDir, krakenDir string) (targets []strin
 	os.Mkdir(srcDir, 0755)
 
 	// Generate kraken source from templates into outDir
-	if _, e = compileUrootTemplates(krakenDir, srcDir); e != nil {
+	if _, e = compileTemplates(krakenDir, srcDir, true); e != nil {
 		log.Printf("error compiling templates for u-root-embeddable kraken source tree")
 		return
 	} else {
@@ -535,7 +517,7 @@ func krakenBuild(cfg *Config, krakenDir, tmpDir string) (e error) {
 		os.Mkdir(tmpDir, 0755)
 
 		var fromTemplates []string
-		if fromTemplates, e = compileMainTemplates(krakenDir, tmpDir); e != nil {
+		if fromTemplates, e = compileTemplates(krakenDir, tmpDir, false); e != nil {
 			e = fmt.Errorf("could not compile templates: %v", e)
 			return
 		}
