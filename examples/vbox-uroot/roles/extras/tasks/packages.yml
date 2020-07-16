@@ -1,0 +1,24 @@
+---
+- name: Install vim
+  become: yes
+  package:
+    name: vim
+    state: present
+
+- name: Install tcpdump
+  become: yes
+  package:
+    name: tcpdump
+    state: present
+
+- name: Install traceroute
+  become: yes
+  package:
+    name: traceroute
+    state: present
+
+- name: Install nmap
+  become: yes
+  package:
+    name: nmap
+    state: present

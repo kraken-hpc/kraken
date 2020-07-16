@@ -1,0 +1,4 @@
+---
+dependencies:
+- role: kraken-base
+- role: kraken-build

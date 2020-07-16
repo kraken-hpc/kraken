@@ -24,8 +24,11 @@
     remote_src: yes
     mode: 0600
 
+- name: go get u-root
+  shell: "go get {{ uroot_url }}"
+
 - name: Create boot image
-  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64"
+  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0_uroot.sh -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64"
   args:
     chdir: "{{ kr_tftp_dir }}"
     creates: initramfs.cpio.gz

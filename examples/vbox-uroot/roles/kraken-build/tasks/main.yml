@@ -4,11 +4,21 @@
 #  args:
 #    creates: "{{ kr_build }}"
 
-- name: go get kraken
+- name: git clone kraken
   git:
     repo: "{{ kr_repo }}"
     dest: "{{ kr_src_dir }}"
     version: "{{ kr_repo_version }}"
+
+- name: go get kraken (to get dependencies)
+  shell: "go get"
+  args:
+    chdir: "{{ kr_src_dir }}"
+
+- name: go mod vendor kraken (for u-root)
+  shell: "go mod vendor"
+  args:
+    chdir: "{{ kr_src_dir }}"
 
 - name: Build kraken-build
   shell: "go build {{ kr_build }}.go"
@@ -17,9 +27,9 @@
     chdir: "{{ kr_src_dir }}"
 
 - name: Build kraken
-  shell: "./{{ kr_build }} {{ kr_build_args }} -dir {{ kr_build_dir }} -config {{ kr_conf_file }}"
+  shell: "./{{ kr_build }} {{ kr_build_args }} -config {{ kr_conf_file }}"
   args:
-    creates: "{{ kr_build_dir }}/{{ kr_target }}"
+    creates: "{{ kr_build_dir }}"
     chdir: "{{ kr_src_dir }}"
 
 - name: Symlink local kraken

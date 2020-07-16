@@ -1,3 +1,2 @@
 e1000_mod: kernel/drivers/net/ethernet/intel/e1000/e1000.ko.xz
 kr_img_base: /home/vagrant/support/base
-uroot_url: github.com/u-root/u-root

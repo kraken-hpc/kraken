@@ -23,7 +23,8 @@ usage() {
         echo "  <base_dir> is an optional base directory containing file/directory structure (default: none)"
         echo "             that should be added to the image"
         echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/hpc/kraken)"
-        echo "  <kraken_build_dir> is specifies an alternate path to where to look for built kraken binaries (default: kraken_source_dir/build)"
+        echo "  <kraken_build_dir> specifies an alternate path where to look for the generated kraken source"
+        echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
 
 opts=$(getopt o:b:k:B: $*)
@@ -64,6 +65,7 @@ fi
 
 STARTDIR=$PWD
 ARCH=$1
+TMPDIR=$(mktemp -d)
 
 if [ -z ${GOPATH+x} ]; then
     echo "GOPATH isn't set, using $HOME/go"
@@ -80,26 +82,12 @@ if [ -z ${KRAKEN_BUILDDIR+x} ]; then
     echo "Using kraken build dir $KRAKEN_BUILDDIR"
 fi
 
-# make a temporary directory for our base
-TMPDIR=$(mktemp -d)
-echo "Using tmpdir: $TMPDIR"
-mkdir -p $TMPDIR/base/bin
-
-KRAKEN="$KRAKEN_BUILDDIR/kraken-linux-$ARCH"
-if [ ! -f $KRAKEN ]; then
-    echo "$KRAKEN doesn't exist, built it before running this"
-    rm -rf $TMPDIR
-    exit
+# Check that kraken build dir is not empty
+if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ]; then
+    echo "$KRAKEN_BUILDDIR is empty; build it before running this"
+    exit 1
 fi
-echo "Using $KRAKEN"
-cp -v $KRAKEN $TMPDIR/base/bin/kraken
-
-# make pre-requisite binaries
-(
-    cd $TMPDIR/base/bin
-    echo "Build uinit..."
-    GOARCH=$ARCH CGO_ENABLED=0 go build "${KRAKEN_SOURCEDIR}/utils/layer0/uinit_main/uinit/uinit.go"
-)
+echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
 # copy base_dir over tmpdir if it's set
 if [ ! -z ${BASEDIR+x} ]; then 
@@ -113,12 +101,16 @@ echo "Creating base cpio..."
     find . | cpio -oc > $TMPDIR/base.cpio
 )
 
+# Check that u-root is installed, clone it if not
 if [ ! -x $GOPATH/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio
+GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio github.com/u-root/u-root/cmds/core/* github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit_uroot/uinit} 2>&1
+
+echo "CONTENTS:"
+cpio -itv < $TMPDIR/initramfs.cpio
 
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
