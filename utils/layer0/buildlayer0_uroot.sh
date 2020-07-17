@@ -27,12 +27,12 @@ usage() {
         echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
 
-opts=$(getopt o:b:k:B: $*)
-if [ $? != 0 ]; then
+if ! opts=$(getopt o:b:k:B: "$@"); then
     usage
     exit
 fi
 
+# shellcheck disable=SC2086
 set -- $opts
 for i; do
     case "$i" 
@@ -63,7 +63,6 @@ if [ $# -ne 1 ]; then
     exit 1 
 fi 
 
-STARTDIR=$PWD
 ARCH=$1
 TMPDIR=$(mktemp -d)
 
@@ -83,44 +82,45 @@ if [ -z ${KRAKEN_BUILDDIR+x} ]; then
 fi
 
 # Check that kraken build dir is not empty
-if [ -z "$(ls -A $KRAKEN_BUILDDIR)" ]; then
+contents=$(ls -A "$KRAKEN_BUILDDIR")
+if [ -z "$contents" ]; then
     echo "$KRAKEN_BUILDDIR is empty; build it before running this"
     exit 1
 fi
 echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
 # copy base_dir over tmpdir if it's set
-if [ ! -z ${BASEDIR+x} ]; then 
+if [ -n "${BASEDIR+x}" ]; then 
         echo "Overlaying ${BASEDIR}..."
-        rsync -av $BASEDIR/ $TMPDIR/base
+        rsync -av "$BASEDIR"/ "$TMPDIR"/base
 fi
 
 echo "Creating base cpio..."
 (
-    cd $TMPDIR/base
-    find . | cpio -oc > $TMPDIR/base.cpio
+    cd "$TMPDIR"/base || { touch "$TMPDIR"/base.cpio; exit; }
+    find . | cpio -oc > "$TMPDIR"/base.cpio
 )
 
 # Check that u-root is installed, clone it if not
-if [ ! -x $GOPATH/bin/u-root ]; then
+if [ ! -x "$GOPATH"/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
-    GOPATH=$GOPATH go get github.com/u-root/u-root
+    GOPATH="$GOPATH" go get github.com/u-root/u-root
 fi
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio github.com/u-root/u-root/cmds/core/* github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit_uroot/uinit} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio github.com/u-root/u-root/cmds/core/* github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit_uroot/uinit} 2>&1
 
 echo "CONTENTS:"
-cpio -itv < $TMPDIR/initramfs.cpio
+cpio -itv < "$TMPDIR"/initramfs.cpio
 
 echo "Compressing..."
-gzip $TMPDIR/initramfs.cpio
+gzip "$TMPDIR"/initramfs.cpio
 
-if [ -z ${OUTFILE+x} ]; then 
+if [ -z "${OUTFILE+x}" ]; then 
     D=$(date +%Y%m%d.%H%M)
     OUTFILE="initramfs.${D}.${ARCH}.cpio.gz"
 fi
-mv -v $TMPDIR/initramfs.cpio.gz $PWD/$OUTFILE
+mv -v "$TMPDIR"/initramfs.cpio.gz "$PWD"/"$OUTFILE"
 
-rm -rf $TMPDIR
+rm -rf "$TMPDIR"
 
 echo "Image built as $OUTFILE"
