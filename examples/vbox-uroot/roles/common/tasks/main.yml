@@ -1,5 +1,5 @@
 ---
-- name: Include 'insecure' role 
+- name: Include 'insecure' role
   include_role:
     name: insecure
 

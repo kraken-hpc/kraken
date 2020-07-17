@@ -3,12 +3,12 @@
   shell: uname -r
   register: kern_out
 
-- set_fact: 
+- set_fact:
     mod_dir: "/lib/modules/{{ kern_out.stdout }}"
     kernel_file: "/boot/vmlinuz-{{ kern_out.stdout }}"
     kr_tftp_dir: "{{ kr_tftp_base }}/amd64/vbox"
 
-- debug: 
+- debug:
     msg: "Kernel module directory is: {{ mod_dir }}, kernel is: {{ kernel_file }}"
 
 - name: Create TFTP directory
@@ -17,7 +17,7 @@
     state: directory
     mode: 0755
 
-- debug: 
+- debug:
     msg: "TFTP directory is {{ kr_tftp_dir }}"
 
 - name: Install syslinux-tftpboot
