@@ -76,9 +76,10 @@ The `release-the-kraken.sh` script performs the following steps to bring up a vi
 2. It calls `vagrant up kraken`, which uses the included `VagrantFile` to create and provision the "kraken" (master) VM.  `Vagrant` calls `ansible` to handle provisioning.  `Ansible` performs a number of steps, but here are some of the more critical ones:
    1. install necessary dependencies in the VM;
    2. get kraken, build the `kraken-builder`;
-   3. build the kraken binaries;
-   4. setup the directory/files needed for pxeboot;
-   5. create the "layer0" image that the nodes will boot.
+   3. build the kraken binary for the master node;
+   4. generate kraken source tree into a u-root image for the work nodes;
+   5. setup the directory/files needed for pxeboot;
+   6. create the "layer0" image that the nodes will boot.
 3. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediately shuts these off as we don't want them on yet.
 4. Starts the (included) `vboxapi.go`, which provides a ReST API for VirtualBox VM power control.  This allows Kraken to control the power state of the VMs.
 5. Starts `kraken` on the "kraken" (master) node.
