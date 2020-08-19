@@ -101,19 +101,25 @@ type Action struct {
 }
 
 func (w *WebSocket) Entry() {
+	w.api.Logf(lib.LLDDDEBUG, "Starting entry function")
 	nself, _ := w.api.QueryRead(w.api.Self().String())
 
 	rAddr, e := nself.GetValue("/Services/restapi/Config/Addr")
 	if e != nil {
 		w.api.Logf(lib.LLERROR, "error getting restapi address")
 	}
+	w.api.Logf(lib.LLDDDEBUG, "setting server ip: %v", rAddr.String())
 	w.srvIp = net.ParseIP(rAddr.String())
 
+	w.api.Logf(lib.LLDDDEBUG, "setting up router")
 	w.setupRouter()
+	w.api.Logf(lib.LLDDDEBUG, "starting webserver")
 	go w.startServer()
 	w.hub = w.newHub()
+	w.api.Logf(lib.LLDDDEBUG, "starting hub")
 	go w.hub.run()
 
+	w.api.Logf(lib.LLDDDEBUG, "sending discovery event")
 	url := lib.NodeURLJoin(w.api.Self().String(), WsStateURL)
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
@@ -125,6 +131,7 @@ func (w *WebSocket) Entry() {
 	)
 	w.dchan <- ev
 
+	w.api.Logf(lib.LLDDDEBUG, "starting main loop")
 	for {
 		// create a timer that will send queued websocket messages
 		dur, _ := time.ParseDuration(w.cfg.GetTick())
