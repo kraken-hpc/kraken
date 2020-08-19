@@ -120,7 +120,8 @@ func (w *WebSocket) Entry() {
 	go w.hub.run()
 
 	w.api.Logf(lib.LLDDDEBUG, "sending discovery event")
-	url := lib.NodeURLJoin(w.api.Self().String(), WsStateURL)
+	url := lib.NodeURLJoin(pp.api.Self().String(),
+		lib.URLPush(lib.URLPush("/Services", "websocket"), "State"))
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,

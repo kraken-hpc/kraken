@@ -177,6 +177,7 @@ var _ lib.ModuleSelfService = (*VBM)(nil)
 
 // Entry is the module's executable entrypoint
 func (pp *VBM) Entry() {
+	pp.api.Logf(lib.LLDEBUG, "Starting entry function!")
 	url := lib.NodeURLJoin(pp.api.Self().String(),
 		lib.URLPush(lib.URLPush("/Services", "vboxmanage"), "State"))
 	pp.dchan <- core.NewEvent(
