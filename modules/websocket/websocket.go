@@ -102,6 +102,9 @@ type Action struct {
 
 func (w *WebSocket) Entry() {
 	w.api.Logf(lib.LLDDDEBUG, "Starting entry function")
+	dur, _ := time.ParseDuration(w.cfg.GetTick())
+	w.api.Logf(lib.LLDEBUG, "tick: %v, duration: %v", w.cfg.GetTick(), dur)
+
 	nself, _ := w.api.QueryRead(w.api.Self().String())
 
 	rAddr, e := nself.GetValue("/Services/restapi/Config/Addr")
