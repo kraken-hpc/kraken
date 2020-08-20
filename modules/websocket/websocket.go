@@ -290,7 +290,6 @@ func (w *WebSocket) srvStop() {
 
 func init() {
 	module := &WebSocket{}
-	core.Registry.RegisterModule(module)
 	si := core.NewServiceInstance(
 		"websocket",
 		module.Name(),
@@ -301,11 +300,9 @@ func init() {
 	discovers[WsStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
+	core.Registry.RegisterModule(module)
+	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
-
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
-		si.ID(): si,
-	})
 }
 
 func (w *WebSocket) newHub() *Hub {
