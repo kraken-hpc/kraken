@@ -151,6 +151,7 @@ func (r *RestAPI) srvStop() {
  */
 
 func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
+	r.api.Logf(lib.LLERROR, "Got websocket request")
 	defer req.Body.Close()
 	host, _, _ := net.SplitHostPort(req.Host)
 	nself, _ := r.api.QueryRead(r.api.Self().String())
