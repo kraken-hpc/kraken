@@ -175,17 +175,17 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
 				srv.State = cpb.ServiceInstance_RUN
 
-				// _, e := r.api.QueryUpdate(nself)
-				// if e != nil {
-				// 	r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
-				// }
+				_, e := r.api.QueryUpdate(nself)
+				if e != nil {
+					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
+				}
 
 				// config2 := srv.GetConfig()
 				config := &wpb.WebSocketConfig{}
-				e := ptypes.UnmarshalAny(srv.GetConfig(), config)
-				if e != nil {
-					r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
-				}
+				// e = ptypes.UnmarshalAny(srv.GetConfig(), config)
+				// if e != nil {
+				// 	r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
+				// }
 
 				config.Port = r.cfg.Port + 1
 
