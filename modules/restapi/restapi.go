@@ -157,18 +157,47 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 
 	// Check if websocket module is running
 	services := nself.GetServices()
-	found := false
+	running := false
 	for _, srv := range services {
 		if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
 			if srv.GetState() == cpb.ServiceInstance_RUN {
-				found = true
+				running = true
 			}
 		}
 	}
-	if !found {
+	if !running {
 		r.api.Logf(lib.LLERROR, "Got websocket request, but websocket module isn't running")
-		w.WriteHeader(http.StatusNotFound)
-		return
+
+		for _, srv := range services {
+			if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
+				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
+				srv.State = cpb.ServiceInstance_RUN
+				_, e := r.api.QueryUpdate(nself)
+				if e != nil {
+					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
+				}
+			}
+		}
+
+		// defer req.Body.Close()
+		// buf := new(bytes.Buffer)
+		// buf.ReadFrom(req.Body)
+		// n := core.NewNodeFromJSON(buf.Bytes())
+		// if n == nil {
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	return
+		// }
+		// nn, e := r.api.QueryUpdate(n)
+		// if e != nil {
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	w.Write([]byte(e.Error()))
+		// 	return
+		// }
+		// w.Header().Set("Access-Control-Allow-Origin", "*")
+		// w.Write(nn.JSON())
+
+		// w.WriteHeader(http.StatusNotFound)
+		// return
 	}
 
 	// Get port from websocket module config
