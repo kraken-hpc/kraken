@@ -32,7 +32,6 @@ import (
 
 	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/restapi/proto"
-	wpb "github.com/hpc/kraken/modules/websocket/proto"
 )
 
 var _ lib.Module = (*RestAPI)(nil)
@@ -175,31 +174,31 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
 				srv.State = cpb.ServiceInstance_RUN
 
+				// _, e := r.api.QueryUpdate(nself)
+				// if e != nil {
+				// 	r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
+				// }
+
+				// newself, _ := r.api.QueryRead(r.api.Self().String())
+				// newsrv := newself.GetService("websocket")
+
+				// // config2 := srv.GetConfig()
+				// config := &wpb.WebSocketConfig{}
+				// e = ptypes.UnmarshalAny(newsrv.GetConfig(), config)
+				// if e != nil {
+				// 	r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
+				// }
+
+				// config.Port = r.cfg.Port + 2
+
+				// configAny, err := ptypes.MarshalAny(config)
+				// if err != nil {
+				// 	r.api.Logf(lib.LLERROR, "could not marshal websocket config into any")
+				// }
+
+				// newsrv.Config = configAny
+
 				_, e := r.api.QueryUpdate(nself)
-				if e != nil {
-					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
-				}
-
-				newself, _ := r.api.QueryRead(r.api.Self().String())
-				newsrv := newself.GetService("websocket")
-
-				// config2 := srv.GetConfig()
-				config := &wpb.WebSocketConfig{}
-				e = ptypes.UnmarshalAny(newsrv.GetConfig(), config)
-				if e != nil {
-					r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
-				}
-
-				config.Port = r.cfg.Port + 2
-
-				configAny, err := ptypes.MarshalAny(config)
-				if err != nil {
-					r.api.Logf(lib.LLERROR, "could not marshal websocket config into any")
-				}
-
-				newsrv.Config = configAny
-
-				_, e = r.api.QueryUpdate(newself)
 				if e != nil {
 					r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
 				}
