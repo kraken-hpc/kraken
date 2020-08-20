@@ -151,82 +151,28 @@ func (r *RestAPI) srvStop() {
  */
 
 func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
-	r.api.Logf(lib.LLERROR, "Got websocket request")
 	defer req.Body.Close()
 	host, _, _ := net.SplitHostPort(req.Host)
 	nself, _ := r.api.QueryRead(r.api.Self().String())
 
 	// Check if websocket module is running
-	services := nself.GetServices()
-	running := false
-	for _, srv := range services {
-		if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
-			if srv.GetState() == cpb.ServiceInstance_RUN {
-				running = true
-			}
-		}
+	wserv := nself.GetService("websocket")
+	if wserv == nil {
+		r.api.Logf(lib.LLERROR, "Could not find websocket service")
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
-	if !running {
-		r.api.Logf(lib.LLERROR, "Got websocket request, but websocket module isn't running")
 
-		for _, srv := range services {
-			if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
-				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
-				srv.State = cpb.ServiceInstance_RUN
+	if wserv.GetState() != cpb.ServiceInstance_RUN {
+		r.api.Logf(lib.LLDEBUG, "Got websocket request, but websocket module isn't running. Attempting to start it now")
+		wserv.State = cpb.ServiceInstance_RUN
 
-				// _, e := r.api.QueryUpdate(nself)
-				// if e != nil {
-				// 	r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
-				// }
-
-				// newself, _ := r.api.QueryRead(r.api.Self().String())
-				// newsrv := newself.GetService("websocket")
-
-				// // config2 := srv.GetConfig()
-				// config := &wpb.WebSocketConfig{}
-				// e = ptypes.UnmarshalAny(newsrv.GetConfig(), config)
-				// if e != nil {
-				// 	r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
-				// }
-
-				// config.Port = r.cfg.Port + 2
-
-				// configAny, err := ptypes.MarshalAny(config)
-				// if err != nil {
-				// 	r.api.Logf(lib.LLERROR, "could not marshal websocket config into any")
-				// }
-
-				// newsrv.Config = configAny
-
-				_, e := r.api.QueryUpdate(nself)
-				if e != nil {
-					r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
-				}
-
-				nself, _ = r.api.QueryRead(r.api.Self().String())
-
-			}
+		_, e := r.api.QueryUpdate(nself)
+		if e != nil {
+			r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-
-		// defer req.Body.Close()
-		// buf := new(bytes.Buffer)
-		// buf.ReadFrom(req.Body)
-		// n := core.NewNodeFromJSON(buf.Bytes())
-		// if n == nil {
-		// 	w.WriteHeader(http.StatusBadRequest)
-		// 	return
-		// }
-		// nn, e := r.api.QueryUpdate(n)
-		// if e != nil {
-		// 	w.WriteHeader(http.StatusBadRequest)
-		// 	w.Write([]byte(e.Error()))
-		// 	return
-		// }
-		// w.Header().Set("Access-Control-Allow-Origin", "*")
-		// w.Write(nn.JSON())
-
-		// w.WriteHeader(http.StatusNotFound)
-		// return
 	}
 
 	// Get port from websocket module config

@@ -239,7 +239,7 @@ func (w *WebSocket) NewConfig() proto.Message {
 	)
 	return &pb.WebSocketConfig{
 		Port:           3142,
-		Tick:           "5ms",
+		Tick:           "250ms",
 		WriteWait:      writeWait.String(),
 		PongWait:       pongWait.String(),
 		PingPeriod:     pingPeriod.String(),
