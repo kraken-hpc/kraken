@@ -174,20 +174,31 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 			if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
 				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
 				srv.State = cpb.ServiceInstance_RUN
-				config := &wpb.WebSocketConfig{
-					Port: r.cfg.Port + 1,
+
+				// _, e := r.api.QueryUpdate(nself)
+				// if e != nil {
+				// 	r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
+				// }
+
+				// config2 := srv.GetConfig()
+				config := &wpb.WebSocketConfig{}
+				e := ptypes.UnmarshalAny(srv.GetConfig(), config)
+				if e != nil {
+					r.api.Logf(lib.LLERROR, "could not unmarshal websocket config")
 				}
+
+				config.Port = r.cfg.Port + 1
 
 				configAny, err := ptypes.MarshalAny(config)
 				if err != nil {
-					r.api.Logf(lib.LLERROR, "Error creating config for websocket module")
+					r.api.Logf(lib.LLERROR, "could not marshal websocket config into any")
 				}
 
 				srv.Config = configAny
 
-				_, e := r.api.QueryUpdate(nself)
+				_, e = r.api.QueryUpdate(nself)
 				if e != nil {
-					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
+					r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
 				}
 			}
 		}
