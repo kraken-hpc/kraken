@@ -145,9 +145,9 @@ func (w *WebSocket) Entry() {
 		dur, _ := time.ParseDuration(w.cfg.GetTick())
 		w.ticker = time.NewTicker(dur)
 		select {
-		case <-w.ticker.C:
-			go w.sendWSMessages()
-			break
+		// case <-w.ticker.C:
+		// 	go w.sendWSMessages()
+		// 	break
 		case e := <-w.echan: // event
 			go w.handleEvent(e)
 			break
@@ -186,9 +186,10 @@ func (w *WebSocket) handleEvent(ev lib.Event) {
 	default:
 		w.api.Logf(lib.LLDEBUG, "got unknown event: %+v\n", ev.Data())
 	}
-	w.mutex.Lock()
-	w.queue = append(w.queue, payload)
-	w.mutex.Unlock()
+	w.hub.broadcast <- []*Payload{payload}
+	// w.mutex.Lock()
+	// w.queue = append(w.queue, payload)
+	// w.mutex.Unlock()
 }
 
 func (w *WebSocket) sendWSMessages() {
@@ -239,7 +240,7 @@ func (w *WebSocket) NewConfig() proto.Message {
 	)
 	return &pb.WebSocketConfig{
 		Port:           3142,
-		Tick:           "1000ms",
+		Tick:           "200ms",
 		WriteWait:      writeWait.String(),
 		PongWait:       pongWait.String(),
 		PingPeriod:     pingPeriod.String(),
