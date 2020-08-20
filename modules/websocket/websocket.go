@@ -146,7 +146,7 @@ func (w *WebSocket) Entry() {
 		w.ticker = time.NewTicker(dur)
 		select {
 		case <-w.ticker.C:
-			w.sendWSMessages()
+			go w.sendWSMessages()
 			break
 		case e := <-w.echan: // event
 			go w.handleEvent(e)
@@ -239,7 +239,7 @@ func (w *WebSocket) NewConfig() proto.Message {
 	)
 	return &pb.WebSocketConfig{
 		Port:           3142,
-		Tick:           "5ms",
+		Tick:           "200ms",
 		WriteWait:      writeWait.String(),
 		PongWait:       pongWait.String(),
 		PingPeriod:     pingPeriod.String(),
