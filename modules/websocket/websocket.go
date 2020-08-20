@@ -111,8 +111,6 @@ func (w *WebSocket) Entry() {
 	dur, _ := time.ParseDuration(w.cfg.GetTick())
 	w.api.Logf(lib.LLDEBUG, "tick: %v, duration: %v", w.cfg.GetTick(), dur)
 
-	nself, _ := w.api.QueryRead(w.api.Self().String())
-
 	rAddr, e := nself.GetValue("/Services/restapi/Config/Addr")
 	if e != nil {
 		w.api.Logf(lib.LLERROR, "error getting restapi address")
