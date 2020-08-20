@@ -101,7 +101,7 @@ type Action struct {
 }
 
 func (w *WebSocket) Entry() {
-	w.api.Logf(lib.LLDDDEBUG, "Starting entry function")
+	w.api.Logf(lib.LLDDDEBUG, "Starting entry function, %v", w.cfg)
 	dur, _ := time.ParseDuration(w.cfg.GetTick())
 	w.api.Logf(lib.LLDEBUG, "tick: %v, duration: %v", w.cfg.GetTick(), dur)
 
