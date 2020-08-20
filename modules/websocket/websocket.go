@@ -215,8 +215,8 @@ func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 }
 
 func (w *WebSocket) Init(api lib.APIClient) {
-	w.api.Logf(lib.LLDEBUG, "websocket Init called")
 	w.api = api
+	w.api.Logf(lib.LLDEBUG, "websocket Init called")
 	if w.cfg == nil {
 		w.api.Logf(lib.LLDEBUG, "creating new config")
 		w.cfg = w.NewConfig().(*pb.WebSocketConfig)
