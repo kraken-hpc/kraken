@@ -208,6 +208,7 @@ func (w *WebSocket) SetDiscoveryChan(c chan<- lib.Event) { w.dchan = c }
 
 func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 	if wc, ok := cfg.(*pb.WebSocketConfig); ok {
+		w.api.Logf(lib.LLDEBUG, "updating config for websocket: %v", wc)
 		w.cfg = wc
 		if w.srv != nil {
 			w.srvStop() // we just stop, entry will (re)start
