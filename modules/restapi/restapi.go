@@ -32,6 +32,7 @@ import (
 
 	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/restapi/proto"
+	wpb "github.com/hpc/kraken/modules/websocket/proto"
 )
 
 var _ lib.Module = (*RestAPI)(nil)
@@ -173,6 +174,9 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 			if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
 				r.api.Logf(lib.LLDEBUG, "setting websocket service to run state")
 				srv.State = cpb.ServiceInstance_RUN
+				srv.Config = &wpb.WebSocketConfig{
+					Port: r.cfg.Port + 1,
+				}
 				_, e := r.api.QueryUpdate(nself)
 				if e != nil {
 					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
