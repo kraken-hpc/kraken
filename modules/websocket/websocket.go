@@ -142,8 +142,8 @@ func (w *WebSocket) Entry() {
 	w.api.Logf(lib.LLDDDEBUG, "starting main loop")
 	for {
 		// create a timer that will send queued websocket messages
-		dur, _ := time.ParseDuration(w.cfg.GetTick())
-		w.ticker = time.NewTicker(dur)
+		// dur, _ := time.ParseDuration(w.cfg.GetTick())
+		// w.ticker = time.NewTicker(dur)
 		select {
 		// case <-w.ticker.C:
 		// 	go w.sendWSMessages()
