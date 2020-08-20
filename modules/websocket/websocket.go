@@ -216,9 +216,7 @@ func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 
 func (w *WebSocket) Init(api lib.APIClient) {
 	w.api = api
-	if w.cfg == nil {
-		w.cfg = w.NewConfig().(*pb.WebSocketConfig)
-	}
+	w.cfg = w.NewConfig().(*pb.WebSocketConfig)
 	w.mutex = &sync.Mutex{}
 	w.queue = []*Payload{}
 }
