@@ -215,9 +215,15 @@ func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 }
 
 func (w *WebSocket) Init(api lib.APIClient) {
+	w.api.Logf(lib.LLDEBUG, "websocket Init called")
 	w.api = api
 	if w.cfg == nil {
+		w.api.Logf(lib.LLDEBUG, "creating new config")
 		w.cfg = w.NewConfig().(*pb.WebSocketConfig)
+	} else {
+		json, _ := json.Marshal(w.cfg)
+		w.api.Logf(lib.LLDEBUG, "config already exists: %v", json)
+
 	}
 	w.mutex = &sync.Mutex{}
 	w.queue = []*Payload{}
@@ -232,7 +238,7 @@ func (w *WebSocket) NewConfig() proto.Message {
 	)
 	return &pb.WebSocketConfig{
 		Port:           3142,
-		Tick:           "100ms",
+		Tick:           "5ms",
 		WriteWait:      writeWait.String(),
 		PongWait:       pongWait.String(),
 		PingPeriod:     pingPeriod.String(),

@@ -178,11 +178,13 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 					Port: r.cfg.Port + 1,
 				}
 
-				any, _ := ptypes.MarshalAny(config)
+				configAny, err := ptypes.MarshalAny(config)
+				if err != nil {
+					r.api.Logf(lib.LLERROR, "Error creating config for websocket module")
+				}
 
-				srv.Config = any
+				srv.Config = configAny
 
-				// srv.Config =
 				_, e := r.api.QueryUpdate(nself)
 				if e != nil {
 					r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket")
