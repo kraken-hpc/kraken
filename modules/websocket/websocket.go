@@ -102,6 +102,12 @@ type Action struct {
 
 func (w *WebSocket) Entry() {
 	w.api.Logf(lib.LLDDDEBUG, "Starting entry function, %v", w.cfg)
+	nself, _ := w.api.QueryRead(w.api.Self().String())
+	srv := nself.GetService("websocket")
+	config, _ := ptypes.MarshalAny(w.cfg)
+	srv.Config = config
+	w.api.QueryUpdate(nself)
+
 	dur, _ := time.ParseDuration(w.cfg.GetTick())
 	w.api.Logf(lib.LLDEBUG, "tick: %v, duration: %v", w.cfg.GetTick(), dur)
 
@@ -224,14 +230,6 @@ func (w *WebSocket) Init(api lib.APIClient) {
 	w.mutex = &sync.Mutex{}
 	w.queue = []*Payload{}
 
-	nself, _ := w.api.QueryRead(w.api.Self().String())
-
-	srv := nself.GetService("websocket")
-
-	config, _ := ptypes.MarshalAny(w.cfg)
-	srv.Config = config
-
-	w.api.QueryUpdate(nself)
 }
 
 func (w *WebSocket) NewConfig() proto.Message {
