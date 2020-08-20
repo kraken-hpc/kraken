@@ -223,6 +223,15 @@ func (w *WebSocket) Init(api lib.APIClient) {
 	w.cfg = w.NewConfig().(*pb.WebSocketConfig)
 	w.mutex = &sync.Mutex{}
 	w.queue = []*Payload{}
+
+	nself, _ := w.api.QueryRead(w.api.Self().String())
+
+	srv := nself.GetService("websocket")
+
+	config, _ := ptypes.MarshalAny(w.cfg)
+	srv.Config = config
+
+	w.api.QueryUpdate(nself)
 }
 
 func (w *WebSocket) NewConfig() proto.Message {

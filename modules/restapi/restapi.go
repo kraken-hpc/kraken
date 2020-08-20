@@ -202,6 +202,9 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 				if e != nil {
 					r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
 				}
+
+				nself, _ = r.api.QueryRead(r.api.Self().String())
+
 			}
 		}
 
