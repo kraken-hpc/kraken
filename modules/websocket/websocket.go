@@ -109,20 +109,14 @@ func (w *WebSocket) Entry() {
 	if e != nil {
 		w.api.Logf(lib.LLERROR, "error getting restapi address")
 	}
-	w.api.Logf(lib.LLDDDEBUG, "setting server ip: %v", rAddr.String())
 	w.srvIp = net.ParseIP(rAddr.String())
 
-	w.api.Logf(lib.LLDDDEBUG, "setting up router")
 	w.setupRouter()
-	w.api.Logf(lib.LLDDDEBUG, "starting webserver")
 	go w.startServer()
 	w.hub = w.newHub()
-	w.api.Logf(lib.LLDDDEBUG, "starting hub")
 	go w.hub.run()
 
-	w.api.Logf(lib.LLDDDEBUG, "sending discovery event")
-	url := lib.NodeURLJoin(w.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "websocket"), "State"))
+	url := lib.NodeURLJoin(w.api.Self().String(), WsStateURL)
 	ev := core.NewEvent(
 		lib.Event_DISCOVERY,
 		url,
@@ -372,7 +366,6 @@ func (c *Client) write() {
 				if err != nil {
 					c.w.api.Logf(lib.LLERROR, "Error writing json to websocket connection%v\n", err)
 				}
-
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))

@@ -169,7 +169,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 
 		_, e := r.api.QueryUpdate(nself)
 		if e != nil {
-			r.api.Logf(lib.LLERROR, "Error updating cfg to set port")
+			r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket service")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
