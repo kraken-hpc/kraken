@@ -8,13 +8,12 @@
  */
 
 syntax = "proto3";
-package proto;
+option go_package = ".;proto";
 
 message WebSocketConfig {
     int32 port = 2;
-    string tick = 3;            // collect messages and bundle them every <tick_duration>
-    string writeWait = 4;       // Time allowed to write a message to the peer.
-    string pongWait = 5;        // Time allowed to read the next pong message from the peer.
-    string pingPeriod = 6;      // Send pings to peer with this period. Must be less than pongWait.
-    int64 maxMessageSize = 7;   // Maximum message size allowed from peer.
+    string writeWait = 3;       // Time allowed to write a message to the peer.
+    string pongWait = 4;        // Time allowed to read the next pong message from the peer.
+    string pingPeriod = 5;      // Send pings to peer with this period. Must be less than pongWait.
+    int64 maxMessageSize = 6;   // Maximum message size allowed from peer.
 }
