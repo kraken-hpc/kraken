@@ -156,19 +156,23 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	nself, _ := r.api.QueryRead(r.api.Self().String())
 
 	// Check if websocket module is running
-	services := nself.GetServices()
-	found := false
-	for _, srv := range services {
-		if srv.GetModule() == "github.com/hpc/kraken/modules/websocket" {
-			if srv.GetState() == cpb.ServiceInstance_RUN {
-				found = true
-			}
-		}
-	}
-	if !found {
-		r.api.Logf(lib.LLERROR, "Got websocket request, but websocket module isn't running")
+	wserv := nself.GetService("websocket")
+	if wserv == nil {
+		r.api.Logf(lib.LLERROR, "Could not find websocket service")
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	if wserv.GetState() != cpb.ServiceInstance_RUN {
+		r.api.Logf(lib.LLDEBUG, "Got websocket request, but websocket module isn't running. Attempting to start it now")
+		wserv.State = cpb.ServiceInstance_RUN
+
+		_, e := r.api.QueryUpdate(nself)
+		if e != nil {
+			r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket service")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Get port from websocket module config
