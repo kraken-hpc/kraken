@@ -2,13 +2,13 @@
 
 ###
 # This will build a layer0 image.
-# 
+#
 # Notes:
 # - It's not very resilient.
 # - It expects you already have built kraken in $GOPATH/github.com/hpc/kraken/build
 # - It will attempt to install u-root if it doesn't find it in $GOPATH/bin
 # - You can overlay a base directory by providing a second argument.
-# 
+#
 # Kernel Modules:
 #  - If /modules.txt exists and contains a line-by-line of full paths (from <base_dir>/) to .ko kernel modules.
 #  - uinit will insmod those modules in order before doing anything else.
@@ -35,7 +35,7 @@ fi
 # shellcheck disable=SC2086
 set -- $opts
 for i; do
-    case "$i" 
+    case "$i"
     in
         -o)
             echo "Output file is $2"
@@ -60,8 +60,8 @@ done
 
 if [ $# -ne 1 ]; then
     usage
-    exit 1 
-fi 
+    exit 1
+fi
 
 ARCH=$1
 TMPDIR=$(mktemp -d)
@@ -90,7 +90,7 @@ fi
 echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
 # copy base_dir over tmpdir if it's set
-if [ -n "${BASEDIR+x}" ]; then 
+if [ -n "${BASEDIR+x}" ]; then
         echo "Overlaying ${BASEDIR}..."
         rsync -av "$BASEDIR"/ "$TMPDIR"/base
 fi
@@ -115,7 +115,7 @@ cpio -itv < "$TMPDIR"/initramfs.cpio
 echo "Compressing..."
 gzip "$TMPDIR"/initramfs.cpio
 
-if [ -z "${OUTFILE+x}" ]; then 
+if [ -z "${OUTFILE+x}" ]; then
     D=$(date +%Y%m%d.%H%M)
     OUTFILE="initramfs.${D}.${ARCH}.cpio.gz"
 fi
