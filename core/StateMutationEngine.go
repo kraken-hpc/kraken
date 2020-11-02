@@ -10,6 +10,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -242,6 +243,105 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
+// DumpJSONGraph for debugging
+// LOCKS: graphMutex (R)
+func (sme *StateMutationEngine) DumpJSONGraph() {
+	sme.graphMutex.RLock()
+
+	var nl pb.MutationNodeList
+	for _, mn := range sme.nodes {
+		var nmn pb.MutationNode
+		nmn.Id = fmt.Sprintf("%p", mn)
+		label := ""
+
+		var reqKeys []string
+		var reqs = mn.spec.Requires()
+		for k := range reqs {
+			reqKeys = append(reqKeys, k)
+		}
+		sort.Strings(reqKeys)
+
+		for _, reqKey := range reqKeys {
+			reqValue := reqs[reqKey]
+			// Add req to label
+			trimKey := strings.Replace(reqKey, "type.googleapis.com", "", -1)
+			trimKey = strings.Replace(trimKey, "/", "", -1)
+			if label == "" {
+				label = fmt.Sprintf("%s: %s", trimKey, lib.ValueToString(reqValue))
+			} else {
+				label = fmt.Sprintf("%s\n%s: %s", label, trimKey, lib.ValueToString(reqValue))
+			}
+		}
+
+		nmn.Label = label
+		nl.MutationNodeList = append(nl.MutationNodeList, &nmn)
+	}
+
+	var el pb.MutationEdgeList
+	for _, me := range sme.edges {
+		var nme pb.MutationEdge
+		nme.From = fmt.Sprintf("%p", me.from)
+		nme.To = fmt.Sprintf("%p", me.to)
+		nme.Id = fmt.Sprintf("%p", me)
+
+		el.MutationEdgeList = append(el.MutationEdgeList, &nme)
+	}
+
+	graph := struct {
+		Nodes []*pb.MutationNode `json:"nodes"`
+		Edges []*pb.MutationEdge `json:"edges"`
+	}{
+		Nodes: nl.MutationNodeList,
+		Edges: el.MutationEdgeList,
+	}
+
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		fmt.Printf("error getting json graph\n")
+		return
+	}
+	fmt.Printf("JSON Graph: \n%v\n", string(jsonGraph))
+	// w.Write([]byte(string(jsonGraph)))
+
+	// fmt.Printf("\n")
+	// fmt.Printf("=== START: Mutators URLs ===\n")
+	// for k, v := range sme.mutators {
+	// 	fmt.Printf("%s: %d\n", k, v)
+	// }
+	// fmt.Printf("=== END: Mutators URLs ===\n")
+	// fmt.Printf("=== START: Requires URLs ===\n")
+	// for k, v := range sme.requires {
+	// 	fmt.Printf("%s: %d\n", k, v)
+	// }
+	// fmt.Printf("=== END: Requires URLs ===\n")
+	// fmt.Printf("\n=== START: Node list ===\n")
+	// for _, m := range sme.nodes {
+	// 	fmt.Printf(`
+	// 	Node: %p
+	// 	 Spec: %p
+	// 	  req: %s
+	// 	  exc: %s
+	// 	 In: %v
+	// 	 Out: %v
+	// 	 `, m, m.spec, sme.dumpMapOfValues(m.spec.Requires()), sme.dumpMapOfValues(m.spec.Excludes()), m.in, m.out)
+	// }
+	// fmt.Printf("\n=== END: Node list ===\n")
+	// fmt.Printf("\n=== START: Edge list ===\n")
+	// for _, m := range sme.edges {
+	// 	fmt.Printf(`
+	// 	Edge: %p
+	// 	 Mutation: %p
+	// 	  mut: %s
+	// 	  req: %s
+	// 	  exc: %s
+	// 	 From: %p
+	// 	 To: %p
+	// 	`, m, m.mut, sme.dumpMutMap(m.mut.Mutates()), sme.dumpMapOfValues(m.mut.Requires()), sme.dumpMapOfValues(m.mut.Excludes()), m.from, m.to)
+	// }
+	// fmt.Printf("\n=== END: Edge list ===\n")
+	sme.graphMutex.RUnlock()
+}
+
 // Converts a slice of sme mutation nodes to a protobuf MutationNodeList
 func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 	for _, mn := range nodes {
@@ -436,7 +536,8 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 	sme.graphMutex.Unlock()
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
-		sme.DumpGraph() // Use this to debug your graph
+		sme.DumpGraph()     // Use this to debug your graph
+		sme.DumpJSONGraph() // Use this to debug your graph
 	}
 
 	// create a listener for state change events we care about
@@ -1293,6 +1394,7 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 		if sme.GetLoggerLevel() >= DDEBUG {
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
+			sme.DumpJSONGraph()
 		}
 	}
 	if e != nil {
