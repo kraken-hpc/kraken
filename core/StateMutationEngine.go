@@ -529,7 +529,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 				// If url is empty then assume we want all mutation nodes
 				if u == "" {
 					sme.graphMutex.RLock()
-					v := sme.mutationNodesToProto(sme.nodes)
+					v := mutationNodesToProto(sme.nodes)
 					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
@@ -537,7 +537,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 					n := NewNodeIDFromURL(q.URL())
 					sme.graphMutex.RLock()
 					fmn, e := sme.filterMutNodesFromNode(*n)
-					mnl := sme.mutationNodesToProto(fmn)
+					mnl := mutationNodesToProto(fmn)
 					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(mnl)}, e), q.ResponseChan())
