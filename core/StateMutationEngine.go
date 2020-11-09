@@ -1149,7 +1149,25 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
 	}
-	sme.DumpJSONGraph()
+
+	nl := mutationNodesToProto(sme.nodes)
+	el := mutationEdgesToProto(sme.edges)
+
+	graph := struct {
+		Nodes []*pb.MutationNode `json:"nodes"`
+		Edges []*pb.MutationEdge `json:"edges"`
+	}{
+		Nodes: nl.MutationNodeList,
+		Edges: el.MutationEdgeList,
+	}
+
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		fmt.Printf("error getting json graph\n")
+		return
+	}
+	fmt.Printf("JSON Graph: \n%v\n", string(jsonGraph))
+
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
