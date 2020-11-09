@@ -1150,8 +1150,8 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 		sme.graphIsSane(nodes, edges)
 	}
 
-	nl := mutationNodesToProto(sme.nodes)
-	el := mutationEdgesToProto(sme.edges)
+	nl := mutationNodesToProto(nodes)
+	el := mutationEdgesToProto(edges)
 
 	graph := struct {
 		Nodes []*pb.MutationNode `json:"nodes"`
