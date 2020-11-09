@@ -1149,6 +1149,7 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
 	}
+	sme.DumpJSONGraph()
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
