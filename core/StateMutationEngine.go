@@ -245,11 +245,9 @@ func (sme *StateMutationEngine) DumpGraph() {
 
 // DumpJSONGraph for debugging
 // LOCKS: graphMutex (R)
-func (sme *StateMutationEngine) DumpJSONGraph() {
-	sme.graphMutex.RLock()
-
-	nl := mutationNodesToProto(sme.nodes)
-	el := mutationEdgesToProto(sme.edges)
+func (sme *StateMutationEngine) DumpJSONGraph(nodes []*mutationNode, edges []*mutationEdge) {
+	nl := mutationNodesToProto(nodes)
+	el := mutationEdgesToProto(edges)
 
 	graph := struct {
 		Nodes []*pb.MutationNode `json:"nodes"`
@@ -265,8 +263,6 @@ func (sme *StateMutationEngine) DumpJSONGraph() {
 		return
 	}
 	fmt.Printf("JSON Graph: \n%v\n", string(jsonGraph))
-
-	sme.graphMutex.RUnlock()
 }
 
 // Converts a slice of sme mutation nodes to a protobuf MutationNodeList
@@ -463,8 +459,11 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 	sme.graphMutex.Unlock()
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
-		sme.DumpGraph()     // Use this to debug your graph
-		sme.DumpJSONGraph() // Use this to debug your graph
+		sme.DumpGraph() // Use this to debug your graph
+		sme.graphMutex.RLock()
+		sme.DumpJSONGraph(sme.nodes, sme.edges) // Use this to debug your graph
+		sme.graphMutex.RUnlock()
+
 	}
 
 	// create a listener for state change events we care about
@@ -1150,23 +1149,9 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 		sme.graphIsSane(nodes, edges)
 	}
 
-	nl := mutationNodesToProto(nodes)
-	el := mutationEdgesToProto(edges)
-
-	graph := struct {
-		Nodes []*pb.MutationNode `json:"nodes"`
-		Edges []*pb.MutationEdge `json:"edges"`
-	}{
-		Nodes: nl.MutationNodeList,
-		Edges: el.MutationEdgeList,
+	if sme.log.GetLoggerLevel() > lib.LLDDEBUG {
+		sme.DumpJSONGraph(nodes, edges)
 	}
-
-	jsonGraph, e := json.Marshal(graph)
-	if e != nil {
-		fmt.Printf("error getting json graph\n")
-		return
-	}
-	fmt.Printf("JSON Graph: \n%v\n", string(jsonGraph))
 
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
@@ -1340,7 +1325,9 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 		if sme.GetLoggerLevel() >= DDEBUG {
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
-			sme.DumpJSONGraph()
+			sme.graphMutex.RLock()
+			sme.DumpJSONGraph(sme.nodes, sme.edges) // Use this to debug your graph
+			sme.graphMutex.RUnlock()
 		}
 	}
 	if e != nil {
