@@ -243,8 +243,9 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
-// DumpJSONGraph for debugging
-// LOCKS: graphMutex (R)
+// DumpJSONGraph for debugging the graph
+// !!!IMPORTANT!!!
+// DumpJSONGraph assumes you already hold a lock
 func (sme *StateMutationEngine) DumpJSONGraph(nodes []*mutationNode, edges []*mutationEdge) {
 	nl := mutationNodesToProto(nodes)
 	el := mutationEdgesToProto(edges)
