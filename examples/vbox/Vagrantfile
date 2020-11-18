@@ -2,7 +2,7 @@ Vagrant.require_version ">= 2.0.0"
 Vagrant.configure("2") do |config|
   config.vm.define "kraken" do |kraken|
     kraken.vm.hostname = "kraken"
-    kraken.vm.box = "centos/7"
+    kraken.vm.box = "centos/8"
     kraken.vm.network "private_network",
       ip: "192.168.57.10",
       netmask: "255.255.255.0",
