@@ -118,7 +118,7 @@ if [ ! -x $GOPATH/bin/u-root ]; then
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio
+GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/jlowellwofford/entropy/cmd/entropy
 
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
