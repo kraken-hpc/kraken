@@ -133,13 +133,11 @@ func main() {
 			Background: false,
 			Args:       []string{"/bbin/sleep", "2"},
 		},
-		/* we don't use dhcp with kraken
-		command{
-			Cmd:        "/bbin/dhclient",
+		{
+			Cmd:        "/bbin/entropy",
 			Background: false,
-			Args:       []string{"/bbin/dhclient", "eth0"},
+			Args:       []string{"/bbin/entropy", "add", "random_seed.dat"},
 		},
-		*/
 		{
 			Cmd:        "/bbin/ip",
 			Background: false,
