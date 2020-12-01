@@ -117,6 +117,12 @@ if [ ! -x $GOPATH/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
+
+if [ ! -x $GOPATH/bin/entropy ]; then
+    echo "You don't appear to have entropyinstalled, attempting to install it"
+    GOPATH=$GOPATH go get -u github.com/jlowellwofford/entropy/cmd/entropy
+fi
+
 echo "Creating image..."
 GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/jlowellwofford/entropy/cmd/entropy
 
