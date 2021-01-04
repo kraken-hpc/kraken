@@ -10,14 +10,25 @@ set -o nounset
 # to exit with a non-zero status, or zero if all commands exit successfully.
 set -o pipefail
 
-KRAKEN_URL="github.com/hpc/kraken"
-VBOXNET="vboxnet99"
-VBOXNET_IP="192.168.57.1"
-KRAKEN_IP="192.168.57.10"
+VBOXNET=${KRAKEN_VBOXNET:-"vboxnet99"}
+VBOXNET_IP=${KRAKEN_VBOXNET_IP:-"192.168.57.1"}
+KRAKEN_IP=${KRAKEN_PARENT_IP:-"192.168.57.10"}
 
 echo "==="
 echo "=== Building a kraken vagrant/virtualbox cluster..."
-echo "==="
+echo "=="
+
+# Are we running under WSL?
+# See: https://stackoverflow.com/questions/38086185/how-to-check-if-a-program-is-run-in-bash-on-ubuntu-on-windows-and-not-just-plain
+VBCMD="vboxmanage"
+if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then
+    echo "Detected Microsoft WSL"
+    # setup VAGRANT env vars for vagrant control inside of WSL
+    export VAGRANT_WSL_WINDOWS_ACCESS_USER_HOME_PATH="$PWD"
+    export VAGRANT_WSL_ENABLE_WINDOWS_ACCESS=1
+    # use the vboxmanager on the host OS
+    VBCMD="VBoxManage.exe"
+fi
 
 if ! GO=$(command -v go); then
     echo "could not find go, is golang installed?"
@@ -25,7 +36,7 @@ if ! GO=$(command -v go); then
 fi
 echo "Using go at: $GO"
  
-if ! VB=$(command -v vboxmanage); then
+if ! VB=$(command -v "$VBCMD"); then
     echo "could not find vboxmanage, is virtualbox installed?"
     exit 1
 fi
@@ -47,9 +58,10 @@ GOPATH="${GOPATH:-"$HOME/go"}"
 
 echo "Using GOPATH: $GOPATH"
 
-VBOXAPI="$(dirname $(dirname $PWD))/utils/vboxapi/vboxapi.go"
+BASEDIR=$(dirname "$PWD")
+VBOXAPI="$(dirname "$BASEDIR")/utils/vboxapi/vboxapi.go"
 
-if [ ! -f  $VBOXAPI ]; then
+if [ ! -f  "$VBOXAPI" ]; then
     echo "Could not find vboxapi.go"
     exit 1
 fi
@@ -58,13 +70,13 @@ echo "Using vboxapi: $VBOXAPI"
 
 echo "Checking vbox hostonly network settings..."
 
-if ! ${VB} list hostonlyifs | grep -q -E "^Name.*${VBOXNET}"; then
+if ! "$VB" list hostonlyifs | grep -q -E "^Name.*${VBOXNET}"; then
     echo "you don't have a ${VBOXNET}, see vbox network setup instructions"
     exit 1
 fi
 echo "   ${VBOXNET} is present"
 
-if ! ${VB} list hostonlyifs | grep -A3 -E "^Name.*${VBOXNET}" | grep -q -w "${VBOXNET_IP}"; then
+if ! "$VB" list hostonlyifs | grep -A3 -E "^Name.*${VBOXNET}" | grep -q -w "${VBOXNET_IP}"; then
     echo "${VBOXNET} is not on ${VBOXNET_IP}, see vbox network setup instructions"
     exit 1
 fi
@@ -77,7 +89,7 @@ else
     echo "   ${VBOXNET} interface has IP ${VBOXNET_IP}"
 fi
 
-if ! ${VB} list hostonlyifs | grep -A2 -E "^Name.*${VBOXNET}" | grep -q -E '^DHCP.*Disabled'; then
+if ! "$VB" list hostonlyifs | grep -A2 -E "^Name.*${VBOXNET}" | grep -q -E '^DHCP.*Disabled'; then
     echo "${VBOXNET} does not have DHCP disable, see vbox network setup instructions"
     exit 1
 fi
