@@ -28,12 +28,9 @@
   args:
     prefix: "kraken"
 
-- name: Debug args
-  module: echo
-    text: "name = {{.name}} iface = {{.iface}} ip = {{.ip}}, net = {{.net}}, id = {{.id} parent = {{.parent}} loglevel = {{.loglevel}} entropyfile = {{.entropyfile}}"
-
 - name: Set hostname
   module: command
+  args:
     cmd: /bbin/hostname {{.name}}
 
 - name: Inject system entropy
@@ -45,6 +42,11 @@
   module: command
   args:
     cmd: rm -f {{.entropyfile}}
+
+- name: Load network interface module
+  module: command
+  args:
+    cmd: /bbin/insmod e1000.ko
 
 - name: Configure network interface
   module: command
@@ -60,6 +62,7 @@
   module: command
   args:
     cmd: /bin/kraken -ip {{.ip}} -parent {{.parent}} -id {{.id}} -log {{.loglevel}}
+    background: true
 
 - name: Start sshd
   module: command
