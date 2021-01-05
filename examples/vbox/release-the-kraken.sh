@@ -120,8 +120,8 @@ echo RUN: "${VG}" up kraken
 "${VG}" up kraken 2>&1 | tee -a log/vagrant-up-kraken.log
 
 echo "Creating the compute nodes"
-echo RUN: sh create-nodes.sh
-sh create-nodes.sh 2>&1 | tee -a log/create-nodes.log
+echo RUN: bash create-nodes.sh
+bash create-nodes.sh 2>&1 | tee -a log/create-nodes.log
 
 echo "(RE)Starting vboxapi, log file in log/vboxapi.log"
 echo RUN: pkill vboxapi
@@ -145,9 +145,9 @@ else
 fi
 
 echo "Injecting kraken state/provisioning nodes"
-echo RUN: sh inject-state.sh
+echo RUN: bash inject-state.sh
 sleep 1
-sh inject-state.sh "${KRAKEN_IP}" 2>&1 | tee -a log/inject-state.log
+bash inject-state.sh "${KRAKEN_IP}" 2>&1 | tee -a log/inject-state.log
 
 echo
 echo "==="
