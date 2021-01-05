@@ -1479,6 +1479,12 @@ func (sme *StateMutationEngine) handleServiceEvent(v *StateChangeEvent) {
 		return
 	}
 
+	if v.Value.Kind() != reflect.TypeOf(pb.ServiceInstance_RUN).Kind() {
+		// it looks like we weren't actually passed the state value
+		// this shouldn't happen, but if we don't check we could panic
+		return
+	}
+
 	if pb.ServiceInstance_ServiceState(v.Value.Int()) != pb.ServiceInstance_RUN {
 		return
 	} // service discovered run state
