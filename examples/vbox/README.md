@@ -31,12 +31,24 @@ The following need to be installed for this to work:
 
 Important: this will not work with WSL 2, since there are Vagrant/VirtualBox issues with WSL 2 (see: [this bug post](https://github.com/geerlingguy/ansible-for-devops/issues/291)).  Make sure your WSL instance is using WSL 1 (you can check with `wsl --list --verbose` in powershell).
 
-This example can be run within Microsoft WSL (Linux on Windows).  To set this up:
+This example can be run within Microsoft WSL (Linux on Windows).  Setup is a bit more complicated in WSL.  To set this up:
 
+- Make sure you are using WSL 1 and WSL 2 isn't installed (it will conflict with VirtualBox).
 - Make sure Go is installed on the *Linux* side.
 - Make sure VirtualBox is installed on the *Windows* side.
 - Make sure Vagrant is installed on the *Linux* side.
 - Make sure Ansible is installed on the *Linux* side.
+- Make sure your WSL is configured to use the "metadata" option on DrvFs. For details, see:
+    - https://devblogs.microsoft.com/commandline/chmod-chown-wsl-improvements/
+    - https://devblogs.microsoft.com/commandline/automatically-configuring-wsl/
+    
+    Specifically, you probably want something like the following in `/etc/wsl.conf`:
+    ```ini
+    [automount]
+    options = "metadata"
+    ```
+
+    After configuring this option you'll need to restart your WSL instance.
 
 When running in WSL mode, all commands should be run from the *Linux* side.
 
@@ -58,7 +70,7 @@ Resolving deltas: 100% (1742/1742), done.
 $ cd kraken
 ```
 
-### Set up host-only network
+### Setting up host-only networking
 
 Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured (except in WSL, see below). Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an arbitrarily high vboxnet number. The example below is for MacOS.
 
@@ -78,7 +90,7 @@ $ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.25
 $ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
 ```
 
-#### WSL network creation
+#### WSL network creation 
 Note: Modifying Host-Only networking on Windows requires Administrator access. 
 
 First, you'll need to add VirtualBox commands to your path on the Linux side (this could be a different directory depending on your install options).

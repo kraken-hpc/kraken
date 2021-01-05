@@ -14,6 +14,18 @@ VBOXNET=${KRAKEN_VBOXNET:-"vboxnet99"}
 VBOXNET_IP=${KRAKEN_VBOXNET_IP:-"192.168.57.1"}
 KRAKEN_IP=${KRAKEN_PARENT_IP:-"192.168.57.10"}
 
+### Functions
+
+function test_chmod {
+    touch .chmod_test
+    chmod 0600 .chmod_test
+    s=$(stat -c "%a" .chmod_test)
+    rm -f .chmod_test
+    [[ $s == 600 ]] && return 0 || return 1
+}
+
+###
+
 echo "==="
 echo "=== Building a kraken vagrant/virtualbox cluster..."
 echo "=="
@@ -28,6 +40,13 @@ if grep -qEi "(Microsoft|WSL)" /proc/version &> /dev/null ; then
     export VAGRANT_WSL_ENABLE_WINDOWS_ACCESS=1
     # use the vboxmanager on the host OS
     VBCMD="VBoxManage.exe"
+    # can we chmod?
+    if ! test_chmod ; then
+        echo "cannot chmod files.  This probably means you have DrvFs mounted without the metadata option."
+        echo "See: https://devblogs.microsoft.com/commandline/chmod-chown-wsl-improvements/"
+	echo "and, https://devblogs.microsoft.com/commandline/automatically-configuring-wsl/"
+        exit 1
+    fi
 fi
 
 if ! GO=$(command -v go); then
