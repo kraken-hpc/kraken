@@ -94,13 +94,6 @@ fi
 echo "Using $KRAKEN"
 cp -v $KRAKEN $TMPDIR/base/bin/kraken
 
-# make pre-requisite binaries
-(
-    cd $TMPDIR/base/bin
-    echo "Build uinit..."
-    GOARCH=$ARCH CGO_ENABLED=0 go build "${KRAKEN_SOURCEDIR}/utils/layer0/uinit/uinit.go"
-)
-
 # copy base_dir over tmpdir if it's set
 if [ ! -z ${BASEDIR+x} ]; then 
         echo "Overlaying ${BASEDIR}..."
@@ -119,12 +112,17 @@ if [ ! -x $GOPATH/bin/u-root ]; then
 fi
 
 if [ ! -x $GOPATH/bin/entropy ]; then
-    echo "You don't appear to have entropyinstalled, attempting to install it"
+    echo "You don't appear to have entropy installed, attempting to install it"
     GOPATH=$GOPATH go get -u github.com/jlowellwofford/entropy/cmd/entropy
 fi
 
+if [ ! -x $GOPATH/bin/uinit ]; then
+    echo "You don't appear to have uinit installed, attempting to install it"
+    GOPATH=$GOPATH go get -u github.com/jlowellwofford/uinit/cmds/uinit
+fi
+
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/jlowellwofford/entropy/cmd/entropy
+GOARCH=$ARCH $GOPATH/bin/u-root -uinitcmd /bbin/uinit -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/jlowellwofford/entropy/cmd/entropy github.com/jlowellwofford/uinit/cmds/uinit
 
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
