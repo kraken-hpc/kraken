@@ -24,8 +24,8 @@
     remote_src: yes
     mode: 0600
 
-- name: Create random_seed.dat for child VMs
-  command: "dd if=/dev/urandom of={{ kr_img_base }}/random_seed.dat bs=1k count=4"
+- name: Create entropy.dat for child VMs
+  command: "dd if=/dev/urandom of={{ kr_img_base }}/entropy.dat bs=1k count=4"
   args:
     creates: "{{ kr_img_base }}/random_seed.dat"
 
