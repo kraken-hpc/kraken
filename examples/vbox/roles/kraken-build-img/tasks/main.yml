@@ -1,4 +1,23 @@
 ---
+- name: Create module base directory
+  file:
+    path: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}"
+    state: directory
+
+# needed for modscan
+- name: Copy modules.alias
+  copy:
+    src: "/lib/modules/{{ kern_out.stdout }}/modules.alias"
+    dest: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}/modules.alias"
+    remote_src: true
+  
+# some way to use synchronize instead?
+- name: Copy module files into image
+  shell:
+  args:
+    chdir: "{{ kr_img_base }}"
+  loop: "{{ kr_img_modules }}"
+
 - name: Copy e1000 module to image base
   copy:
     src: "{{ mod_dir }}/{{ e1000_mod }}"
@@ -10,6 +29,12 @@
   args:
     chdir: "{{ kr_img_base }}"
     creates: e1000.ko
+
+- name: Copy modules into base image
+  shell:
+  args:
+    chdir: "{{ kr_img_base }}"
+  loop: "{{ kr_img_modules }}"
 
 - name: Create image SSH keys
   shell: ssh-keygen -N "" -f id_rsa

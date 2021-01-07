@@ -43,10 +43,16 @@
   args:
     cmd: rm -f {{.entropyfile}}
 
-- name: Load network interface module
+# this is a terrible, but simple way to do things
+- name: Wait for system devices to initialize
   module: command
   args:
-    cmd: /bbin/insmod e1000.ko
+    cmd: /bbin/sleep 2
+
+- name: Scan and load modules
+  module: command
+  args:
+    cmd: /bbin/modscan load
 
 - name: Configure network interface
   module: command
