@@ -5,3 +5,4 @@
 **/.vscode
 log/*.log
 ssh-config
+kraken-state.json

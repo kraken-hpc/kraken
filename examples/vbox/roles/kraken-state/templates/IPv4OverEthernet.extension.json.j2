@@ -1,0 +1,30 @@
+{
+{{- '    "hostname": "' ~ ext.hostname ~ '",\n' if ext.hostname is defined else "" -}}
+{%- if ext.ifaces is defined -%}
+    "ifaces": [ 
+{%- for iface in ext.ifaces|default([]) -%}
+{
+    "eth": {
+{{- '    "iface": "' ~ iface.iface ~ '",\n' if iface.iface is defined else "" -}}
+{{- '    "mac": "' ~ iface.mac ~ '",\n' if iface.mac is defined else "" -}}
+{{- '    "mtu": "' ~ iface.mtu ~ '",\n' if iface.mtu is defined else "" -}}
+{{- '    "control": "' ~ iface.iface ~ '",\n' if iface.control is defined else "" -}}
+    },
+    "ip": {
+{{- '    "ip": "' ~ iface.ip | ip_to_b64 ~ '",\n' if iface.ip is defined else "" -}}
+{{- '    "subnet": "' ~ iface.subnet | ip_to_b64 ~ '",\n' if iface.subnet is defined else "" -}}
+    }
+}
+{%- if not loop.last -%}
+,
+{%- endif -%}
+{%- endfor -%}
+    ],
+{%- endif -%}
+{# we don't actually support these yet
+    "routes": [ ],
+    "dnsServers": [ ],
+    "dnsDomains": [ ],
+    #}
+    "@type": "type.googleapis.com/proto.IPv4OverEthernet"
+}

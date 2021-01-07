@@ -1,0 +1,39 @@
+{# 
+    Expected data structure:
+
+    node:
+      id: uuid as a string
+      arch: string
+      platform: string
+      parentId: string
+
+#}
+{
+    "id": "{{ node.id | uuid_to_b64 }}",
+{{ '    "nodename": "' ~ node.nodename ~ '",\n' if node.nodename is defined else "" -}}
+{{- '    "arch": "' ~ node.arch ~ '",\n' if node.arch is defined else "" -}}
+{{- '    "platform": "' ~ node.platform ~ '",\n' if node.platform is defined else "" -}}
+{{- '    "parentId": "' ~ node.parentid | uuid_to_b64 ~ '",\n' if node.parentid is defined else "" -}}
+{{- '    "runState": "' ~ node.runstate ~ '",\n' if node.runstate is defined else "" -}}
+{{- '    "physState": "' ~ node.physstate ~ '",\n' if node.physstate is defined else "" -}}
+    "services": [
+{%- if node.services is defined -%}
+{% for svc_name, svc in node.services %}
+{% include svc_name ~ ".service.json.j2" ignore missing %}
+{%- if not loop.last -%}
+,
+{%- endif -%}
+{% endfor %}
+{%- endif -%}
+    ],
+    "extensions": [
+{%- if node.extensions is defined -%}
+{% for ext_name, ext in node.extensions.items() %}
+{% include ext_name ~ ".extension.json.j2" ignore missing %}
+{%- if not loop.last -%}
+,
+{%- endif -%}
+{% endfor %}
+{%- endif -%}
+    ]
+}

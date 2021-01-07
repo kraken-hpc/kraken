@@ -1,0 +1,19 @@
+---
+#- name: Create Kraken configuration director
+#  file:
+#    path: "{{ kraken_cfgdir }}"
+#    state: directory
+#    owner: root
+#    group: root
+#    mode: '0755'
+
+#- name: Generate Kraken state file
+#  template:
+#    src: 'nodes.json.j2'
+#    dest: "{{ kraken_state_file }}"
+
+# note: we use copy here just so we can run through to_nice_json
+- name: Generate Kraken state file
+  copy:
+    content: "{{ lookup('template', 'nodes.json.j2') | to_nice_json }}"
+    dest: "{{ kraken_state_file }}"
