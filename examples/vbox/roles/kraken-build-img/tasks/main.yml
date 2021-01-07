@@ -5,12 +5,15 @@
     state: directory
 
 # needed for modscan
-- name: Copy modules.alias
+- name: Copy module descriptor files
   copy:
-    src: "/lib/modules/{{ kern_out.stdout }}/modules.alias"
-    dest: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}/modules.alias"
+    src: "/lib/modules/{{ kern_out.stdout }}/{{ item }}"
+    dest: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}/{{ item }}"
     mode: 0644
     remote_src: true
+  loop:
+    - "modules.alias"
+    - "modules.dep"
   
 # some way to use synchronize instead?
 - name: Copy module files into image
