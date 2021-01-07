@@ -14,7 +14,7 @@
   loop:
     - "modules.alias"
     - "modules.dep"
-  
+
 # some way to use synchronize instead?
 - name: Copy module files into image
   shell: |
