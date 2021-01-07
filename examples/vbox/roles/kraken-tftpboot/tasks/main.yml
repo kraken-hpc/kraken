@@ -36,6 +36,7 @@
   copy:
     src: "{{ kernel_file }}"
     dest: "{{ kr_tftp_dir }}/vmlinuz"
+    mode: 0644
     remote_src: yes
 
 - name: Link pxelinux.cfg to TFTP directory

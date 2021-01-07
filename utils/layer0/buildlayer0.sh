@@ -65,6 +65,12 @@ fi
 STARTDIR=$PWD
 ARCH=$1
 
+# Commands to build into u-root busybox
+EXTRA_COMMANDS=()
+EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
+EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
+EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
+
 if [ -z ${GOPATH+x} ]; then
     echo "GOPATH isn't set, using $HOME/go"
     GOPATH=$HOME/go
@@ -87,7 +93,7 @@ mkdir -p $TMPDIR/base/bin
 
 KRAKEN="$KRAKEN_BUILDDIR/kraken-linux-$ARCH"
 if [ ! -f $KRAKEN ]; then
-    echo "$KRAKEN doesn't exist, built it before running this"
+    echo "$KRAKEN doesn't exist, build it before running this"
     rm -rf $TMPDIR
     exit
 fi
@@ -111,18 +117,16 @@ if [ ! -x $GOPATH/bin/u-root ]; then
     GOPATH=$GOPATH go get github.com/u-root/u-root
 fi
 
-if [ ! -x $GOPATH/bin/entropy ]; then
-    echo "You don't appear to have entropy installed, attempting to install it"
-    GOPATH=$GOPATH go get -u github.com/jlowellwofford/entropy/cmd/entropy
-fi
-
-if [ ! -x $GOPATH/bin/uinit ]; then
-    echo "You don't appear to have uinit installed, attempting to install it"
-    GOPATH=$GOPATH go get -u github.com/jlowellwofford/uinit/cmds/uinit
-fi
+# Make sure commands are available
+for c in "${EXTRA_COMMANDS[@]}"; do
+   if [ ! -d "$GOPATH/src/$c" ]; then
+    echo "You don't appear to have $c, attempting to install it"
+    GOPATH=$GOPATH go get "$c"
+   fi 
+done
 
 echo "Creating image..."
-GOARCH=$ARCH $GOPATH/bin/u-root -uinitcmd /bbin/uinit -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/jlowellwofford/entropy/cmd/entropy github.com/jlowellwofford/uinit/cmds/uinit
+GOARCH=$ARCH $GOPATH/bin/u-root -uinitcmd /bbin/uinit -base $TMPDIR/base.cpio -build bb -o $TMPDIR/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* ${EXTRA_COMMANDS[@]}
 
 echo "Compressing..."
 gzip $TMPDIR/initramfs.cpio
