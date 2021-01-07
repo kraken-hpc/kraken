@@ -9,29 +9,16 @@
   copy:
     src: "/lib/modules/{{ kern_out.stdout }}/modules.alias"
     dest: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}/modules.alias"
+    mode: 0644
     remote_src: true
   
 # some way to use synchronize instead?
 - name: Copy module files into image
-  shell:
-  args:
-    chdir: "{{ kr_img_base }}"
-  loop: "{{ kr_img_modules }}"
-
-- name: Copy e1000 module to image base
-  copy:
-    src: "{{ mod_dir }}/{{ e1000_mod }}"
-    dest: "{{ kr_img_base }}"
-    remote_src: yes
-
-- name: Uncompress e1000 module
-  shell: "xz -d e1000.ko.xz"
-  args:
-    chdir: "{{ kr_img_base }}"
-    creates: e1000.ko
-
-- name: Copy modules into base image
-  shell:
+  shell: |
+    mod_path=$(find "/lib/modules/{{ kern_out.stdout }}" -name "{{ item }}.ko*" | head -n1 )
+    mod_base=$(dirname $mod_path)
+    mkdir -p "{{ kr_img_base }}$mod_base"
+    cp -v "$mod_path" "{{ kr_img_base }}$mod_base"
   args:
     chdir: "{{ kr_img_base }}"
   loop: "{{ kr_img_modules }}"
