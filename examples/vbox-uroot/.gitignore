@@ -1,4 +1,5 @@
 .vagrant
+.vagrant.d
 *.retry
 **/.DS_Store
 **/.vscode

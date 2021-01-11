@@ -27,41 +27,117 @@ The following need to be installed for this to work:
 - [Vagrant](https://www.vagrantup.com) - "Vagrant is a tool for building and managing virtual machine environments in a single workflow."  This is used to manage our virtualbox VMs.
 - [Ansible](https://www.ansible.com) - Orchestration/configuration management tool.  We use this to provision the master.
 
+### WSL
+
+Important: this will not work with WSL 2, since there are Vagrant/VirtualBox issues with WSL 2 (see: [this bug post](https://github.com/geerlingguy/ansible-for-devops/issues/291)).  Make sure your WSL instance is using WSL 1 (you can check with `wsl --list --verbose` in powershell).
+
+This example can be run within Microsoft WSL (Linux on Windows).  Setup is a bit more complicated in WSL.  To set this up:
+
+- Make sure you are using WSL 1 and WSL 2 isn't installed (it will conflict with VirtualBox).
+- Make sure Go is installed on the *Linux* side.
+- Make sure VirtualBox is installed on the *Windows* side.
+- Make sure Vagrant is installed on the *Linux* side.
+- Make sure Ansible is installed on the *Linux* side.
+- Make sure your WSL is configured to use the "metadata" option on DrvFs. For details, see:
+    - https://devblogs.microsoft.com/commandline/chmod-chown-wsl-improvements/
+    - https://devblogs.microsoft.com/commandline/automatically-configuring-wsl/
+
+    Specifically, you probably want something like the following in `/etc/wsl.conf`:
+    ```ini
+    [automount]
+    options = "metadata"
+    ```
+
+    After configuring this option you'll need to restart your WSL instance.
+
+When running in WSL mode, all commands should be run from the *Linux* side.
+
 ## Instructions
 
-If you have not set a `$GOPATH` variable set it to where you want source code to live.  The default is `$HOME/go`.
-Clone the repository into the following directory: `$GOPATH/src/github.com/hpc/`.
+### Get Kraken
 
-To setup the environment:
+You need a copy of Kraken to continue.  Choose a good working directory and run:
 
 ```bash
-$ export GOPATH=$HOME/go
-$ go get github.com/hpc/kraken
-$ cd $GOPATH/src/github.com/hpc/kraken/examples/vbox
+$ git clone https://github.com/hpc/kraken
+Cloning into 'kraken'...
+remote: Enumerating objects: 43, done.
+remote: Counting objects: 100% (43/43), done.
+remote: Compressing objects: 100% (37/37), done.
+remote: Total 4694 (delta 8), reused 14 (delta 3), pack-reused 4651
+Receiving objects: 100% (4694/4694), 7.25 MiB | 13.00 MiB/s, done.
+Resolving deltas: 100% (1742/1742), done.
+$ cd kraken
 ```
 
-Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured. Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an arbitrarily high vboxnet number. The example below is for MacOS.
+### Setting up host-only networking
 
-MacOS:
+Once the dependencies have been installed, there is one step that we do not do automatically.  In the VirtualBox network settings, make sure a "host-only" network named "vboxnet99" is configured (except in WSL, see below). Since the VirtualBox GUI creates adapters in numerical order and we do not want to interfere with others predefined vboxnet entry, let's use an arbitrarily high vboxnet number. The example below is for MacOS.
+
+Note: the host-only network should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
+
+#### MacOS network creation
 ```bash
 $ /Applications/VirtualBox.app/Contents/MacOS/VBoxNetAdpCtl vboxnet99 add
 $ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.255.0
 $ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
 ```
-Linux:
+
+#### Linux network creation
 ```bash
 $ /usr/lib/virtualbox/VBoxNetAdpCtl vboxnet99 add
 $ VBoxManage hostonlyif ipconfig vboxnet99 -ip=192.168.57.1 --netmask=255.255.255.0
 $ VBoxManage dhcpserver modify --netname HostInterfaceNetworking-vboxnet99 --disable
 ```
 
+#### WSL network creation
+Note: Modifying Host-Only networking on Windows requires Administrator access.
 
-vboxnet99 should *not* have DHCP enabled.  It should also be configured to have the network address `192.168.57.1`.
+First, you'll need to add VirtualBox commands to your path on the Linux side (this could be a different directory depending on your install options).
+
+```bash
+$ export PATH="$PATH":"/mnt/c/Program Files/Oracle/VirtualBox"
+```
+
+The `VBoxNetAdpCtl` command does not exist in Windows VirtualBox.  You will need to create a host-only network through the GUI.  We can override the network name, but you need to set the IPv4 address to `192.168.56.1` and the IPv4 Network Mask to `255.255.255.0`. Also, ensure the `DHCP Server` box is unchecked.
+
+In Windows we have no way to set the name for the network.  We can override the `vboxnet99` name by setting an environment variable in the shell we are working in (note: this works for other OSes as well).
+
+We will need to specify the full name of the network addaptor.  It will be something like `VirtualBox Host-Only Ethernet Adapter #2`.  You can verify your settings and get an easy to copy string with.
+
+```bash
+$ VBoxManage.exe list hostonlyifs
+Name:            VirtualBox Host-Only Ethernet Adapter #2
+GUID:            5c30c01b-6970-49bf-bbd9-3b520409c641
+DHCP:            Disabled
+IPAddress:       192.168.57.1
+NetworkMask:     255.255.255.0
+IPV6Address:     fe80::786c:9254:b247:2251
+IPV6NetworkMaskPrefixLength: 64
+HardwareAddress: 0a:00:27:00:00:37
+MediumType:      Ethernet
+Wireless:        No
+Status:          Up
+VBoxNetworkName: HostInterfaceNetworking-VirtualBox Host-Only Ethernet Adapter #2
+...
+```
+
+Now, export the variable with what ever is set in the `Name:` field:
+
+```bash
+$ export KRAKEN_VBOXNET="VirtualBox Host-Only Ethernet Adapter #2"
+```
+
+You will need to set this variable any time you create a new shell.  Alternatively, you could place it in your `.bashrc`.
+
+## Relase the Kraken
 
 Once the dependencies are installed and the host-only network is setup in VirtualBox, you can deploy a virtual cracking cluster with one command:
 
+
 ```bash
-$ sh release-the-kraken.sh
+$ bash release-the-kraken.sh
+...
 ```
 
 Note: this does *not* require root/sudo.  

@@ -9,4 +9,4 @@ echo "destroying kraken"
 vagrant destroy -f kraken
 
 echo "destroying nodes"
-sh destroy-nodes.sh
+bash destroy-nodes.sh
