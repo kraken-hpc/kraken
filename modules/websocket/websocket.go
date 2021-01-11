@@ -21,7 +21,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"sync"
 	"time"
 
 	cpb "github.com/hpc/kraken/core/proto"
@@ -60,14 +59,12 @@ type WebSocket struct {
 	dchan  chan<- lib.Event
 	hub    *Hub
 	ticker *time.Ticker
-	mutex  *sync.Mutex
-	queue  []*Payload
 	srvIp  net.IP
 }
 
 type Hub struct {
 	clients    map[*Client]bool // Registered clients.
-	broadcast  chan []*Payload  // Messages from the event stream.
+	broadcast  chan *Payload    // Messages from the event stream.
 	action     chan *Action     // Messages from the websocket Clients.
 	register   chan *Client     // Register requests from the clients.
 	unregister chan *Client     // Unregister requests from clients.
@@ -77,7 +74,7 @@ type Hub struct {
 type Client struct {
 	hub  *Hub
 	conn *websocket.Conn        // The websocket connection.
-	send chan []*Payload        // Buffered channel of outbound messages.
+	send chan *Payload          // Buffered channel of outbound messages.
 	w    *WebSocket             // Web Socket
 	subs map[lib.EventType]bool // List of event types that client is subscribed to
 }
@@ -102,6 +99,11 @@ type Action struct {
 
 func (w *WebSocket) Entry() {
 	nself, _ := w.api.QueryRead(w.api.Self().String())
+	// Update config so restapi knowns which port to use
+	srv := nself.GetService("websocket")
+	config, _ := ptypes.MarshalAny(w.cfg)
+	srv.Config = config
+	w.api.QueryUpdate(nself)
 
 	rAddr, e := nself.GetValue("/Services/restapi/Config/Addr")
 	if e != nil {
@@ -125,14 +127,9 @@ func (w *WebSocket) Entry() {
 	)
 	w.dchan <- ev
 
+	w.api.Logf(lib.LLDDDEBUG, "starting main loop")
 	for {
-		// create a timer that will send queued websocket messages
-		dur, _ := time.ParseDuration(w.cfg.GetTick())
-		w.ticker = time.NewTicker(dur)
 		select {
-		case <-w.ticker.C:
-			go w.sendWSMessages()
-			break
 		case e := <-w.echan: // event
 			go w.handleEvent(e)
 			break
@@ -171,18 +168,7 @@ func (w *WebSocket) handleEvent(ev lib.Event) {
 	default:
 		w.api.Logf(lib.LLDEBUG, "got unknown event: %+v\n", ev.Data())
 	}
-	w.mutex.Lock()
-	w.queue = append(w.queue, payload)
-	w.mutex.Unlock()
-}
-
-func (w *WebSocket) sendWSMessages() {
-	w.mutex.Lock()
-	if len(w.queue) > 0 {
-		w.hub.broadcast <- w.queue
-		w.queue = []*Payload{}
-	}
-	w.mutex.Unlock()
+	w.hub.broadcast <- payload
 }
 
 func (w *WebSocket) Stop() { os.Exit(0) }
@@ -197,6 +183,7 @@ func (w *WebSocket) SetDiscoveryChan(c chan<- lib.Event) { w.dchan = c }
 
 func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 	if wc, ok := cfg.(*pb.WebSocketConfig); ok {
+		w.api.Logf(lib.LLDEBUG, "updating config for websocket: %v", wc)
 		w.cfg = wc
 		if w.srv != nil {
 			w.srvStop() // we just stop, entry will (re)start
@@ -208,11 +195,7 @@ func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 
 func (w *WebSocket) Init(api lib.APIClient) {
 	w.api = api
-	if w.cfg == nil {
-		w.cfg = w.NewConfig().(*pb.WebSocketConfig)
-	}
-	w.mutex = &sync.Mutex{}
-	w.queue = []*Payload{}
+	w.cfg = w.NewConfig().(*pb.WebSocketConfig)
 }
 
 func (w *WebSocket) NewConfig() proto.Message {
@@ -224,7 +207,6 @@ func (w *WebSocket) NewConfig() proto.Message {
 	)
 	return &pb.WebSocketConfig{
 		Port:           3142,
-		Tick:           "1ms",
 		WriteWait:      writeWait.String(),
 		PongWait:       pongWait.String(),
 		PingPeriod:     pingPeriod.String(),
@@ -282,7 +264,6 @@ func (w *WebSocket) srvStop() {
 
 func init() {
 	module := &WebSocket{}
-	core.Registry.RegisterModule(module)
 	si := core.NewServiceInstance(
 		"websocket",
 		module.Name(),
@@ -293,16 +274,14 @@ func init() {
 	discovers[WsStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
+	core.Registry.RegisterModule(module)
+	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
-
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
-		si.ID(): si,
-	})
 }
 
 func (w *WebSocket) newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []*Payload),
+		broadcast:  make(chan *Payload),
 		action:     make(chan *Action),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -372,8 +351,8 @@ func (c *Client) write() {
 	}()
 	for {
 		select {
-		case messages, ok := <-c.send:
-			c.w.api.Logf(lib.LLDDDEBUG, "client %p got messages from hub: %+v", c, messages)
+		case message, ok := <-c.send:
+			c.w.api.Logf(lib.LLDDDEBUG, "client %p got message from hub: %+v", c, message)
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
@@ -381,16 +360,9 @@ func (c *Client) write() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			var finalMessages []*Payload
-			for _, m := range messages {
-				if _, ok := c.subs[m.Type]; ok {
-					finalMessages = append(finalMessages, m)
-				}
-			}
-
-			c.w.api.Logf(lib.LLDDDEBUG, "sending messages to client: %v\n", finalMessages)
-			if len(finalMessages) != 0 {
-				err := c.conn.WriteJSON(finalMessages)
+			if _, ok := c.subs[message.Type]; ok {
+				c.w.api.Logf(lib.LLDDDEBUG, "sending message to client: %v\n", message)
+				err := c.conn.WriteJSON(message)
 				if err != nil {
 					c.w.api.Logf(lib.LLERROR, "Error writing json to websocket connection%v\n", err)
 				}
@@ -464,7 +436,7 @@ func (w *WebSocket) serveWs(hub *Hub, wrt http.ResponseWriter, req *http.Request
 		return
 	}
 	// Creating client with buffered payload channel set to 50. This might have to be increased if we have a lot of nodes
-	client := &Client{hub: hub, conn: conn, send: make(chan []*Payload, 50), w: w, subs: make(map[lib.EventType]bool)}
+	client := &Client{hub: hub, conn: conn, send: make(chan *Payload, 50), w: w, subs: make(map[lib.EventType]bool)}
 	w.api.Logf(lib.LLDDDEBUG, "websocket added new client: %p\n", client)
 	client.hub.register <- client
 

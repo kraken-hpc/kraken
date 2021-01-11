@@ -61,13 +61,17 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		}
 		// file doesn't exist, but template does
 		// we could potentially make a lot more data than this available
+		// this is the basic stuff that's needed to get linked up with the parent
 		type tplData struct {
+			Iface    string
 			IP       string
 			CIDR     string
 			ID       string
 			ParentIP string
 		}
 		data := tplData{}
+		iface, _ := n.GetValue(px.cfg.SrvIfaceUrl)
+		data.Iface = iface.String()
 		i, _ := n.GetValue(px.cfg.IpUrl)
 		data.IP = IPv4.BytesToIP(i.Bytes()).String()
 		i, _ = n.GetValue(px.cfg.NmUrl)

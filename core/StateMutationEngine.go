@@ -10,6 +10,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -242,8 +243,31 @@ func (sme *StateMutationEngine) DumpGraph() {
 	sme.graphMutex.RUnlock()
 }
 
+// DumpJSONGraph for debugging the graph
+// !!!IMPORTANT!!!
+// DumpJSONGraph assumes you already hold a lock
+func (sme *StateMutationEngine) DumpJSONGraph(nodes []*mutationNode, edges []*mutationEdge) {
+	nl := mutationNodesToProto(nodes)
+	el := mutationEdgesToProto(edges)
+
+	graph := struct {
+		Nodes []*pb.MutationNode `json:"nodes"`
+		Edges []*pb.MutationEdge `json:"edges"`
+	}{
+		Nodes: nl.MutationNodeList,
+		Edges: el.MutationEdgeList,
+	}
+
+	jsonGraph, e := json.Marshal(graph)
+	if e != nil {
+		fmt.Printf("error getting json graph\n")
+		return
+	}
+	fmt.Printf("JSON Graph: \n%v\n", string(jsonGraph))
+}
+
 // Converts a slice of sme mutation nodes to a protobuf MutationNodeList
-func (sme *StateMutationEngine) mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
+func mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 	for _, mn := range nodes {
 		var nmn pb.MutationNode
 		nmn.Id = fmt.Sprintf("%p", mn)
@@ -437,6 +461,10 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 	sme.onUpdate()
 	if sme.GetLoggerLevel() >= DDEBUG {
 		sme.DumpGraph() // Use this to debug your graph
+		sme.graphMutex.RLock()
+		sme.DumpJSONGraph(sme.nodes, sme.edges) // Use this to debug your graph
+		sme.graphMutex.RUnlock()
+
 	}
 
 	// create a listener for state change events we care about
@@ -501,7 +529,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 				// If url is empty then assume we want all mutation nodes
 				if u == "" {
 					sme.graphMutex.RLock()
-					v := sme.mutationNodesToProto(sme.nodes)
+					v := mutationNodesToProto(sme.nodes)
 					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
@@ -509,7 +537,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 					n := NewNodeIDFromURL(q.URL())
 					sme.graphMutex.RLock()
 					fmn, e := sme.filterMutNodesFromNode(*n)
-					mnl := sme.mutationNodesToProto(fmn)
+					mnl := mutationNodesToProto(fmn)
 					sme.graphMutex.RUnlock()
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(mnl)}, e), q.ResponseChan())
@@ -1121,6 +1149,11 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
 	}
+
+	if sme.log.GetLoggerLevel() > lib.LLDDEBUG {
+		sme.DumpJSONGraph(nodes, edges)
+	}
+
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > lib.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
@@ -1293,6 +1326,9 @@ func (sme *StateMutationEngine) findPath(start lib.Node, end lib.Node) (path *mu
 		if sme.GetLoggerLevel() >= DDEBUG {
 			fmt.Printf("start: %v, end: %v\n", string(start.JSON()), string(end.JSON()))
 			sme.DumpGraph()
+			sme.graphMutex.RLock()
+			sme.DumpJSONGraph(sme.nodes, sme.edges) // Use this to debug your graph
+			sme.graphMutex.RUnlock()
 		}
 	}
 	if e != nil {
@@ -1440,6 +1476,12 @@ func (sme *StateMutationEngine) handleServiceEvent(v *StateChangeEvent) {
 	us := lib.URLToSlice(url)
 	if us[len(us)-1] != "State" {
 		// not a change in service state
+		return
+	}
+
+	if v.Value.Kind() != reflect.TypeOf(pb.ServiceInstance_RUN).Kind() {
+		// it looks like we weren't actually passed the state value
+		// this shouldn't happen, but if we don't check we could panic
 		return
 	}
 
