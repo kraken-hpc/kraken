@@ -64,22 +64,31 @@ if [ $# -ne 1 ]; then
 fi
 
 ARCH=$1
-TMPDIR=$(mktemp -d)
 
-if [ -z ${GOPATH+x} ]; then
+# Commands to build into u-root busybox
+EXTRA_COMMANDS=()
+EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
+EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
+EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
+
+if [ -z "${GOPATH+x}" ]; then
     echo "GOPATH isn't set, using $HOME/go"
     GOPATH=$HOME/go
 fi
 
-if [ -z ${KRAKEN_SOURCEDIR+x} ]; then
+if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
     KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
     echo "Using kraken source dir $KRAKEN_SOURCEDIR"
 fi
 
-if [ -z ${KRAKEN_BUILDDIR+x} ]; then
+if [ -z "${KRAKEN_BUILDDIR+x}" ]; then
     KRAKEN_BUILDDIR="$KRAKEN_SOURCEDIR/build"
     echo "Using kraken build dir $KRAKEN_BUILDDIR"
 fi
+
+# make a temporary directory for our base
+TMPDIR=$(mktemp -d)
+echo "Using tmpdir: $TMPDIR"
 
 # Check that kraken build dir is not empty
 contents=$(ls -A "$KRAKEN_BUILDDIR")
@@ -106,8 +115,18 @@ if [ ! -x "$GOPATH"/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
     GOPATH="$GOPATH" go get github.com/u-root/u-root
 fi
+
+# Make sure commands are available
+for c in "${EXTRA_COMMANDS[@]}"; do
+   if [ ! -d "$GOPATH/src/$c" ]; then
+    echo "You don't appear to have $c, attempting to install it"
+    GOPATH=$GOPATH go get "$c"
+   fi
+done
+
 echo "Creating image..."
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio github.com/u-root/u-root/cmds/core/* github.com/hpc/kraken/{build/u-root/kraken,utils/layer0/uinit_uroot/uinit} 2>&1
+# shellcheck disable=SC2068
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot exp github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
