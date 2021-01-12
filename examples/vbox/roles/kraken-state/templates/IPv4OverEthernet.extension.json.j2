@@ -6,7 +6,7 @@
 {
     "eth": {
 {{- '    "iface": "' ~ iface.iface ~ '",\n' if iface.iface is defined else "" -}}
-{{- '    "mac": "' ~ iface.mac ~ '",\n' if iface.mac is defined else "" -}}
+{{- '    "mac": "' ~ iface.mac | mac_to_b64 ~ '",\n' if iface.mac is defined else "" -}}
 {{- '    "mtu": "' ~ iface.mtu ~ '",\n' if iface.mtu is defined else "" -}}
 {{- '    "control": "' ~ iface.iface ~ '",\n' if iface.control is defined else "" -}}
     },

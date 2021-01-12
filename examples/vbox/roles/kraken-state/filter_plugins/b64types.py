@@ -14,6 +14,7 @@ from ansible.errors import AnsibleFilterError
 from base64 import b64encode, b64decode
 from uuid import UUID
 from socket import inet_aton, inet_ntoa
+from netaddr import EUI, AddrFormatError
 
 # convert a UUID to b64 encoded bytes
 def uuid_to_b64(value):
@@ -55,6 +56,24 @@ def b64_to_ip(value):
         raise AnsibleFilterError('b64_to_ip: (%s) is not a valid IPv4 address: %s' % (value, str(e)))
     return i
 
+def mac_to_b64(value):
+    try:
+        m = EUI(value)
+    except AddrFormatError as e:
+        raise AnsibleFilterError('mac_to_b64: (%s) is not a valid MAC address: %s' % (value, str(e)))
+    return b64encode(m.packed).decode()
+
+def b64_to_mac(value):
+    try:
+        b = b64decode(value)
+    except binascii.Error as e:
+        raise AnsibleFilterError('b64_to_mac: failed to decode (%s) as base64: %s' % (value, str(e)))
+    try:
+        m = EUI(b.hex())
+    except AddrFormatError as e:
+        raise AnsibleFilterError('b64_to_mac: (%s) is not a valid MAC address: %s' % (value, str(e)))
+    return m
+
 # register ansible filters
 class FilterModule(object):
     ''' b64-type filters '''
@@ -64,5 +83,7 @@ class FilterModule(object):
             'uuid_to_b64': uuid_to_b64,
             'b64_to_uuid': b64_to_uuid,
             'ip_to_b64': ip_to_b64,
-            'b64_to_ip': b64_to_ip
+            'b64_to_ip': b64_to_ip,
+            'mac_to_b64': mac_to_b64,
+            'b64_to_mac': b64_to_mac
         }
