@@ -21,9 +21,3 @@
   args:
     creates: "{{ kr_build_dir }}/{{ kr_target }}"
     chdir: "{{ kr_src_dir }}"
-
-- name: Symlink local kraken
-  file:
-    src: "{{ kr_build_dir }}/{{ kr_target }}"
-    dest: "{{ kr_link_dir }}/kraken"
-    state: link

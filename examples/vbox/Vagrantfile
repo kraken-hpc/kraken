@@ -34,6 +34,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision :ansible do |ansible|
-    ansible.playbook = "kraken.yml"
+    ansible.playbook = "ansible/kraken.yml"
+    ansible.verbose = false
   end
 end

@@ -5,7 +5,7 @@
 {%- for iface in ext.ifaces|default([]) -%}
 {
     "eth": {
-{{- '    "iface": "' ~ iface.iface ~ '",\n' if iface.iface is defined else "" -}}
+{{- '    "iface": "' ~ iface.name ~ '",\n' if iface.name is defined else "" -}}
 {{- '    "mac": "' ~ iface.mac | mac_to_b64 ~ '",\n' if iface.mac is defined else "" -}}
 {{- '    "mtu": "' ~ iface.mtu ~ '",\n' if iface.mtu is defined else "" -}}
 {{- '    "control": "' ~ iface.iface ~ '",\n' if iface.control is defined else "" -}}
