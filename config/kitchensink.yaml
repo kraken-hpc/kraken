@@ -1,0 +1,40 @@
+
+targets:
+  'linux-amd64':
+    os: 'linux'
+    arch: 'amd64'
+  'linux-arm64':
+    os: 'linux'
+    arch: 'arm64'
+  'linux-ppc64':
+    os: 'linux'
+    arch: 'ppc64'
+  'darwin-amd64':
+    os: 'darwin'
+    arch: 'amd64'
+  'uroot':
+
+extensions: 
+  - github.com/hpc/kraken/extensions/HostFrequencyScaler
+  - github.com/hpc/kraken/extensions/HostThermal
+  - github.com/hpc/kraken/extensions/IPv4
+  - github.com/hpc/kraken/extensions/PXE
+  - github.com/hpc/kraken/extensions/Powerman
+  - github.com/hpc/kraken/extensions/RFAggregatorServer
+  - github.com/hpc/kraken/extensions/RFThermal
+  - github.com/hpc/kraken/extensions/RPi3
+  - github.com/hpc/kraken/extensions/VBox
+modules: 
+  - github.com/hpc/kraken/modules/cpuburn
+  - github.com/hpc/kraken/modules/dummy
+  - github.com/hpc/kraken/modules/hostfrequencyscaling
+  - github.com/hpc/kraken/modules/hostthermaldiscovery
+  - github.com/hpc/kraken/modules/pipower
+  - github.com/hpc/kraken/modules/pipxe
+  - github.com/hpc/kraken/modules/powermancontrol
+  - github.com/hpc/kraken/modules/pxe
+  - github.com/hpc/kraken/modules/restapi
+  - github.com/hpc/kraken/modules/rfpipower
+  - github.com/hpc/kraken/modules/rfthermaldiscovery
+  - github.com/hpc/kraken/modules/vboxmanage
+  - github.com/hpc/kraken/modules/websocket
