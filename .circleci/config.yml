@@ -1,6 +1,29 @@
 version: 2 # use CircleCI 2.0
 jobs: # basic units of work in a run
-  build: # runs not using Workflows must have a `build` job as entry point
+  build: # make sure the "kitcken sink" builds
+    docker:
+      - image: circleci/golang:1.15
+    steps:
+      - restore_cache: # restores saved cache if no changes are detected since last run
+          keys:
+            - v1-pkg-cache
+
+      - checkout
+      - run:
+          name: Create kitchen sink config
+          command: bash config/generate-kitchensink.sh .
+      - run:
+          name: Build kraken-build
+          command: go build kraken-build.go
+      - run:
+          name: Build kitchen sink recipe
+          command: ./kraken-build -force -v -config config/kitchensink.yaml
+      - save_cache: # store cache in the /go/pkg directory
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+
+  test:
     docker: # run the steps with Docker
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.15
@@ -28,14 +51,6 @@ jobs: # basic units of work in a run
             cd core/tests
             go test -v | tee ${TEST_RESULTS}/go-test.out
 
-      - run:
-          name: Build kraken-build
-          command: go build kraken-build.go
-
-      - run:
-          name: Build VBox recipe
-          command: ./kraken-build -force -v -config config/vbox.yaml
-
       - save_cache: # store cache in the /go/pkg directory
           key: v1-pkg-cache
           paths:
@@ -47,3 +62,10 @@ jobs: # basic units of work in a run
 
       - store_test_results: # upload test results for display in Test Summary
           path: /tmp/test-results
+
+workflows:
+  version: 2
+  test_and_build:
+    jobs:
+      - test
+      - build
