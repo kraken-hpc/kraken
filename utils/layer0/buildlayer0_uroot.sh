@@ -104,12 +104,6 @@ if [ -n "${BASEDIR+x}" ]; then
         rsync -av "$BASEDIR"/ "$TMPDIR"/base
 fi
 
-echo "Creating base cpio..."
-(
-    cd "$TMPDIR"/base || { touch "$TMPDIR"/base.cpio; exit; }
-    find . | cpio -oc > "$TMPDIR"/base.cpio
-)
-
 # Check that u-root is installed, clone it if not
 if [ ! -x "$GOPATH"/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
@@ -126,7 +120,7 @@ done
 
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot exp github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -build bb -o "$TMPDIR"/initramfs.cpio core boot exp github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
