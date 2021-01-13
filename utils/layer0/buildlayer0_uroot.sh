@@ -120,7 +120,7 @@ done
 
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -build bb -o "$TMPDIR"/initramfs.cpio core boot exp github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -build bb -o "$TMPDIR"/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
