@@ -1,0 +1,5 @@
+---
+kraken_ip: '10.11.12.1'
+kraken_ipapi: '192.168.57.10'
+kraken_loglevel: 9
+kraken_working_directory: "{{ kr_tftp_base | dirname }}"

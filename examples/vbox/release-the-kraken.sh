@@ -115,10 +115,6 @@ fi
 echo "   ${VBOXNET} DHCP is disabled"
 echo "hostonly network settings OK."
 
-echo "Creating and provisioning the master (this may take a while)..."
-echo RUN: "${VG}" up kraken
-"${VG}" up kraken 2>&1 | tee -a log/vagrant-up-kraken.log
-
 echo "Creating the compute nodes"
 echo RUN: bash create-nodes.sh
 bash create-nodes.sh 2>&1 | tee -a log/create-nodes.log
@@ -129,13 +125,9 @@ pkill vboxapi || true
 echo RUN: nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}"
 nohup go run "${VBOXAPI}" -v -ip "${VBOXNET_IP}" -vbm "${VB}" > log/vboxapi.log &
 
-echo "(RE)Starting kraken on the 'kraken'"
-echo RUN: "${VG}" ssh-config kraken > ssh-config
-"${VG}" ssh-config kraken > ssh-config
-echo RUN: ssh -F ssh-config kraken 'sudo pkill kraken'
-ssh -F ssh-config kraken 'sudo pkill kraken' || true
-echo RUN: ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
-ssh -F ssh-config kraken 'sudo sh support/start-kraken.sh'
+echo "Creating and provisioning the master (this may take a while)..."
+echo RUN: "${VG}" up kraken
+"${VG}" up kraken 2>&1 | tee -a log/vagrant-up-kraken.log
 
 if command -v open > /dev/null; then
     echo "Launching dashboard viewer to: http://${KRAKEN_IP}/"
@@ -143,11 +135,6 @@ if command -v open > /dev/null; then
 else 
     echo "Kraken dashboard is running on: http://${KRAKEN_IP}/"
 fi
-
-echo "Injecting kraken state/provisioning nodes"
-echo RUN: bash inject-state.sh
-sleep 1
-bash inject-state.sh "${KRAKEN_IP}" 2>&1 | tee -a log/inject-state.log
 
 echo
 echo "==="
