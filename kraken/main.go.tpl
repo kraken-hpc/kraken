@@ -170,6 +170,8 @@ func main() {
 			log.Logf(lib.LLCRITICAL, "failed to send sd_notify: %v", err)
 		} else if !sent {
 			log.Logf(lib.LLWARNING, "sdnotify was requested, but notification is not supported")
+		} else {
+			log.Logf(lib.LLNOTICE, "successfuly sent sdnotify ready")
 		}
 	}
 
