@@ -67,7 +67,7 @@
 - name: Start kraken
   module: command
   args:
-    cmd: /bin/kraken -ip {{.ip}} -parent {{.parent}} -id {{.id}} -log {{.loglevel}}
+    cmd: /bbin/kraken -ip {{.ip}} -parent {{.parent}} -id {{.id}} -log {{.loglevel}}
     background: true
 
 - name: Start sshd
