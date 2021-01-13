@@ -61,9 +61,10 @@ var _ lib.Logger = (*WriterLogger)(nil)
 // A WriterLogger writes to any io.Writer interface, e.g. stdout, stderr, or an open file
 // NOTE: Does not close the interface
 type WriterLogger struct {
-	w  io.Writer
-	m  string
-	lv lib.LoggerLevel
+	w             io.Writer
+	m             string
+	lv            lib.LoggerLevel
+	DisablePrefix bool
 }
 
 // Log submits a Log message with a LoggerLevel
@@ -73,11 +74,20 @@ func (l *WriterLogger) Log(lv lib.LoggerLevel, m string) {
 		if int(lv) <= len(lib.LoggerLevels)+1 {
 			plv = lib.LoggerLevels[lv]
 		}
-		s := []string{
-			time.Now().Format("15:04:05.000"),
-			l.m,
-			plv,
-			strings.TrimSpace(m) + "\n",
+		var s []string
+		if !l.DisablePrefix {
+			s = []string{
+				time.Now().Format("15:04:05.000"),
+				l.m,
+				plv,
+				strings.TrimSpace(m) + "\n",
+			}
+		} else {
+			s = []string{
+				l.m,
+				plv,
+				strings.TrimSpace(m) + "\n",
+			}
 		}
 		l.w.Write([]byte(strings.Join(s, ":")))
 	}
