@@ -11,7 +11,7 @@ set -o nounset
 set -o pipefail
 
 echo Stopping kraken
-ssh -F ssh-config kraken 'sudo pkill kraken' || true
+ssh -F ssh-config kraken 'sudo systemctl stop kraken' || true
 
 echo Stopping vboxapi
 pkill vboxapi || true

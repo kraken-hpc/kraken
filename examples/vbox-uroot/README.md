@@ -25,7 +25,8 @@ The following need to be installed for this to work:
 - [VirtualBox](https://virtulabox.org) - "VirtualBox is a powerful x86 and AMD64/Intel64 virtualization product for enterprise as well as home use."
 - [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) - "Support for USB 2.0 and USB 3.0 devices, VirtualBox RDP, disk encryption, NVMe and PXE boot for Intel cards."  We need this for PXE boot capabilities.
 - [Vagrant](https://www.vagrantup.com) - "Vagrant is a tool for building and managing virtual machine environments in a single workflow."  This is used to manage our virtualbox VMs.
-- [Ansible](https://www.ansible.com) - Orchestration/configuration management tool.  We use this to provision the master.
+
+Note: It is no longer required to install [Ansible](https://www.ansible.com) on the host system, as ansible now runs locally within the virtual machine.
 
 ### WSL
 
@@ -37,7 +38,6 @@ This example can be run within Microsoft WSL (Linux on Windows).  Setup is a bit
 - Make sure Go is installed on the *Linux* side.
 - Make sure VirtualBox is installed on the *Windows* side.
 - Make sure Vagrant is installed on the *Linux* side.
-- Make sure Ansible is installed on the *Linux* side.
 - Make sure your WSL is configured to use the "metadata" option on DrvFs. For details, see:
     - https://devblogs.microsoft.com/commandline/chmod-chown-wsl-improvements/
     - https://devblogs.microsoft.com/commandline/automatically-configuring-wsl/
@@ -142,6 +142,8 @@ $ bash release-the-kraken.sh
 
 Note: this does *not* require root/sudo.  
 
+If you are running under WSL, you will need to tell Windows to allow firewall access to vboxapi (Windows will pop up a message).
+
 This script will perform all of the necessary steps to build a virtual kraken cluster.  It will take about 3-5 minutes to complete.
 
 ## How it works
@@ -149,23 +151,23 @@ This script will perform all of the necessary steps to build a virtual kraken cl
 The `release-the-kraken.sh` script performs the following steps to bring up a virtual Kraken cluster.
 
 1. It verifies that we have all of the dependencies and network settings we need.
-2. It calls `vagrant up kraken`, which uses the included `VagrantFile` to create and provision the "kraken" (master) VM.  `Vagrant` calls `ansible` to handle provisioning.  `Ansible` performs a number of steps, but here are some of the more critical ones:
+2. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediately shuts these off as we don't want them on yet.
+3. Starts the (included) `vboxapi.go`, which provides a ReST API for VirtualBox VM power control.  This allows Kraken to control the power atate of the VMs.
+4. It calls `vagrant up kraken`, which uses the included `VagrantFile` to create and provision the "kraken" (master) VM.  `Vagrant` calls `ansible` to handle provisioning.  `Ansible` performs a number of steps, but here are some of the more critical ones:
    1. install necessary dependencies in the VM;
    2. get kraken, build the `kraken-builder`;
-   3. build the kraken binary for the master node;
-   4. generate kraken source tree into a u-root image for the work nodes;
-   5. setup the directory/files needed for pxeboot;
-   6. create the "layer0" image that the nodes will boot.
-3. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediately shuts these off as we don't want them on yet.
-4. Starts the (included) `vboxapi.go`, which provides a ReST API for VirtualBox VM power control.  This allows Kraken to control the power state of the VMs.
-5. Starts `kraken` on the "kraken" (master) node.
-6. Loads the state information for the nodes.
+   3. build the kraken binaries;
+   4. setup the directory/files needed for pxeboot;
+   5. create the "layer0" image that the nodes will boot.
+   6. generate node state information
+   7. install and start kraken systemd service (and inject node state)
+6. Loads the kraken dashboard.
 
 From this point, Kraken takes over and brings the nodes up.  Once the nodes are up, it begins synchronizing state information with them.
 
 To see more detail on any of these steps, take a look at the scripts and ansible roles included.
 
-You can find more information on what's happening in the logs under `./log/`, or the `/home/vagrant/kraken.log` file on the "kraken" host for the logs of kraken itself.  To get to the kraken host you can use either:
+You can find more information on what's happening in the logs.  Kraken now runs under systemd, and you can reach see the logs with `journalctl -u kraken` on the "kraken" host.  To get to the kraken host you can use either:
 
 `$ vagrant ssh kraken`
 
@@ -184,10 +186,9 @@ There are a number of helper scripts in this directory.  Here's what they do:
 - `create-nodes.sh` - this creates the `kr[1-4]` nodes.  It takes no arguments.  It skips any nodes that are already created.
 - `destroy-all.sh` - this destroys everything created by `release-the-kraken.sh`.  It takes no arguments.  This includes:
    1. shutting down `vboxapi`
-   2. destroying `kraken` VM
+   a. destroying `kraken` VM
    3. destroying node VMs `kr[1-4]`
 - `destroy-nodes.sh` - this destroys nodes `kr[1-4]`.  It takes no arguments.
-- `inject-state.sh` - this injects state information into the running kraken to get things going.  It takes the Kraken IP and port as arguments. These default to 192.168.57.1 and 3141 if not specified.
 - `release-the-kraken.sh` - this does a total bring-up of the example environment (as described above).  It takes no arguments.  This is (*should be*) safe to call more than once; you an call it multiple times to re-start kraken.
 - `shutdown.sh` - this shuts down a running kraken environment by: 1) shutting down `kraken` on "kraken"; 2) shutting down the `vboxapi`. You re-start kraken by re-running `release-the-kraken.sh`.
 
@@ -212,10 +213,18 @@ Making the image large will likely lead to unexpected problems.
 
 ### Adding a kernel module
 
-There is a special file, `modules.txt`, in the image.  Any module listed there will get `insmod`-ed at start.  It does not know about module dependencies, so modules need to be listed with all dependencies and in dependency order.  
+The [uinit](https://github.com/jlowellwofford/uinit) process that initializes nodes runs a utility called [modscan](https://github.com/bensallen/modscan) that will automatically add any modules needed for detected hardware.
 
-You will need to add the module files themselves to `support/base` so they can be found.  It is fine to put them anywhere in the filesystem as long as `modules.txt` has a full path to the module file.
+In the case that you need to add a non-hardware module, e.g. a filesystem driver:
 
-The `insmod` in `u-root` does not currently support compressed modules.  Make sure to uncompress modules before adding them to `support/base`.
+1. Make sure to copy the module (and any module dependencies, try `modprobe --show-depends <module>`) into the `lib/modules/$(uname -r)/` directory under `support/base`.
+2. Add an entry to the uinit script to load the module at startup, e.g.:
+
+   ```yaml
+   - name: Load mymodule
+     module: command
+     args:
+       cmd: /bbin/modprobe mymodule
+   ```
 
 ## _Now: `$ go get kraken`!_
