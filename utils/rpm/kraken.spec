@@ -6,7 +6,6 @@ Group:          Applications/System
 License:        BSD-3
 URL:            https://github.com/hpc/kraken
 Source0:        %{name}-%{version}.tar.gz
-Source1:        %{?KrakenConfig}%{?!KrakenConfig:kraken.yaml}
 
 BuildRequires:  go, golang >= 1.15, golang-bin, golang-src
 
@@ -31,13 +30,13 @@ Kraken is a distributed state engine that can maintain state across a large set 
 
 %prep
 %setup -q
+cp -p %{?KrakenConfig}%{?!KrakenConfig:kraken.yaml} build.yaml
 
 %build
 
 rpm --eval "$(cat utils/rpm/kraken.service)" > kraken.service
 rpm --eval "$(cat utils/rpm/kraken.environment)" > kraken.environment
 
-cp %{SOURCE1} build.yaml
 cat << EOF >> build.yaml 
 targets:
   'rpm':
