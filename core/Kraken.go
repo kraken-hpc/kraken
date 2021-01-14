@@ -14,7 +14,6 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -37,6 +36,7 @@ type Context struct {
 	SubChan chan<- lib.EventListener
 	Self    lib.NodeID
 	Parents []string
+	SDE     ContextSDE
 	SSE     ContextSSE
 	SME     ContextSME
 	RPC     ContextRPC
@@ -67,6 +67,11 @@ type ContextRPC struct {
 	UNIXListener net.Listener
 }
 
+type ContextSDE struct {
+	InitialCfg []lib.Node
+	InitialDsc []lib.Node
+}
+
 ///////////////////
 // Kraken Object /
 /////////////////
@@ -91,7 +96,7 @@ type Kraken struct {
 	self lib.Node
 }
 
-// NewKraken creates a new Kracken object with proper intialization
+// NewKraken creates a new Kraken object with proper intialization
 func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
 	// FIXME: we probably shouldn't rely on this
 	ipv, _ := self.GetValue(AddrURL)
@@ -124,6 +129,10 @@ func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
 		Addr:    ip.String(),
 		Port:    31415,
 		Path:    "/tmp/kraken.sock",
+	}
+	k.Ctx.SDE = ContextSDE{
+		InitialCfg: []lib.Node{self},
+		InitialDsc: []lib.Node{},
 	}
 	k.SetModule("kraken")
 	return k
@@ -205,7 +214,7 @@ func (k *Kraken) Bootstrap() {
 
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
-	k.Sde = NewStateDifferenceEngine(k.self, k.Ctx, k.Ctx.sdqChan)
+	k.Sde = NewStateDifferenceEngine(k.Ctx, k.Ctx.sdqChan)
 	k.Ctx.Query = *NewQueryEngine(k.Ctx.sdqChan, k.Ctx.smqChan)
 	k.Sm = NewServiceManager(k.Ctx, "unix:"+k.Ctx.RPC.Path)
 	k.Ctx.Sm = k.Sm // API needs this
@@ -245,18 +254,6 @@ func (k *Kraken) Run() {
 	go k.Sm.Run(ready)
 	<-ready
 	k.Log(lib.LLINFO, "ServiceManager reported ready")
-
-	if len(k.Ctx.Parents) < 1 {
-		// set our own runstate and phystate, should we discover these instead?
-		n, _ := k.Ctx.Query.Read(k.Ctx.Self)
-		dn, _ := k.Ctx.Query.ReadDsc(k.Ctx.Self)
-		n.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))
-		dn.SetValue("/PhysState", reflect.ValueOf(pb.Node_POWER_ON))
-		n.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
-		dn.SetValue("/RunState", reflect.ValueOf(pb.Node_SYNC))
-		k.Ctx.Query.UpdateDsc(dn)
-		k.Ctx.Query.Update(n)
-	}
 }
 
 ////////////////////////
