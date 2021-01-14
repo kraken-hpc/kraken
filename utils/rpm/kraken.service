@@ -7,7 +7,7 @@ Requires=network.target
 EnvironmentFile=%{_sysconfdir}/sysconfig/kraken
 Type=notify
 WorkingDirectory=%{?KrakenWorkingDirectory}%{?!KrakenWorkingDirectory:/}
-ExecStart=%{_sbindir}/kraken -id "$KRAKEN_ID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -journald -sdnotify
+ExecStart=%{_sbindir}/kraken -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -journald -sdnotify
 ExecStartPost=/bin/bash -c '/usr/bin/curl -XPOST -H "Content-type: application/json" -d "@$KRAKEN_STATE_FILE" "http://$KRAKEN_IPAPI:3141/cfg/nodes"'
 
 [Install]
