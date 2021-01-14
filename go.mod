@@ -1,7 +1,7 @@
 module github.com/hpc/kraken
 
 require (
-	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/handlers v1.5.1
@@ -10,11 +10,10 @@ require (
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
-	github.com/u-root/u-root v7.0.0+incompatible // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-go 1.13
+go 1.15

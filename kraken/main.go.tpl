@@ -16,6 +16,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib"
@@ -35,6 +36,8 @@ func main() {
 	ipapi := flag.String("ipapi", "127.0.0.1", "what IP to use for the ReST API")
 	parent := flag.String("parent", "", "IP adddress of parent")
 	llevel := flag.Int("log", 3, "set the log level (0-9)")
+	sdnotify := flag.Bool("sdnotify", false, "notify systemd when kraken is initialized")
+	journald := flag.Bool("journald", false, "assuming we are logging through journald, disable log prefixes")
 	flag.Parse()
 
 	// Create a new logger interface
@@ -42,6 +45,9 @@ func main() {
 	log.RegisterWriter(os.Stderr)
 	log.SetModule("main")
 	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
+	if *journald {
+		log.DisablePrefix = true
+	}
 
 	// Launch as base Kraken or module?
 	//me := filepath.Base(os.Args[0])
@@ -155,6 +161,18 @@ func main() {
 	// Thaw if full state
 	if len(parents) == 0 {
 		k.Sme.Thaw()
+	}
+
+	// notify systemd?
+	if *sdnotify {
+		sent, err := daemon.SdNotify(false, daemon.SdNotifyReady)
+		if err != nil {
+			log.Logf(lib.LLCRITICAL, "failed to send sd_notify: %v", err)
+		} else if !sent {
+			log.Logf(lib.LLWARNING, "sdnotify was requested, but notification is not supported")
+		} else {
+			log.Logf(lib.LLNOTICE, "successfuly sent sdnotify ready")
+		}
 	}
 
 	// wait forever
