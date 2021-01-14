@@ -34,7 +34,7 @@ cp -p %{?KrakenConfig}%{?!KrakenConfig:kraken.yaml} build.yaml
 
 %build
 
-rpm --eval "$(cat utils/rpm/kraken.service)" > kraken.service
+rpm -D "KrakenWorkingDirectory %{?KrakenWorkingDirectory}%{?!KrakenWorkingDirectory:/}" --eval "$(cat utils/rpm/kraken.service)" > kraken.service
 rpm --eval "$(cat utils/rpm/kraken.environment)" > kraken.environment
 
 cat << EOF >> build.yaml 
