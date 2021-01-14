@@ -11,7 +11,6 @@
     version: "{{ kr_repo_version }}"
 
 - name: Build kraken from source
-  when: not kr_rpm
   block:
   - name: Build kraken-build
     shell: "go build {{ kr_build }}.go"
