@@ -38,7 +38,7 @@ func main() {
 	parent := flag.String("parent", "", "IP adddress of parent")
 	llevel := flag.Int("log", 3, "set the log level (0-9)")
 	sdnotify := flag.Bool("sdnotify", false, "notify systemd when kraken is initialized")
-	logprefix := flag.Bool("logprefix", true, "prefix log messages with timestamps")
+	noprefix := flag.Bool("noprefix", true, "don't prefix log messages with timestamps")
 	cfg := flag.String("cfg", "", "path to a JSON file containing initial configuration state to load")
 	flag.Parse()
 
@@ -53,7 +53,7 @@ func main() {
 	log.RegisterWriter(os.Stderr)
 	log.SetModule("main")
 	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
-	if *logprefix {
+	if *noprefix {
 		log.DisablePrefix = true
 	}
 
