@@ -130,6 +130,7 @@ func main() {
 
 	// Parse -cfg file
 	if *cfg != "" {
+		log.Logf(lib.LLINFO, "loading initial configuration state from: %s", *cfg)
 		data, e := ioutil.ReadFile(*cfg)
 		if e != nil {
 			fmt.Printf("failed to read cfg state file: %s, %v", *cfg, e)
@@ -142,8 +143,10 @@ func main() {
 			flag.PrintDefaults()
 			return
 		}
+		log.Logf(lib.LLDEBUG, "found initial state information for %d nodes", len(pbs.Nodes))
 		for _, m := range pbs.GetNodes() {
 			n := core.NewNodeFromMessage(m)
+			log.Logf(lib.LLDDDEBUG, "got node state for node: %s", n.ID().String())
 			if n.ID().Equal(self.ID()) {
 				// we found ourself
 				self.Merge(n, "")
