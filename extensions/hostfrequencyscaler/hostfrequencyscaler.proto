@@ -8,9 +8,10 @@
  */
 
 syntax = "proto3";
-package proto;
+package HostFrequencyScaler;
+option go_package = ".;hostfrequencyscaler";
 
-message HostFrequencyScaler{
+message Scaler {
     enum ScalerState {
         NONE = 0;
         POWER_SAVE = 1;
