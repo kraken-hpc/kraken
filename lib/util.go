@@ -59,11 +59,13 @@ func diffStruct(a, b reflect.Value, pre string) (r []string, e error) {
 	}
 	for i := 0; i < a.NumField(); i++ {
 		f := a.Type().Field(i)
-		if f.Anonymous {
-			// don't try to diff anonymous fields
-			continue
-		}
-		if f.Name == "Extensions" || f.Name == "Services" || f.Name == "Children" || f.Name == "Parents" || strings.HasPrefix(f.Name, "XXX_") {
+		if f.Name == "Extensions" || // don't include extensions
+			f.Name == "Services" || // don't include services
+			f.Name == "Children" || // don't include children
+			f.Name == "Parents" || // don't include parents
+			f.Anonymous || // don't include anonymous fields
+			f.PkgPath != "" || // don't include unexported fields (see reflect docs)
+			strings.HasPrefix(f.Name, "XXX_") { // don't include proto XXX_* fields
 			continue
 		}
 		s, e := diffAny(a.Field(i), b.Field(i), URLPush(pre, f.Name))
@@ -105,6 +107,9 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 	switch a.Kind() {
 	case reflect.Bool, reflect.Float32, reflect.Float64, reflect.Int32, reflect.Int64,
 		reflect.String, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if !a.CanInterface() || !b.CanInterface() {
+			return []string{}, fmt.Errorf("attempted to diff private struct fields")
+		}
 		if a.Interface() != b.Interface() {
 			return []string{pre}, nil
 		}
