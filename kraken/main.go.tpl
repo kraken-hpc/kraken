@@ -27,7 +27,7 @@ import (
 
 	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/extensions/IPv4"
-	rpb "github.com/hpc/kraken/modules/restapi/proto"
+	rpb "github.com/hpc/kraken/modules/restapi"
 	uuid "github.com/satori/go.uuid"
 )
 

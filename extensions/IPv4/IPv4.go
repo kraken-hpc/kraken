@@ -1,5 +1,4 @@
 /* IPv4.z.go: this extension adds standard IPv4 and Ethernet properties to the Node state
- *            note: the .z naming convention esures the .pb init() runs first
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -18,7 +17,6 @@ import (
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
 )
 
 /////////////////////////////
@@ -65,8 +63,10 @@ func (i *IPv4OverEthernet) New() types.Message {
 	}
 }
 
+const Name = "type.googleapis.com/IPv4.IPv4OverEthernet"
+
 func (i *IPv4OverEthernet) Name() string {
-	return util.ProtoName(i)
+	return Name
 }
 
 // BytesToIP converts 4 bytes to a net.IP
