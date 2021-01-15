@@ -40,7 +40,7 @@ var _ lib.ModuleWithConfig = (*RestAPI)(nil)
 
 type RestAPI struct {
 	cfg    *pb.RestAPIConfig
-	api    lib.APIClient
+	api    lib.ModuleAPIClient
 	router *mux.Router
 	srv    *http.Server
 }
@@ -76,7 +76,7 @@ func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
 	return fmt.Errorf("wrong config type")
 }
 
-func (r *RestAPI) Init(api lib.APIClient) {
+func (r *RestAPI) Init(api lib.ModuleAPIClient) {
 	r.api = api
 	if r.cfg == nil {
 		r.cfg = r.NewConfig().(*pb.RestAPIConfig)

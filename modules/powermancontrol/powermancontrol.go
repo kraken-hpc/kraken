@@ -102,7 +102,7 @@ var excs = map[string]reflect.Value{}
 
 // PMC provides a power on/off interface to powerman
 type PMC struct {
-	api        lib.APIClient
+	api        lib.ModuleAPIClient
 	cfg        *pb.PMCConfig
 	mchan      <-chan lib.Event
 	dchan      chan<- lib.Event
@@ -228,7 +228,7 @@ func (p *PMC) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (p *PMC) Init(api lib.APIClient) {
+func (p *PMC) Init(api lib.ModuleAPIClient) {
 	p.api = api
 	p.cfg = p.NewConfig().(*pb.PMCConfig)
 	p.queueMutex = &sync.Mutex{}

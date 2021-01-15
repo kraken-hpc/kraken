@@ -87,7 +87,7 @@ type Kraken struct {
 	Sde *StateDifferenceEngine
 	Sse *StateSyncEngine
 	Sme *StateMutationEngine
-	Api *APIServer
+	Api *ModuleAPIServer
 	Sm  *ServiceManager
 
 	// Un-exported
@@ -221,7 +221,7 @@ func (k *Kraken) Bootstrap() {
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
 	k.Sme = NewStateMutationEngine(k.Ctx, k.Ctx.smqChan)
-	k.Api = NewAPIServer(k.Ctx)
+	k.Api = NewModuleAPIServer(k.Ctx)
 
 	k.Sde.Subscribe("SDE", k.Ede.EventChan())
 	k.Sme.Subscribe("SME", k.Ede.EventChan())

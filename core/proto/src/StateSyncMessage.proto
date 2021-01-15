@@ -3,12 +3,13 @@
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
- * Copyright (c) 2018, Triad National Security, LLC
+ * Copyright (c) 2018-2021, Triad National Security, LLC
  * See LICENSE file for details.
  */
 
 syntax = "proto3";
 package proto;
+option go_package = ".;proto";
 
 /* StateSyncMessage are messages sent by StateSync */
 message StateSyncMessage {

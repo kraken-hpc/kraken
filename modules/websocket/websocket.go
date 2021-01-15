@@ -52,7 +52,7 @@ const (
 
 type WebSocket struct {
 	cfg    *pb.WebSocketConfig
-	api    lib.APIClient
+	api    lib.ModuleAPIClient
 	router *mux.Router
 	srv    *http.Server
 	echan  <-chan lib.Event
@@ -68,7 +68,7 @@ type Hub struct {
 	action     chan *Action     // Messages from the websocket Clients.
 	register   chan *Client     // Register requests from the clients.
 	unregister chan *Client     // Unregister requests from clients.
-	api        lib.APIClient
+	api        lib.ModuleAPIClient
 }
 
 type Client struct {
@@ -193,7 +193,7 @@ func (w *WebSocket) UpdateConfig(cfg proto.Message) (e error) {
 	return fmt.Errorf("wrong config type")
 }
 
-func (w *WebSocket) Init(api lib.APIClient) {
+func (w *WebSocket) Init(api lib.ModuleAPIClient) {
 	w.api = api
 	w.cfg = w.NewConfig().(*pb.WebSocketConfig)
 }

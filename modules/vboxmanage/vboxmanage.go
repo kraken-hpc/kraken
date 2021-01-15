@@ -97,7 +97,7 @@ var excs = map[string]reflect.Value{}
 
 // VBM provides a power on/off interface to the vboxmanage-rest-api interface
 type VBM struct {
-	api        lib.APIClient
+	api        lib.ModuleAPIClient
 	cfg        *pb.VBMConfig
 	mchan      <-chan lib.Event
 	dchan      chan<- lib.Event
@@ -206,7 +206,7 @@ func (pp *VBM) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (pp *VBM) Init(api lib.APIClient) {
+func (pp *VBM) Init(api lib.ModuleAPIClient) {
 	pp.api = api
 	pp.cfg = pp.NewConfig().(*pb.VBMConfig)
 }

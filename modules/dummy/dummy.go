@@ -59,10 +59,10 @@ var timeouts = map[string]int{
 
 // A Dummy says strings from its cfg.say every cfg.duration
 type Dummy struct {
-	//api *core.APIClient
+	//api *core.ModuleAPIClient
 	cfg    *pb.DummyConfig
 	i      int
-	api    lib.APIClient
+	api    lib.ModuleAPIClient
 	dchan  chan<- lib.Event
 	mchan  <-chan lib.Event
 	timers map[string]*time.Timer
@@ -198,7 +198,7 @@ func (d *Dummy) SetMutationChan(c <-chan lib.Event) {
 // Init initializes the module.
 // If this exists, it will be called when the module is instantiated.
 // It will be called before the API is initialized or the config is in place.
-func (d *Dummy) Init(api lib.APIClient) {
+func (d *Dummy) Init(api lib.ModuleAPIClient) {
 	d.api = api
 	d.i = 0
 }

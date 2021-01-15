@@ -53,7 +53,7 @@ const (
 
 // A CPUBurn manages burners on a cpu
 type CPUBurn struct {
-	api       lib.APIClient
+	api       lib.ModuleAPIClient
 	cfg       *pb.CPUBurnConfig
 	dchan     chan<- lib.Event
 	control   chan int
@@ -101,9 +101,9 @@ func (c *CPUBurn) Entry() {
 	}
 }
 
-// Init is run before Entry, provides an APIClient
+// Init is run before Entry, provides an ModuleAPIClient
 // ModuleSelfService
-func (c *CPUBurn) Init(api lib.APIClient) {
+func (c *CPUBurn) Init(api lib.ModuleAPIClient) {
 	c.api = api
 	c.cfg = c.NewConfig().(*pb.CPUBurnConfig)
 	c.control = make(chan int)

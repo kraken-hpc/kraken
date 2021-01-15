@@ -85,7 +85,7 @@ const (
 
 // PiPXE provides PXE-boot capabilities for Raspberry Pis
 type PiPXE struct {
-	api   lib.APIClient
+	api   lib.ModuleAPIClient
 	cfg   *pb.PiPXEConfig
 	mchan <-chan lib.Event
 	dchan chan<- lib.Event
@@ -266,7 +266,7 @@ func (px *PiPXE) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (px *PiPXE) Init(api lib.APIClient) {
+func (px *PiPXE) Init(api lib.ModuleAPIClient) {
 	px.api = api
 	px.mutex = sync.RWMutex{}
 	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)

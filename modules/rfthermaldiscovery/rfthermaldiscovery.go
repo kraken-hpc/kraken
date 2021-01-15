@@ -65,7 +65,7 @@ type CPUTempCollection struct {
 
 // RFD provides rfdiscovery module capabilities
 type RFD struct {
-	api        lib.APIClient
+	api        lib.ModuleAPIClient
 	cfg        *pb.RFDiscoveryConfig
 	dchan      chan<- lib.Event
 	pollTicker *time.Ticker
@@ -146,7 +146,7 @@ func init() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (rfd *RFD) Init(api lib.APIClient) {
+func (rfd *RFD) Init(api lib.ModuleAPIClient) {
 	rfd.api = api
 	rfd.cfg = rfd.NewConfig().(*pb.RFDiscoveryConfig)
 }

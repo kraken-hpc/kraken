@@ -111,7 +111,7 @@ var excs = map[string]reflect.Value{}
 
 // RFPiPower provides a power on/off interface to the proprietary BitScope power control plane
 type RFPiPower struct {
-	api    lib.APIClient
+	api    lib.ModuleAPIClient
 	mutex  *sync.Mutex
 	queue  map[string][2]string // map[<nodename>][<mutation>, <nodeidstr>]
 	cfg    *pb.RFPiPowerConfig
@@ -220,7 +220,7 @@ func (pp *RFPiPower) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (pp *RFPiPower) Init(api lib.APIClient) {
+func (pp *RFPiPower) Init(api lib.ModuleAPIClient) {
 	pp.api = api
 	pp.mutex = &sync.Mutex{}
 	pp.queue = make(map[string][2]string)

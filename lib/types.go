@@ -518,7 +518,7 @@ type Module interface {
 type ModuleSelfService interface {
 	Module
 	Entry()
-	Init(api APIClient)
+	Init(api ModuleAPIClient)
 	//Execute()
 	Stop()
 }
@@ -545,7 +545,7 @@ type ModuleWithAllEvents interface {
 	SetEventsChan(<-chan Event)
 }
 
-type APIClient interface {
+type ModuleAPIClient interface {
 	Logger
 	Self() NodeID
 	QueryCreate(Node) (Node, error)

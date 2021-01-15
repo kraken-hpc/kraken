@@ -103,7 +103,7 @@ var excs = map[string]reflect.Value{}
 
 // PiPower provides a power on/off interface to the proprietary BitScope power control plane
 type PiPower struct {
-	api    lib.APIClient
+	api    lib.ModuleAPIClient
 	mutex  *sync.Mutex
 	queue  map[string][2]string // map[<nodename>][<mutation>, <nodeidstr>]
 	cfg    *pb.PiPowerConfig
@@ -209,7 +209,7 @@ func (pp *PiPower) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (pp *PiPower) Init(api lib.APIClient) {
+func (pp *PiPower) Init(api lib.ModuleAPIClient) {
 	pp.api = api
 	pp.mutex = &sync.Mutex{}
 	pp.queue = make(map[string][2]string)

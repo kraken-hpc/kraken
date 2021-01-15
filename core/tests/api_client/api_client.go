@@ -14,7 +14,7 @@ import (
 
 func main() {
 
-	api := core.NewAPIClient(os.Args[1])
+	api := core.NewModuleAPIClient(os.Args[1])
 
 	ns, e := api.QueryReadAll()
 	if e != nil {

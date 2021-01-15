@@ -81,7 +81,7 @@ const (
 
 // PXE provides PXE-boot capabilities
 type PXE struct {
-	api   lib.APIClient
+	api   lib.ModuleAPIClient
 	cfg   *pb.PXEConfig
 	mchan <-chan lib.Event
 	dchan chan<- lib.Event
@@ -258,7 +258,7 @@ func (px *PXE) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (px *PXE) Init(api lib.APIClient) {
+func (px *PXE) Init(api lib.ModuleAPIClient) {
 	px.api = api
 	px.mutex = sync.RWMutex{}
 	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)

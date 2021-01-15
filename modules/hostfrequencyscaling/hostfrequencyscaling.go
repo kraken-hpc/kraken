@@ -204,7 +204,7 @@ var muts = map[string]hfsmut{
 
 // HFS provides rfcpufreqscaling module capabilities
 type HFS struct {
-	api        lib.APIClient
+	api        lib.ModuleAPIClient
 	cfg        *pb.HostFreqScalingConfig
 	mutex      *sync.Mutex
 	psEnforced bool
@@ -302,7 +302,7 @@ var greqs = map[string]reflect.Value{
 var excs = map[string]reflect.Value{}
 
 // Init is used to intialize an executable module prior to entrypoint
-func (hfs *HFS) Init(api lib.APIClient) {
+func (hfs *HFS) Init(api lib.ModuleAPIClient) {
 	hfs.api = api
 	hfs.mutex = &sync.Mutex{}
 	hfs.psEnforced = false

@@ -7,6 +7,8 @@
  * See LICENSE file for details.
  */
 
+//go:generate protoc -I proto/src --go_out=plugins=grpc:proto proto/src/ServiceInstance.proto
+
 package core
 
 import (
@@ -173,7 +175,7 @@ func ModuleExecute(id, module, sock string) {
 		config = true
 	}
 
-	api := NewAPIClient(sock)
+	api := NewModuleAPIClient(sock)
 	mss.Init(api)
 	// call in, and get a control chan
 	cc, e := api.ServiceInit(id, module)

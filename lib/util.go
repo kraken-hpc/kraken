@@ -59,6 +59,10 @@ func diffStruct(a, b reflect.Value, pre string) (r []string, e error) {
 	}
 	for i := 0; i < a.NumField(); i++ {
 		f := a.Type().Field(i)
+		if f.Anonymous {
+			// don't try to diff anonymous fields
+			continue
+		}
 		if f.Name == "Extensions" || f.Name == "Services" || f.Name == "Children" || f.Name == "Parents" || strings.HasPrefix(f.Name, "XXX_") {
 			continue
 		}
@@ -113,8 +117,8 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 	case reflect.Interface, reflect.Map:
 		fallthrough
 	default:
-		log.Printf("not yet implemented: %v", a.Kind())
-		log.Printf("unknown type")
+		//log.Printf("not yet implemented: %v", a.Kind())
+		//log.Printf("unknown type")
 	}
 	return
 }

@@ -68,7 +68,7 @@ type HostDisc struct {
 	prevTemp      int32
 	file          *os.File
 	preFreqScaler string
-	api           lib.APIClient
+	api           lib.ModuleAPIClient
 	cfg           *pb.HostDiscoveryConfig
 	dchan         chan<- lib.Event
 	pollTicker    *time.Ticker
@@ -145,7 +145,7 @@ func init() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (hostDisc *HostDisc) Init(api lib.APIClient) {
+func (hostDisc *HostDisc) Init(api lib.ModuleAPIClient) {
 	hostDisc.api = api
 	hostDisc.cfg = hostDisc.NewConfig().(*pb.HostDiscoveryConfig)
 

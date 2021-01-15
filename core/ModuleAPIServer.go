@@ -1,4 +1,4 @@
-/* APIServer.go: provides the RPC API.  All gRPC calls live here
+/* ModuleAPIServer.go: provides the RPC API.  All gRPC calls live here
  * (except PhoneHome, which is a special exception in StateSyncEngine.go)
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
@@ -8,7 +8,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto -I proto/include --go_out=plugins=grpc:proto proto/API.proto
+//go:generate protoc -I proto/src --go_out=plugins=grpc:proto proto/src/ModuleAPI.proto
 
 package core
 
@@ -30,7 +30,7 @@ import (
 // Auxiliary objects /
 /////////////////////
 
-// DiscoveryEvents announce a discovery
+// A DiscoveryEvent announce a discovery
 // This should probably live elsewhere
 // This maps directly to a pb.DiscoveryControl
 type DiscoveryEvent struct {
@@ -44,13 +44,13 @@ func (de *DiscoveryEvent) String() string {
 }
 
 //////////////////////
-// APIServer Object /
+// ModuleAPIServer Object /
 ////////////////////
 
-var _ pb.APIServer = (*APIServer)(nil)
+var _ pb.ModuleAPIServer = (*ModuleAPIServer)(nil)
 
-// APIServer is the gateway for gRPC calls into Kraken (i.e. the Module interface)
-type APIServer struct {
+// ModuleAPIServer is the gateway for gRPC calls into Kraken (i.e. the Module interface)
+type ModuleAPIServer struct {
 	nlist net.Listener
 	ulist net.Listener
 	query *QueryEngine
@@ -61,9 +61,9 @@ type APIServer struct {
 	self  lib.NodeID
 }
 
-// NewAPIServer creates a new, initialized API
-func NewAPIServer(ctx Context) *APIServer {
-	api := &APIServer{
+// NewModuleAPIServer creates a new, initialized API
+func NewModuleAPIServer(ctx Context) *ModuleAPIServer {
+	api := &ModuleAPIServer{
 		nlist: ctx.RPC.NetListner,
 		ulist: ctx.RPC.UNIXListener,
 		query: &ctx.Query,
@@ -77,7 +77,7 @@ func NewAPIServer(ctx Context) *APIServer {
 	return api
 }
 
-func (s *APIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	pbin := in.GetNode()
 	out = &pb.Query{}
 	if pbin == nil {
@@ -94,7 +94,7 @@ func (s *APIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *pb.Quer
 	return
 }
 
-func (s *APIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout lib.Node
 	out = &pb.Query{}
 	nout, e = s.query.Read(NewNodeIDFromURL(in.URL))
@@ -105,7 +105,7 @@ func (s *APIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query,
 	return
 }
 
-func (s *APIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout lib.Node
 	out = &pb.Query{}
 	nout, e = s.query.ReadDsc(NewNodeIDFromURL(in.URL))
@@ -116,7 +116,7 @@ func (s *APIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Que
 	return
 }
 
-func (s *APIServer) QueryUpdate(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryUpdate(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	pbin := in.GetNode()
 	out = &pb.Query{}
 	if pbin == nil {
@@ -133,7 +133,7 @@ func (s *APIServer) QueryUpdate(ctx context.Context, in *pb.Query) (out *pb.Quer
 	return
 }
 
-func (s *APIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	pbin := in.GetNode()
 	out = &pb.Query{}
 	if pbin == nil {
@@ -150,7 +150,7 @@ func (s *APIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out *pb.Q
 	return
 }
 
-func (s *APIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout lib.Node
 	out = &pb.Query{}
 	nout, e = s.query.Delete(NewNodeIDFromURL(in.URL))
@@ -161,7 +161,7 @@ func (s *APIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Quer
 	return
 }
 
-func (s *APIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
 	var nout []lib.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -178,7 +178,7 @@ func (s *APIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (out *pb.
 	return
 }
 
-func (s *APIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
 	var nout []lib.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -195,7 +195,7 @@ func (s *APIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *
 	return
 }
 
-func (s *APIServer) QueryMutationNodes(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryMutationNodes(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
 	var mnlout pb.MutationNodeList
 	url := "/graph/nodes"
 	out = &pb.Query{}
@@ -209,7 +209,7 @@ func (s *APIServer) QueryMutationNodes(ctx context.Context, in *empty.Empty) (ou
 	return
 }
 
-func (s *APIServer) QueryMutationEdges(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryMutationEdges(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
 	var melout pb.MutationEdgeList
 	url := "/graph/nodes"
 	out = &pb.Query{}
@@ -223,7 +223,7 @@ func (s *APIServer) QueryMutationEdges(ctx context.Context, in *empty.Empty) (ou
 	return
 }
 
-func (s *APIServer) QueryNodeMutationNodes(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryNodeMutationNodes(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var mnlout pb.MutationNodeList
 	out = &pb.Query{}
 	mnlout, e = s.query.ReadNodeMutationNodes(in.URL)
@@ -236,7 +236,7 @@ func (s *APIServer) QueryNodeMutationNodes(ctx context.Context, in *pb.Query) (o
 	return
 }
 
-func (s *APIServer) QueryNodeMutationEdges(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryNodeMutationEdges(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var melout pb.MutationEdgeList
 	out = &pb.Query{}
 	melout, e = s.query.ReadNodeMutationEdges(in.URL)
@@ -249,7 +249,7 @@ func (s *APIServer) QueryNodeMutationEdges(ctx context.Context, in *pb.Query) (o
 	return
 }
 
-func (s *APIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var mpout pb.MutationPath
 	out = &pb.Query{}
 	mpout, e = s.query.ReadNodeMutationPath(in.URL)
@@ -262,7 +262,7 @@ func (s *APIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Query) (ou
 	return
 }
 
-func (s *APIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
 	var nout []lib.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -279,17 +279,17 @@ func (s *APIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *p
 	return
 }
 
-func (s *APIServer) QueryFreeze(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryFreeze(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
 	e = s.query.Freeze()
 	out = &pb.Query{}
 	return
 }
-func (s *APIServer) QueryThaw(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryThaw(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
 	e = s.query.Thaw()
 	out = &pb.Query{}
 	return
 }
-func (s *APIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
 	out = &pb.Query{}
 	rb, e := s.query.Frozen()
 	out.Payload = &pb.Query_Bool{Bool: rb}
@@ -300,7 +300,7 @@ func (s *APIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Q
  * Service management
  */
 
-func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_ServiceInitServer) (e error) {
+func (s *ModuleAPIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_ServiceInitServer) (e error) {
 	srv := s.sm.GetService(sir.GetId())
 
 	self, _ := s.query.Read(s.self)
@@ -325,7 +325,7 @@ func (s *APIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.API_Servic
 
 // MutationInit handles establishing the mutation stream
 // This just caputures (filtered) mutation events and sends them over the stream
-func (s *APIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.API_MutationInitServer) (e error) {
+func (s *ModuleAPIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_MutationInitServer) (e error) {
 	sid := sir.GetId()
 	echan := make(chan lib.Event)
 	list := NewEventListener("MutationFor:"+sid, lib.Event_STATE_MUTATION,
@@ -364,7 +364,7 @@ func (s *APIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.API_Mutat
 
 // EventInit handles establishing the event stream
 // This just caputures all events and sends them over the stream
-func (s *APIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.API_EventInitServer) (e error) {
+func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_EventInitServer) (e error) {
 	module := sir.GetModule()
 	echan := make(chan lib.Event)
 	filterFunction := func(e lib.Event) bool {
@@ -436,7 +436,7 @@ func (s *APIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.API_EventIni
 
 // DiscoveryInit handles discoveries from nodes
 // This dispatches nodes
-func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {
+func (s *ModuleAPIServer) DiscoveryInit(stream pb.ModuleAPI_DiscoveryInitServer) (e error) {
 	for {
 		dc, e := stream.Recv()
 		if e != nil {
@@ -458,7 +458,7 @@ func (s *APIServer) DiscoveryInit(stream pb.API_DiscoveryInitServer) (e error) {
 }
 
 // LoggerInit initializes and RPC logger stream
-func (s *APIServer) LoggerInit(stream pb.API_LoggerInitServer) (e error) {
+func (s *ModuleAPIServer) LoggerInit(stream pb.ModuleAPI_LoggerInitServer) (e error) {
 	for {
 		msg, e := stream.Recv()
 		if e != nil {
@@ -471,10 +471,10 @@ func (s *APIServer) LoggerInit(stream pb.API_LoggerInitServer) (e error) {
 }
 
 // Run starts the API service listener
-func (s *APIServer) Run(ready chan<- interface{}) {
+func (s *ModuleAPIServer) Run(ready chan<- interface{}) {
 	s.Log(INFO, "starting API")
 	srv := grpc.NewServer()
-	pb.RegisterAPIServer(srv, s)
+	pb.RegisterModuleAPIServer(srv, s)
 	reflection.Register(srv)
 	ready <- nil
 	if e := srv.Serve(s.ulist); e != nil {
@@ -490,29 +490,29 @@ func (s *APIServer) Run(ready chan<- interface{}) {
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*APIServer)(nil)
+var _ lib.Logger = (*ModuleAPIServer)(nil)
 
-func (s *APIServer) Log(level lib.LoggerLevel, m string) { s.log.Log(level, m) }
-func (s *APIServer) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (s *ModuleAPIServer) Log(level lib.LoggerLevel, m string) { s.log.Log(level, m) }
+func (s *ModuleAPIServer) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
 	s.log.Logf(level, fmt, v...)
 }
-func (s *APIServer) SetModule(name string)                { s.log.SetModule(name) }
-func (s *APIServer) GetModule() string                    { return s.log.GetModule() }
-func (s *APIServer) SetLoggerLevel(level lib.LoggerLevel) { s.log.SetLoggerLevel(level) }
-func (s *APIServer) GetLoggerLevel() lib.LoggerLevel      { return s.log.GetLoggerLevel() }
-func (s *APIServer) IsEnabledFor(level lib.LoggerLevel) bool {
+func (s *ModuleAPIServer) SetModule(name string)                { s.log.SetModule(name) }
+func (s *ModuleAPIServer) GetModule() string                    { return s.log.GetModule() }
+func (s *ModuleAPIServer) SetLoggerLevel(level lib.LoggerLevel) { s.log.SetLoggerLevel(level) }
+func (s *ModuleAPIServer) GetLoggerLevel() lib.LoggerLevel      { return s.log.GetLoggerLevel() }
+func (s *ModuleAPIServer) IsEnabledFor(level lib.LoggerLevel) bool {
 	return s.log.IsEnabledFor(level)
 }
 
 /*
  * Consume an emitter, so we implement EventEmitter directly
  */
-var _ lib.EventEmitter = (*APIServer)(nil)
+var _ lib.EventEmitter = (*ModuleAPIServer)(nil)
 
-func (s *APIServer) Subscribe(id string, c chan<- []lib.Event) error {
+func (s *ModuleAPIServer) Subscribe(id string, c chan<- []lib.Event) error {
 	return s.em.Subscribe(id, c)
 }
-func (s *APIServer) Unsubscribe(id string) error { return s.em.Unsubscribe(id) }
-func (s *APIServer) Emit(v []lib.Event)          { s.em.Emit(v) }
-func (s *APIServer) EmitOne(v lib.Event)         { s.em.EmitOne(v) }
-func (s *APIServer) EventType() lib.EventType    { return s.em.EventType() }
+func (s *ModuleAPIServer) Unsubscribe(id string) error { return s.em.Unsubscribe(id) }
+func (s *ModuleAPIServer) Emit(v []lib.Event)          { s.em.Emit(v) }
+func (s *ModuleAPIServer) EmitOne(v lib.Event)         { s.em.EmitOne(v) }
+func (s *ModuleAPIServer) EventType() lib.EventType    { return s.em.EventType() }

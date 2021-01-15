@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/include -I proto --go_out=plugins=grpc:proto proto/StateSyncMessage.proto
+//go:generate protoc -I proto/src --go_out=plugins=grpc:proto proto/src/StateSyncMessage.proto
 
 package core
 
