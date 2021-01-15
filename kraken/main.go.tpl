@@ -40,6 +40,7 @@ func main() {
 	sdnotify := flag.Bool("sdnotify", false, "notify systemd when kraken is initialized")
 	noprefix := flag.Bool("noprefix", true, "don't prefix log messages with timestamps")
 	cfg := flag.String("cfg", "", "path to a JSON file containing initial configuration state to load")
+	freeze := flag.Bool("freeze", false, "start the SME frozen (i.e. don't try to mutate any states at startup)")
 	flag.Parse()
 
 	// This gives us an easy way to distinguesh when a flag happened to be set to its default
@@ -212,7 +213,7 @@ func main() {
 	k.Release()
 
 	// Thaw if full state and not told to freeze
-	if len(parents) == 0 {
+	if len(parents) == 0 || !*freeze {
 		k.Sme.Thaw()
 	}
 
