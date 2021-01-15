@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto -I proto --go_out=plugins=grpc:. proto/restapi.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. restapi.proto
 
 package restapi
 
@@ -39,7 +39,7 @@ var _ types.ModuleSelfService = (*RestAPI)(nil)
 var _ types.ModuleWithConfig = (*RestAPI)(nil)
 
 type RestAPI struct {
-	cfg    *RestAPIConfig
+	cfg    *Config
 	api    types.ModuleAPIClient
 	router *mux.Router
 	srv    *http.Server
@@ -66,7 +66,7 @@ func (r *RestAPI) Stop() { os.Exit(0) }
 func (r *RestAPI) Name() string { return "github.com/hpc/kraken/modules/restapi" }
 
 func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
-	if rc, ok := cfg.(*RestAPIConfig); ok {
+	if rc, ok := cfg.(*Config); ok {
 		r.cfg = rc
 		if r.srv != nil {
 			r.srvStop() // we just stop, entry will (re)start
@@ -79,12 +79,12 @@ func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
 func (r *RestAPI) Init(api types.ModuleAPIClient) {
 	r.api = api
 	if r.cfg == nil {
-		r.cfg = r.NewConfig().(*RestAPIConfig)
+		r.cfg = r.NewConfig().(*Config)
 	}
 }
 
 func (r *RestAPI) NewConfig() proto.Message {
-	return &RestAPIConfig{
+	return &Config{
 		Addr: "127.0.0.1",
 		Port: 3141,
 	}

@@ -26,7 +26,7 @@ import (
 	_ "net/http/pprof"
 
 	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/extensions/IPv4"
+	"github.com/hpc/kraken/extensions/ipv4"
 	rpb "github.com/hpc/kraken/modules/restapi"
 	uuid "github.com/satori/go.uuid"
 )
@@ -109,7 +109,7 @@ func main() {
 	// Set some defaults if we're a full state node
 	if len(parents) == 0 {
 		// Enable the restapi by default
-		conf := &rpb.RestAPIConfig{
+		conf := &rpb.Config{
 			Addr: *ipapi,
 			Port: 3141,
 		}
@@ -191,13 +191,13 @@ func main() {
 			return
 		}
 		log.Logf(types.LLDEBUG, "using interface: %s", iface.Name)
-		pb := &IPv4.IPv4OverEthernet_ConfiguredInterface{
-			Eth: &IPv4.Ethernet{
+		pb := &ipv4.IPv4OverEthernet_ConfiguredInterface{
+			Eth: &ipv4.Ethernet{
 				Iface: iface.Name,
 				Mac:   iface.HardwareAddr,
 				Mtu:   uint32(iface.MTU),
 			},
-			Ip: &IPv4.IPv4{
+			Ip: &ipv4.IPv4{
 				Ip:     netIP.To4(),
 				Subnet: network.Mask,
 			},

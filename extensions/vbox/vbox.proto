@@ -8,10 +8,11 @@
  */
 
  syntax = "proto3";
- package proto;
+ package VBox;
+ option go_package = ".;vbox";
 
-message VBox {
+message VirtualMachine {
     string api_server = 1; // chassis name
-    string name = 2; // vm name
+    string vm_name = 2; // vm name
     string uuid = 3; // vm uuid 
 }

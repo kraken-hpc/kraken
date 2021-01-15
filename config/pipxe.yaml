@@ -12,10 +12,10 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/IPv4
-  - github.com/hpc/kraken/extensions/RPi3
-  - github.com/hpc/kraken/extensions/HostThermal
-  - github.com/hpc/kraken/extensions/HostFrequencyScaler
+  - github.com/hpc/kraken/extensions/ipv4
+  - github.com/hpc/kraken/extensions/rpi3
+  - github.com/hpc/kraken/extensions/hostthermal
+  - github.com/hpc/kraken/extensions/hostfrequencyscaler
 # included modules
 modules:
   - github.com/hpc/kraken/modules/restapi

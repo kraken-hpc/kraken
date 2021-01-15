@@ -33,7 +33,7 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-type RestAPIConfig struct {
+type Config struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -42,8 +42,8 @@ type RestAPIConfig struct {
 	Port int32  `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 }
 
-func (x *RestAPIConfig) Reset() {
-	*x = RestAPIConfig{}
+func (x *Config) Reset() {
+	*x = Config{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_restapi_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -51,13 +51,13 @@ func (x *RestAPIConfig) Reset() {
 	}
 }
 
-func (x *RestAPIConfig) String() string {
+func (x *Config) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RestAPIConfig) ProtoMessage() {}
+func (*Config) ProtoMessage() {}
 
-func (x *RestAPIConfig) ProtoReflect() protoreflect.Message {
+func (x *Config) ProtoReflect() protoreflect.Message {
 	mi := &file_restapi_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -69,19 +69,19 @@ func (x *RestAPIConfig) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RestAPIConfig.ProtoReflect.Descriptor instead.
-func (*RestAPIConfig) Descriptor() ([]byte, []int) {
+// Deprecated: Use Config.ProtoReflect.Descriptor instead.
+func (*Config) Descriptor() ([]byte, []int) {
 	return file_restapi_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RestAPIConfig) GetAddr() string {
+func (x *Config) GetAddr() string {
 	if x != nil {
 		return x.Addr
 	}
 	return ""
 }
 
-func (x *RestAPIConfig) GetPort() int32 {
+func (x *Config) GetPort() int32 {
 	if x != nil {
 		return x.Port
 	}
@@ -92,12 +92,11 @@ var File_restapi_proto protoreflect.FileDescriptor
 
 var file_restapi_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x72, 0x65, 0x73, 0x74, 0x61, 0x70, 0x69, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
-	0x07, 0x72, 0x65, 0x73, 0x74, 0x61, 0x70, 0x69, 0x22, 0x37, 0x0a, 0x0d, 0x52, 0x65, 0x73, 0x74,
-	0x41, 0x50, 0x49, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64,
-	0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x12, 0x0a,
-	0x04, 0x70, 0x6f, 0x72, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72,
-	0x74, 0x42, 0x0b, 0x5a, 0x09, 0x2e, 0x3b, 0x72, 0x65, 0x73, 0x74, 0x61, 0x70, 0x69, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x07, 0x72, 0x65, 0x73, 0x74, 0x61, 0x70, 0x69, 0x22, 0x30, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x66,
+	0x69, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x70, 0x6f, 0x72, 0x74, 0x42, 0x0b, 0x5a, 0x09, 0x2e, 0x3b,
+	0x72, 0x65, 0x73, 0x74, 0x61, 0x70, 0x69, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -114,7 +113,7 @@ func file_restapi_proto_rawDescGZIP() []byte {
 
 var file_restapi_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_restapi_proto_goTypes = []interface{}{
-	(*RestAPIConfig)(nil), // 0: restapi.RestAPIConfig
+	(*Config)(nil), // 0: restapi.Config
 }
 var file_restapi_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -131,7 +130,7 @@ func file_restapi_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_restapi_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RestAPIConfig); i {
+			switch v := v.(*Config); i {
 			case 0:
 				return &v.state
 			case 1:

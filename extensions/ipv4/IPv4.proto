@@ -9,7 +9,7 @@
 
 syntax = "proto3";
 package IPv4;
-option go_package = ".;IPv4";
+option go_package = ".;ipv4";
 
 message IPv4 {
     bytes ip      = 2;

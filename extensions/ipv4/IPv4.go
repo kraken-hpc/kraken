@@ -9,7 +9,7 @@
 
 //go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. IPv4.proto
 
-package IPv4
+package ipv4
 
 import (
 	"net"
@@ -18,6 +18,8 @@ import (
 	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
+
+const Name = "type.googleapis.com/IPv4.IPv4OverEthernet"
 
 /////////////////////////////
 // IPv4OverEthernet Object /
@@ -63,9 +65,7 @@ func (i *IPv4OverEthernet) New() types.Message {
 	}
 }
 
-const Name = "type.googleapis.com/IPv4.IPv4OverEthernet"
-
-func (i *IPv4OverEthernet) Name() string {
+func (*IPv4OverEthernet) Name() string {
 	return Name
 }
 

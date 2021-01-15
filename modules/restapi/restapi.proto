@@ -11,7 +11,7 @@ syntax = "proto3";
 package restapi;
 option go_package = ".;restapi";
 
-message RestAPIConfig {
+message Config {
     string addr = 1;
     int32 port = 2;
 }

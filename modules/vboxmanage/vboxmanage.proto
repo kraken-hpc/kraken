@@ -8,17 +8,18 @@
  */
 
 syntax = "proto3";
-package proto;
+package VBoxManage;
+option go_package = ".;vboxmanage";
 
-message VBMConfig {
-    map<string, VBMServer> servers = 1;
+message Config {
+    map<string, Server> servers = 1;
     string polling_interval = 2;
     string name_url = 3;
     string server_url = 4;
     string uuid_url = 5;
 }
 
-message VBMServer {
+message Server {
     string name = 1;
     string ip    = 2;
     int32 port = 3;

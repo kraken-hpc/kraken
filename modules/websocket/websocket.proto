@@ -8,9 +8,10 @@
  */
 
 syntax = "proto3";
-option go_package = ".;proto";
+package WebSocket;
+option go_package = ".;websocket";
 
-message WebSocketConfig {
+message Config {
     int32 port = 2;
     string writeWait = 3;       // Time allowed to write a message to the peer.
     string pongWait = 4;        // Time allowed to read the next pong message from the peer.

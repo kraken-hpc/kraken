@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/vboxmanage.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. vboxmanage.proto
 
 /*
  * This module will manipulate the PhysState state field.
@@ -30,8 +30,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/vboxmanage/proto"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 const (
@@ -97,33 +97,33 @@ var excs = map[string]reflect.Value{}
 
 // VBM provides a power on/off interface to the vboxmanage-rest-api interface
 type VBM struct {
-	api        lib.ModuleAPIClient
-	cfg        *pb.VBMConfig
-	mchan      <-chan lib.Event
-	dchan      chan<- lib.Event
+	api        types.ModuleAPIClient
+	cfg        *Config
+	mchan      <-chan types.Event
+	dchan      chan<- types.Event
 	pollTicker *time.Ticker
 }
 
 /*
- *lib.Module
+ *types.Module
  */
-var _ lib.Module = (*VBM)(nil)
+var _ types.Module = (*VBM)(nil)
 
 // Name returns the FQDN of the module
 func (*VBM) Name() string { return "github.com/hpc/kraken/modules/vboxmanage" }
 
 /*
- * lib.ModuleWithConfig
+ * types.ModuleWithConfig
  */
-var _ lib.ModuleWithConfig = (*VBM)(nil)
+var _ types.ModuleWithConfig = (*VBM)(nil)
 
 // NewConfig returns a fully initialized default config
 func (*VBM) NewConfig() proto.Message {
-	r := &pb.VBMConfig{
-		ServerUrl: "type.googleapis.com/proto.VBox/ApiServer",
-		NameUrl:   "type.googleapis.com/proto.VBox/Name",
-		UuidUrl:   "type.googleapis.com/proto.VBox/Uuid",
-		Servers: map[string]*pb.VBMServer{
+	r := &Config{
+		ServerUrl: "type.googleapis.com/VBox.VirtualMachine/ApiServer",
+		NameUrl:   "type.googleapis.com/VBox.VirtualMachine/VmName",
+		UuidUrl:   "type.googleapis.com/VBox.VirtualMachine/Uuid",
+		Servers: map[string]*Server{
 			"vbm": {
 				Name: "vbm",
 				Ip:   "vboxmanage.local",
@@ -137,7 +137,7 @@ func (*VBM) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (pp *VBM) UpdateConfig(cfg proto.Message) (e error) {
-	if ppcfg, ok := cfg.(*pb.VBMConfig); ok {
+	if ppcfg, ok := cfg.(*Config); ok {
 		pp.cfg = ppcfg
 		if pp.pollTicker != nil {
 			pp.pollTicker.Stop()
@@ -151,36 +151,36 @@ func (pp *VBM) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*VBM) ConfigURL() string {
-	cfg := &pb.VBMConfig{}
+	cfg := &Config{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
 
 /*
- * lib.ModuleWithMutations & lib.ModuleWithDiscovery
+ * types.ModuleWithMutations & types.ModuleWithDiscovery
  */
-var _ lib.ModuleWithMutations = (*VBM)(nil)
-var _ lib.ModuleWithDiscovery = (*VBM)(nil)
+var _ types.ModuleWithMutations = (*VBM)(nil)
+var _ types.ModuleWithDiscovery = (*VBM)(nil)
 
 // SetMutationChan sets the current mutation channel
 // this is generally done by the API
-func (pp *VBM) SetMutationChan(c <-chan lib.Event) { pp.mchan = c }
+func (pp *VBM) SetMutationChan(c <-chan types.Event) { pp.mchan = c }
 
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
-func (pp *VBM) SetDiscoveryChan(c chan<- lib.Event) { pp.dchan = c }
+func (pp *VBM) SetDiscoveryChan(c chan<- types.Event) { pp.dchan = c }
 
 /*
- * lib.ModuleSelfService
+ * types.ModuleSelfService
  */
-var _ lib.ModuleSelfService = (*VBM)(nil)
+var _ types.ModuleSelfService = (*VBM)(nil)
 
 // Entry is the module's executable entrypoint
 func (pp *VBM) Entry() {
-	url := lib.NodeURLJoin(pp.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "vboxmanage"), "State"))
+	url := util.NodeURLJoin(pp.api.Self().String(),
+		util.URLPush(util.URLPush("/Services", "vboxmanage"), "State"))
 	pp.dchan <- core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -206,9 +206,9 @@ func (pp *VBM) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (pp *VBM) Init(api lib.ModuleAPIClient) {
+func (pp *VBM) Init(api types.ModuleAPIClient) {
 	pp.api = api
-	pp.cfg = pp.NewConfig().(*pb.VBMConfig)
+	pp.cfg = pp.NewConfig().(*Config)
 }
 
 // Stop should perform a graceful exit
@@ -220,18 +220,18 @@ func (pp *VBM) Stop() {
 // Unexported methods /
 //////////////////////
 
-func (pp *VBM) handleMutation(m lib.Event) {
-	if m.Type() != lib.Event_STATE_MUTATION {
-		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
+func (pp *VBM) handleMutation(m types.Event) {
+	if m.Type() != types.Event_STATE_MUTATION {
+		pp.api.Log(types.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
 	// extract the mutating node's name and server
 	vs, e := me.NodeCfg.GetValues([]string{pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		pp.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
 	if len(vs) != 2 {
-		pp.api.Logf(lib.LLERROR, "could not get NID and/or VBM Server for node: %s", me.NodeCfg.ID().String())
+		pp.api.Logf(types.LLERROR, "could not get NID and/or VBM Server for node: %s", me.NodeCfg.ID().String())
 		return
 	}
 	name := vs[pp.cfg.GetNameUrl()].String()
@@ -252,7 +252,7 @@ func (pp *VBM) handleMutation(m lib.Event) {
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
 		default:
-			pp.api.Logf(lib.LLDEBUG, "unexpected event: %s", me.Mutation[1])
+			pp.api.Logf(types.LLDEBUG, "unexpected event: %s", me.Mutation[1])
 		}
 		break
 	case core.MutationEvent_INTERRUPT:
@@ -261,10 +261,10 @@ func (pp *VBM) handleMutation(m lib.Event) {
 	}
 }
 
-func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
+func (pp *VBM) vmDiscover(srvName, name string, id types.NodeID) {
 	srv, ok := pp.cfg.Servers[srvName]
 	if !ok {
-		pp.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		pp.api.Logf(types.LLERROR, "cannot control power for unknown API server: %s", srvName)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
@@ -272,17 +272,17 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 	url := "http://" + addr + VBMStat + "/" + name
 	resp, e := http.Get(url)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		pp.api.Logf(types.LLERROR, "error dialing api: %v", e)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
+		pp.api.Logf(types.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
+		pp.api.Logf(types.LLERROR, "error reading api response body: %v", e)
 		return
 	}
 	var rs struct {
@@ -294,7 +294,7 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 	}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
+		pp.api.Logf(types.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
 	var vid string
@@ -309,9 +309,9 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 		vid = "PHYS_UNKNOWN"
 	}
 
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
+	url = util.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -321,10 +321,10 @@ func (pp *VBM) vmDiscover(srvName, name string, id lib.NodeID) {
 	pp.dchan <- v
 }
 
-func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
+func (pp *VBM) vmOn(srvName, name string, id types.NodeID) {
 	srv, ok := pp.cfg.Servers[srvName]
 	if !ok {
-		pp.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		pp.api.Logf(types.LLERROR, "cannot control power for unknown API server: %s", srvName)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
@@ -332,17 +332,17 @@ func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
 	url := "http://" + addr + VBMOn + "/" + name + "?type=headless"
 	resp, e := http.Get(url)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		pp.api.Logf(types.LLERROR, "error dialing api: %v", e)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
+		pp.api.Logf(types.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
+		pp.api.Logf(types.LLERROR, "error reading api response body: %v", e)
 		return
 	}
 	/* example response
@@ -365,16 +365,16 @@ func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
 	}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
+		pp.api.Logf(types.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
 	if rs.Shell.ExitCode != 0 {
-		pp.api.Logf(lib.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
+		pp.api.Logf(types.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
 		return
 	}
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
+	url = util.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -384,10 +384,10 @@ func (pp *VBM) vmOn(srvName, name string, id lib.NodeID) {
 	pp.dchan <- v
 }
 
-func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
+func (pp *VBM) vmOff(srvName, name string, id types.NodeID) {
 	srv, ok := pp.cfg.Servers[srvName]
 	if !ok {
-		pp.api.Logf(lib.LLERROR, "cannot control power for unknown API server: %s", srvName)
+		pp.api.Logf(types.LLERROR, "cannot control power for unknown API server: %s", srvName)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
@@ -395,17 +395,17 @@ func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
 	url := "http://" + addr + VBMOff + "/" + name + "/poweroff"
 	resp, e := http.Get(url)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error dialing api: %v", e)
+		pp.api.Logf(types.LLERROR, "error dialing api: %v", e)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		pp.api.Logf(lib.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
+		pp.api.Logf(types.LLERROR, "error dialing api: HTTP %v", resp.StatusCode)
 		return
 	}
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error reading api response body: %v", e)
+		pp.api.Logf(types.LLERROR, "error reading api response body: %v", e)
 		return
 	}
 	/* example response
@@ -428,16 +428,16 @@ func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
 	}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error unmarshaling json: %v", e)
+		pp.api.Logf(types.LLERROR, "error unmarshaling json: %v", e)
 		return
 	}
 	if rs.Shell.ExitCode != 0 {
-		pp.api.Logf(lib.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
+		pp.api.Logf(types.LLERROR, "vboxmanage command failed, exit code: %d, cmd: %s, out: %s", rs.Shell.ExitCode, rs.Shell.Command, rs.Shell.Output)
 		return
 	}
-	url = lib.NodeURLJoin(id.String(), "/PhysState")
+	url = util.NodeURLJoin(id.String(), "/PhysState")
 	v := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -450,23 +450,23 @@ func (pp *VBM) vmOff(srvName, name string, id lib.NodeID) {
 // discoverAll is used to do polling discovery of power state
 // Note: this is probably not extremely efficient for large systems
 func (pp *VBM) discoverAll() {
-	pp.api.Log(lib.LLDEBUG, "polling for node state")
+	pp.api.Log(types.LLDEBUG, "polling for node state")
 	ns, e := pp.api.QueryReadAll()
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
+		pp.api.Logf(types.LLERROR, "polling node query failed: %v", e)
 		return
 	}
-	idmap := make(map[string]lib.NodeID)
+	idmap := make(map[string]types.NodeID)
 	bySrv := make(map[string][]string)
 
 	// build lists
 	for _, n := range ns {
 		vs, e := n.GetValues([]string{"/Platform", pp.cfg.GetNameUrl(), pp.cfg.GetServerUrl()})
 		if e != nil {
-			pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+			pp.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 		}
 		if len(vs) != 3 {
-			pp.api.Logf(lib.LLDEBUG, "skipping node %s, doesn't have complete VBM info", n.ID().String())
+			pp.api.Logf(types.LLDEBUG, "skipping node %s, doesn't have complete VBM info", n.ID().String())
 			continue
 		}
 		if vs["/Platform"].String() != PlatformString { // Note: this may need to be more flexible in the future
@@ -489,7 +489,7 @@ func (pp *VBM) discoverAll() {
 // initialization
 func init() {
 	module := &VBM{}
-	mutations := make(map[string]lib.StateMutation)
+	mutations := make(map[string]types.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	drstate := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry)
@@ -505,7 +505,7 @@ func init() {
 			},
 			reqs,
 			excs,
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			dur,
 			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 		)
@@ -522,7 +522,7 @@ func init() {
 
 	// Register it all
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
 	core.Registry.RegisterMutations(si, mutations)
 }

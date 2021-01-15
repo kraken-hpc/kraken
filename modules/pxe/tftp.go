@@ -19,32 +19,32 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/hpc/kraken/extensions/IPv4"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/extensions/ipv4"
+	"github.com/hpc/kraken/lib/types"
 	"github.com/pin/tftp"
 )
 
 // StartTFTP starts up the TFTP service
 func (px *PXE) StartTFTP(ip net.IP) {
-	px.api.Log(lib.LLNOTICE, "starting TFTP service")
+	px.api.Log(types.LLNOTICE, "starting TFTP service")
 	srv := tftp.NewServer(px.writeToTFTP, nil)
 	e := srv.ListenAndServe(ip.String() + ":69")
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "TFTP failed to start: %v", e)
+		px.api.Logf(types.LLCRITICAL, "TFTP failed to start: %v", e)
 	}
-	px.api.Log(lib.LLNOTICE, "TFTP service stopped")
+	px.api.Log(types.LLNOTICE, "TFTP service stopped")
 }
 
 func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 	ip := rf.(tftp.OutgoingTransfer).RemoteAddr().IP
 	n := px.NodeGet(queryByIP, ip.String())
 	if n == nil {
-		px.api.Logf(lib.LLDEBUG, "got TFTP request from unknown node: %s", ip.String())
+		px.api.Logf(types.LLDEBUG, "got TFTP request from unknown node: %s", ip.String())
 		return fmt.Errorf("got TFTP request from unknown node: %s", ip.String())
 	}
 	vs, e := n.GetValues([]string{"/Arch", "/Platform"})
 	if e != nil {
-		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		px.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
 	lfile := filepath.Join(
 		px.cfg.TftpDir,
@@ -56,7 +56,7 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 	if _, e = os.Stat(lfile); os.IsNotExist(e) {
 		if _, e = os.Stat(lfile + ".tpl"); os.IsNotExist(e) {
 			// neither file nor template exist
-			px.api.Logf(lib.LLDEBUG, "no such file: %s", lfile)
+			px.api.Logf(types.LLDEBUG, "no such file: %s", lfile)
 			return fmt.Errorf("no such file: %s", lfile)
 		}
 		// file doesn't exist, but template does
@@ -73,16 +73,16 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		iface, _ := n.GetValue(px.cfg.SrvIfaceUrl)
 		data.Iface = iface.String()
 		i, _ := n.GetValue(px.cfg.IpUrl)
-		data.IP = IPv4.BytesToIP(i.Bytes()).String()
+		data.IP = ipv4.BytesToIP(i.Bytes()).String()
 		i, _ = n.GetValue(px.cfg.NmUrl)
-		subip := IPv4.BytesToIP(i.Bytes())
+		subip := ipv4.BytesToIP(i.Bytes())
 		cidr, _ := net.IPMask(subip.To4()).Size()
 		data.CIDR = strconv.Itoa(cidr)
 		data.ID = n.ID().String()
 		data.ParentIP = px.selfIP.String()
 		tpl, e := template.ParseFiles(lfile + ".tpl")
 		if e != nil {
-			px.api.Logf(lib.LLDEBUG, "template parse error: %v", e)
+			px.api.Logf(types.LLDEBUG, "template parse error: %v", e)
 			return fmt.Errorf("template parse error: %v", e)
 		}
 		f = &bytes.Buffer{}
@@ -94,6 +94,6 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 	}
 
 	written, e := rf.ReadFrom(f)
-	px.api.Logf(lib.LLDEBUG, "wrote %s (%s), %d bytes", filename, lfile, written)
+	px.api.Logf(types.LLDEBUG, "wrote %s (%s), %d bytes", filename, lfile, written)
 	return
 }

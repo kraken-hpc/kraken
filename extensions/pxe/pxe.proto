@@ -7,10 +7,11 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package proto;
+syntax = "proto3";
+package PXE;
+option go_package = ".;pxe";
 
-message PXE {
+message Client {
     enum Method {
         PXE  = 0;
         iPXE = 1;

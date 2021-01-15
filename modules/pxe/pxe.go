@@ -9,7 +9,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. pxemodule.proto
 
 package pxe
 
@@ -29,28 +29,28 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/extensions/IPv4"
-	pxepb "github.com/hpc/kraken/extensions/PXE/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/pxe/proto"
+	"github.com/hpc/kraken/extensions/ipv4"
+	pxepb "github.com/hpc/kraken/extensions/pxe"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 const (
-	PXEStateURL = "type.googleapis.com/proto.PXE/State"
+	PXEStateURL = "type.googleapis.com/PXE.Client/State"
 	SrvStateURL = "/Services/pxe/State"
 )
 
 type pxmut struct {
-	f       pxepb.PXE_State
-	t       pxepb.PXE_State
+	f       pxepb.Client_State
+	t       pxepb.Client_State
 	reqs    map[string]reflect.Value
 	timeout string
 }
 
 var muts = map[string]pxmut{
 	"NONEtoWAIT": {
-		f:       pxepb.PXE_NONE,
-		t:       pxepb.PXE_WAIT,
+		f:       pxepb.Client_NONE,
+		t:       pxepb.Client_WAIT,
 		reqs:    reqs,
 		timeout: "10s",
 	},
@@ -81,10 +81,10 @@ const (
 
 // PXE provides PXE-boot capabilities
 type PXE struct {
-	api   lib.ModuleAPIClient
-	cfg   *pb.PXEConfig
-	mchan <-chan lib.Event
-	dchan chan<- lib.Event
+	api   types.ModuleAPIClient
+	cfg   *Config
+	mchan <-chan types.Event
+	dchan chan<- types.Event
 
 	selfIP  net.IP
 	selfNet net.IP
@@ -98,7 +98,7 @@ type PXE struct {
 	// for maintaining our list of currently booting nodes
 
 	mutex  sync.RWMutex
-	nodeBy map[nodeQueryBy]map[string]lib.Node
+	nodeBy map[nodeQueryBy]map[string]types.Node
 }
 
 /*
@@ -106,11 +106,11 @@ type PXE struct {
  */
 
 // NodeGet gets a node that we know about -- concurrency safe
-func (px *PXE) NodeGet(qb nodeQueryBy, q string) (n lib.Node) { // returns nil for not found
+func (px *PXE) NodeGet(qb nodeQueryBy, q string) (n types.Node) { // returns nil for not found
 	var ok bool
 	px.mutex.RLock()
 	if n, ok = px.nodeBy[qb][q]; !ok {
-		px.api.Logf(lib.LLERROR, "tried to acquire node that doesn't exist: %s %s", qb, q)
+		px.api.Logf(types.LLERROR, "tried to acquire node that doesn't exist: %s %s", qb, q)
 		px.mutex.RUnlock()
 		return
 	}
@@ -120,7 +120,7 @@ func (px *PXE) NodeGet(qb nodeQueryBy, q string) (n lib.Node) { // returns nil f
 
 // NodeDelete deletes a node that we know about -- cuncurrency safe
 func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-existent nodes
-	var n lib.Node
+	var n types.Node
 	var ok bool
 	px.mutex.Lock()
 	if n, ok = px.nodeBy[qb][q]; !ok {
@@ -129,26 +129,26 @@ func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-ex
 	}
 	v, e := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
 	if e != nil {
-		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		px.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
-	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
-	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
+	ip := ipv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
+	mac := ipv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	delete(px.nodeBy[queryByIP], ip.String())
 	delete(px.nodeBy[queryByMAC], mac.String())
 	px.mutex.Unlock()
 }
 
 // NodeCreate creates a new node in our node pool -- concurrency safe
-func (px *PXE) NodeCreate(n lib.Node) (e error) {
+func (px *PXE) NodeCreate(n types.Node) (e error) {
 	v, e := n.GetValues([]string{px.cfg.IpUrl, px.cfg.MacUrl})
 	if e != nil {
-		px.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		px.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
 	if len(v) != 2 {
 		return fmt.Errorf("missing ip or mac for node, aborting")
 	}
-	ip := IPv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
-	mac := IPv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
+	ip := ipv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
+	mac := ipv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
 	if ip == nil || mac == nil { // incomplete node
 		return fmt.Errorf("won't add incomplete node: ip: %v, mac: %v", ip, mac)
 	}
@@ -160,29 +160,29 @@ func (px *PXE) NodeCreate(n lib.Node) (e error) {
 }
 
 /*
- * lib.Module
+ * types.Module
  */
 
-var _ lib.Module = (*PXE)(nil)
+var _ types.Module = (*PXE)(nil)
 
 // Name returns the FQDN of the module
 func (*PXE) Name() string { return "github.com/hpc/kraken/modules/pxe" }
 
 /*
- * lib.ModuleWithConfig
+ * types.ModuleWithConfig
  */
 
-var _ lib.Module = (*PXE)(nil)
+var _ types.Module = (*PXE)(nil)
 
 // NewConfig returns a fully initialized default config
 func (*PXE) NewConfig() proto.Message {
-	r := &pb.PXEConfig{
-		SrvIfaceUrl: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Iface",
-		SrvIpUrl:    "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		IpUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		NmUrl:       "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		SubnetUrl:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		MacUrl:      "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mac",
+	r := &Config{
+		SrvIfaceUrl: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Iface",
+		SrvIpUrl:    "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		IpUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		NmUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
+		SubnetUrl:   "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
+		MacUrl:      "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mac",
 		TftpDir:     "tftp",
 	}
 	return r
@@ -190,7 +190,7 @@ func (*PXE) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (px *PXE) UpdateConfig(cfg proto.Message) (e error) {
-	if pxcfg, ok := cfg.(*pb.PXEConfig); ok {
+	if pxcfg, ok := cfg.(*Config); ok {
 		px.cfg = pxcfg
 		return
 	}
@@ -199,43 +199,43 @@ func (px *PXE) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*PXE) ConfigURL() string {
-	cfg := &pb.PXEConfig{}
+	cfg := &Config{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
 
 /*
- * lib.ModuleWithMutations & lib.ModuleWithDiscovery
+ * types.ModuleWithMutations & types.ModuleWithDiscovery
  */
-var _ lib.ModuleWithMutations = (*PXE)(nil)
-var _ lib.ModuleWithDiscovery = (*PXE)(nil)
+var _ types.ModuleWithMutations = (*PXE)(nil)
+var _ types.ModuleWithDiscovery = (*PXE)(nil)
 
 // SetMutationChan sets the current mutation channel
 // this is generally done by the API
-func (px *PXE) SetMutationChan(c <-chan lib.Event) { px.mchan = c }
+func (px *PXE) SetMutationChan(c <-chan types.Event) { px.mchan = c }
 
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
-func (px *PXE) SetDiscoveryChan(c chan<- lib.Event) { px.dchan = c }
+func (px *PXE) SetDiscoveryChan(c chan<- types.Event) { px.dchan = c }
 
 /*
- * lib.ModuleSelfService
+ * types.ModuleSelfService
  */
-var _ lib.ModuleSelfService = (*PXE)(nil)
+var _ types.ModuleSelfService = (*PXE)(nil)
 
 // Entry is the module's executable entrypoint
 func (px *PXE) Entry() {
 	nself, _ := px.api.QueryRead(px.api.Self().String())
 	v, _ := nself.GetValue(px.cfg.SrvIpUrl)
-	px.selfIP = IPv4.BytesToIP(v.Bytes())
+	px.selfIP = ipv4.BytesToIP(v.Bytes())
 	v, _ = nself.GetValue(px.cfg.SubnetUrl)
-	px.selfNet = IPv4.BytesToIP(v.Bytes())
+	px.selfNet = ipv4.BytesToIP(v.Bytes())
 	v, _ = nself.GetValue(px.cfg.SrvIfaceUrl)
 	go px.StartDHCP(v.String(), px.selfIP)
 	go px.StartTFTP(px.selfIP)
-	url := lib.NodeURLJoin(px.api.Self().String(), SrvStateURL)
+	url := util.NodeURLJoin(px.api.Self().String(), SrvStateURL)
 	ev := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -246,8 +246,8 @@ func (px *PXE) Entry() {
 	for {
 		select {
 		case v := <-px.mchan:
-			if v.Type() != lib.Event_STATE_MUTATION {
-				px.api.Log(lib.LLERROR, "got unexpected non-mutation event")
+			if v.Type() != types.Event_STATE_MUTATION {
+				px.api.Log(types.LLERROR, "got unexpected non-mutation event")
 				break
 			}
 			m := v.Data().(*core.MutationEvent)
@@ -258,13 +258,13 @@ func (px *PXE) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (px *PXE) Init(api lib.ModuleAPIClient) {
+func (px *PXE) Init(api types.ModuleAPIClient) {
 	px.api = api
 	px.mutex = sync.RWMutex{}
-	px.nodeBy = make(map[nodeQueryBy]map[string]lib.Node)
-	px.nodeBy[queryByIP] = make(map[string]lib.Node)
-	px.nodeBy[queryByMAC] = make(map[string]lib.Node)
-	px.cfg = px.NewConfig().(*pb.PXEConfig)
+	px.nodeBy = make(map[nodeQueryBy]map[string]types.Node)
+	px.nodeBy[queryByIP] = make(map[string]types.Node)
+	px.nodeBy[queryByMAC] = make(map[string]types.Node)
+	px.cfg = px.NewConfig().(*Config)
 }
 
 // Stop should perform a graceful exit
@@ -282,12 +282,12 @@ func (px *PXE) handleMutation(m *core.MutationEvent) {
 		switch m.Mutation[1] {
 		case "NONEtoWAIT": // starting a new mutation, register the node
 			if e := px.NodeCreate(m.NodeCfg); e != nil {
-				px.api.Logf(lib.LLERROR, "%v", e)
+				px.api.Logf(types.LLERROR, "%v", e)
 				break
 			}
-			url := lib.NodeURLJoin(m.NodeCfg.ID().String(), PXEStateURL)
+			url := util.NodeURLJoin(m.NodeCfg.ID().String(), PXEStateURL)
 			ev := core.NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url,
 				&core.DiscoveryEvent{
 					URL:     url,
@@ -302,14 +302,14 @@ func (px *PXE) handleMutation(m *core.MutationEvent) {
 		if e != nil || !v.IsValid() {
 			break
 		}
-		ip := IPv4.BytesToIP(v.Bytes())
+		ip := ipv4.BytesToIP(v.Bytes())
 		px.NodeDelete(queryByIP, ip.String())
 	}
 }
 
 func init() {
 	module := &PXE{}
-	mutations := make(map[string]lib.StateMutation)
+	mutations := make(map[string]types.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	dpxe := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("pxe", module.Name(), module.Entry)
@@ -325,18 +325,18 @@ func init() {
 			},
 			reqs,
 			excs,
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			dur,
 			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 		)
-		dpxe[pxepb.PXE_State_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
+		dpxe[pxepb.Client_State_name[int32(muts[m].t)]] = reflect.ValueOf(muts[m].t)
 	}
 
 	mutations["WAITtoINIT"] = core.NewStateMutation(
 		map[string][2]reflect.Value{
 			PXEStateURL: {
-				reflect.ValueOf(pxepb.PXE_WAIT),
-				reflect.ValueOf(pxepb.PXE_INIT),
+				reflect.ValueOf(pxepb.Client_WAIT),
+				reflect.ValueOf(pxepb.Client_INIT),
 			},
 			"/RunState": {
 				reflect.ValueOf(cpb.Node_UNKNOWN),
@@ -345,11 +345,11 @@ func init() {
 		},
 		reqs,
 		excs,
-		lib.StateMutationContext_CHILD,
+		types.StateMutationContext_CHILD,
 		time.Second*90,
 		[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 	)
-	dpxe["INIT"] = reflect.ValueOf(pxepb.PXE_INIT)
+	dpxe["INIT"] = reflect.ValueOf(pxepb.Client_INIT)
 
 	discovers[PXEStateURL] = dpxe
 	discovers["/RunState"] = map[string]reflect.Value{
@@ -363,7 +363,7 @@ func init() {
 
 	// Register it all
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
 	core.Registry.RegisterMutations(si, mutations)
 }
