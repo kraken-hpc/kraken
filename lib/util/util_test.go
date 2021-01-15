@@ -1,4 +1,4 @@
-package lib
+package util
 
 import (
 	"net"
@@ -9,7 +9,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	pb "github.com/hpc/kraken/core/proto"
 	ipb "github.com/hpc/kraken/extensions/IPv4/proto"
-	. "github.com/hpc/kraken/lib"
 )
 
 func TestDiff(t *testing.T) {

@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-package lib
+package types
 
 import (
 	"reflect"
@@ -506,9 +506,20 @@ type ServiceManager interface {
  * Extensions & Modules
  */
 
+// A Message is a wrapper around proto.Message that provides some additional functionality
+type Message interface {
+	proto.Message
+	MarshalJSON() ([]byte, error)
+	UnmarshalJSON([]byte) error
+}
+
+// An Extension represents an extension of Kraken state
+// An Extension is a Message with a name and a constructor
+// Note that an extension, by inheritance, is also a proto.Message
 type Extension interface {
-	New() proto.Message // should return a proto.Message object with initialized default values
-	Name() string       // this needs to be a name unique to all extensions; used as a map key
+	Message
+	New() Message // should return a proto.Message object with initialized default values
+	Name() string // this needs to be a name unique to all extensions; used as a map key
 }
 
 type Module interface {

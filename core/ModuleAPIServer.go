@@ -21,7 +21,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -54,11 +55,11 @@ type ModuleAPIServer struct {
 	nlist net.Listener
 	ulist net.Listener
 	query *QueryEngine
-	log   lib.Logger
-	em    lib.EventEmitter
-	sm    lib.ServiceManager
-	schan chan<- lib.EventListener
-	self  lib.NodeID
+	log   types.Logger
+	em    types.EventEmitter
+	sm    types.ServiceManager
+	schan chan<- types.EventListener
+	self  types.NodeID
 }
 
 // NewModuleAPIServer creates a new, initialized API
@@ -68,7 +69,7 @@ func NewModuleAPIServer(ctx Context) *ModuleAPIServer {
 		ulist: ctx.RPC.UNIXListener,
 		query: &ctx.Query,
 		log:   &ctx.Logger,
-		em:    NewEventEmitter(lib.Event_API),
+		em:    NewEventEmitter(types.Event_API),
 		schan: ctx.SubChan,
 		self:  ctx.Self,
 		sm:    ctx.Sm,
@@ -85,7 +86,7 @@ func (s *ModuleAPIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *p
 		return
 	}
 	nin := NewNodeFromMessage(pbin)
-	var nout lib.Node
+	var nout types.Node
 	nout, e = s.query.Create(nin)
 	out.URL = in.URL
 	if nout != nil {
@@ -95,7 +96,7 @@ func (s *ModuleAPIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *p
 }
 
 func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
-	var nout lib.Node
+	var nout types.Node
 	out = &pb.Query{}
 	nout, e = s.query.Read(NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
@@ -106,7 +107,7 @@ func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.
 }
 
 func (s *ModuleAPIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
-	var nout lib.Node
+	var nout types.Node
 	out = &pb.Query{}
 	nout, e = s.query.ReadDsc(NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
@@ -124,7 +125,7 @@ func (s *ModuleAPIServer) QueryUpdate(ctx context.Context, in *pb.Query) (out *p
 		return
 	}
 	nin := NewNodeFromMessage(pbin)
-	var nout lib.Node
+	var nout types.Node
 	nout, e = s.query.Update(nin)
 	out.URL = in.URL
 	if nout != nil {
@@ -141,7 +142,7 @@ func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out
 		return
 	}
 	nin := NewNodeFromMessage(pbin)
-	var nout lib.Node
+	var nout types.Node
 	nout, e = s.query.UpdateDsc(nin)
 	out.URL = in.URL
 	if nout != nil {
@@ -151,7 +152,7 @@ func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out
 }
 
 func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
-	var nout lib.Node
+	var nout types.Node
 	out = &pb.Query{}
 	nout, e = s.query.Delete(NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
@@ -162,7 +163,7 @@ func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *p
 }
 
 func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
-	var nout []lib.Node
+	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
 	nout, e = s.query.ReadAll()
@@ -179,7 +180,7 @@ func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (ou
 }
 
 func (s *ModuleAPIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
-	var nout []lib.Node
+	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
 	nout, e = s.query.ReadAllDsc()
@@ -263,7 +264,7 @@ func (s *ModuleAPIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Quer
 }
 
 func (s *ModuleAPIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
-	var nout []lib.Node
+	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
 	nout, e = s.query.DeleteAll()
@@ -309,7 +310,7 @@ func (s *ModuleAPIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.Modu
 		Command: pb.ServiceControl_INIT,
 		Config:  any,
 	})
-	c := make(chan lib.ServiceControl)
+	c := make(chan types.ServiceControl)
 	srv.SetCtl(c)
 	for {
 		ctl := <-c
@@ -327,16 +328,16 @@ func (s *ModuleAPIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.Modu
 // This just caputures (filtered) mutation events and sends them over the stream
 func (s *ModuleAPIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_MutationInitServer) (e error) {
 	sid := sir.GetId()
-	echan := make(chan lib.Event)
-	list := NewEventListener("MutationFor:"+sid, lib.Event_STATE_MUTATION,
-		func(e lib.Event) bool {
+	echan := make(chan types.Event)
+	list := NewEventListener("MutationFor:"+sid, types.Event_STATE_MUTATION,
+		func(e types.Event) bool {
 			d := e.Data().(*MutationEvent)
 			if d.Mutation[0] == sid {
 				return true
 			}
 			return false
 		},
-		func(v lib.Event) error { return ChanSender(v, echan) })
+		func(v types.Event) error { return ChanSender(v, echan) })
 	// subscribe our listener
 	s.schan <- list
 
@@ -357,7 +358,7 @@ func (s *ModuleAPIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.Mod
 	}
 
 	// politely unsubscribe
-	list.SetState(lib.EventListener_UNSUBSCRIBE)
+	list.SetState(types.EventListener_UNSUBSCRIBE)
 	s.schan <- list
 	return
 }
@@ -366,13 +367,13 @@ func (s *ModuleAPIServer) MutationInit(sir *pb.ServiceInitRequest, stream pb.Mod
 // This just caputures all events and sends them over the stream
 func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_EventInitServer) (e error) {
 	module := sir.GetModule()
-	echan := make(chan lib.Event)
-	filterFunction := func(e lib.Event) bool {
+	echan := make(chan types.Event)
+	filterFunction := func(e types.Event) bool {
 		return true
 	}
-	list := NewEventListener("EventFor:"+module, lib.Event_ALL,
+	list := NewEventListener("EventFor:"+module, types.Event_ALL,
 		filterFunction,
-		func(v lib.Event) error { return ChanSender(v, echan) })
+		func(v types.Event) error { return ChanSender(v, echan) })
 	// subscribe our listener
 	s.schan <- list
 
@@ -380,7 +381,7 @@ func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.Module
 		v := <-echan
 		var ec = &pb.EventControl{}
 		switch v.Type() {
-		case lib.Event_STATE_MUTATION:
+		case types.Event_STATE_MUTATION:
 			smev := v.Data().(*MutationEvent)
 			ec = &pb.EventControl{
 				Type: pb.EventControl_Mutation,
@@ -394,20 +395,20 @@ func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.Module
 					},
 				},
 			}
-		case lib.Event_STATE_CHANGE:
+		case types.Event_STATE_CHANGE:
 			scev := v.Data().(*StateChangeEvent)
-			s.Logf(lib.LLDEBUG, "api server got state change event: %+v\n%v", scev, scev.Value)
+			s.Logf(types.LLDEBUG, "api server got state change event: %+v\n%v", scev, scev.Value)
 			ec = &pb.EventControl{
 				Type: pb.EventControl_StateChange,
 				Event: &pb.EventControl_StateChangeControl{
 					StateChangeControl: &pb.StateChangeControl{
 						Type:  scev.Type,
 						Url:   scev.URL,
-						Value: lib.ValueToString(scev.Value),
+						Value: util.ValueToString(scev.Value),
 					},
 				},
 			}
-		case lib.Event_DISCOVERY:
+		case types.Event_DISCOVERY:
 			dev := v.Data().(*DiscoveryEvent)
 			ec = &pb.EventControl{
 				Type: pb.EventControl_Discovery,
@@ -420,7 +421,7 @@ func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.Module
 				},
 			}
 		default:
-			s.Logf(lib.LLERROR, "Couldn't convert Event into mutation, statechange, or discovery: %+v", v)
+			s.Logf(types.LLERROR, "Couldn't convert Event into mutation, statechange, or discovery: %+v", v)
 		}
 		if e := stream.Send(ec); e != nil {
 			s.Logf(INFO, "event stream closed: %v", e)
@@ -429,7 +430,7 @@ func (s *ModuleAPIServer) EventInit(sir *pb.ServiceInitRequest, stream pb.Module
 	}
 
 	// politely unsubscribe
-	list.SetState(lib.EventListener_UNSUBSCRIBE)
+	list.SetState(types.EventListener_UNSUBSCRIBE)
 	s.schan <- list
 	return
 }
@@ -449,7 +450,7 @@ func (s *ModuleAPIServer) DiscoveryInit(stream pb.ModuleAPI_DiscoveryInitServer)
 			ValueID: dc.GetValueId(),
 		}
 		v := NewEvent(
-			lib.Event_DISCOVERY,
+			types.Event_DISCOVERY,
 			dc.GetUrl(),
 			dv)
 		s.EmitOne(v)
@@ -465,7 +466,7 @@ func (s *ModuleAPIServer) LoggerInit(stream pb.ModuleAPI_LoggerInitServer) (e er
 			s.Logf(INFO, "logger stream closted: %v", e)
 			break
 		}
-		s.Logf(lib.LoggerLevel(msg.Level), "%s:%s", msg.Origin, msg.Msg)
+		s.Logf(types.LoggerLevel(msg.Level), "%s:%s", msg.Origin, msg.Msg)
 	}
 	return
 }
@@ -490,29 +491,29 @@ func (s *ModuleAPIServer) Run(ready chan<- interface{}) {
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*ModuleAPIServer)(nil)
+var _ types.Logger = (*ModuleAPIServer)(nil)
 
-func (s *ModuleAPIServer) Log(level lib.LoggerLevel, m string) { s.log.Log(level, m) }
-func (s *ModuleAPIServer) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (s *ModuleAPIServer) Log(level types.LoggerLevel, m string) { s.log.Log(level, m) }
+func (s *ModuleAPIServer) Logf(level types.LoggerLevel, fmt string, v ...interface{}) {
 	s.log.Logf(level, fmt, v...)
 }
-func (s *ModuleAPIServer) SetModule(name string)                { s.log.SetModule(name) }
-func (s *ModuleAPIServer) GetModule() string                    { return s.log.GetModule() }
-func (s *ModuleAPIServer) SetLoggerLevel(level lib.LoggerLevel) { s.log.SetLoggerLevel(level) }
-func (s *ModuleAPIServer) GetLoggerLevel() lib.LoggerLevel      { return s.log.GetLoggerLevel() }
-func (s *ModuleAPIServer) IsEnabledFor(level lib.LoggerLevel) bool {
+func (s *ModuleAPIServer) SetModule(name string)                  { s.log.SetModule(name) }
+func (s *ModuleAPIServer) GetModule() string                      { return s.log.GetModule() }
+func (s *ModuleAPIServer) SetLoggerLevel(level types.LoggerLevel) { s.log.SetLoggerLevel(level) }
+func (s *ModuleAPIServer) GetLoggerLevel() types.LoggerLevel      { return s.log.GetLoggerLevel() }
+func (s *ModuleAPIServer) IsEnabledFor(level types.LoggerLevel) bool {
 	return s.log.IsEnabledFor(level)
 }
 
 /*
  * Consume an emitter, so we implement EventEmitter directly
  */
-var _ lib.EventEmitter = (*ModuleAPIServer)(nil)
+var _ types.EventEmitter = (*ModuleAPIServer)(nil)
 
-func (s *ModuleAPIServer) Subscribe(id string, c chan<- []lib.Event) error {
+func (s *ModuleAPIServer) Subscribe(id string, c chan<- []types.Event) error {
 	return s.em.Subscribe(id, c)
 }
 func (s *ModuleAPIServer) Unsubscribe(id string) error { return s.em.Unsubscribe(id) }
-func (s *ModuleAPIServer) Emit(v []lib.Event)          { s.em.Emit(v) }
-func (s *ModuleAPIServer) EmitOne(v lib.Event)         { s.em.EmitOne(v) }
-func (s *ModuleAPIServer) EventType() lib.EventType    { return s.em.EventType() }
+func (s *ModuleAPIServer) Emit(v []types.Event)        { s.em.Emit(v) }
+func (s *ModuleAPIServer) EmitOne(v types.Event)       { s.em.EmitOne(v) }
+func (s *ModuleAPIServer) EventType() types.EventType  { return s.em.EventType() }

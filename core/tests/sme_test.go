@@ -7,14 +7,14 @@ import (
 
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 	uuid "github.com/satori/go.uuid"
 )
 
 // fixture builds out a semi-realistic set of mutations
 // for power control with IPMI vs Redfish
-func fixtureMuts() []lib.StateMutation {
-	return []lib.StateMutation{
+func fixtureMuts() []types.StateMutation {
+	return []types.StateMutation{
 		NewStateMutation( // IPMI discover initial
 			map[string][2]reflect.Value{
 				"/PhysState": {
@@ -26,7 +26,7 @@ func fixtureMuts() []lib.StateMutation {
 				"/Arch": reflect.ValueOf("IPMI"),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),
@@ -41,7 +41,7 @@ func fixtureMuts() []lib.StateMutation {
 				"/Arch": reflect.ValueOf("IPMI"),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),
@@ -56,7 +56,7 @@ func fixtureMuts() []lib.StateMutation {
 				"/Arch": reflect.ValueOf("IPMI"),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),
@@ -71,7 +71,7 @@ func fixtureMuts() []lib.StateMutation {
 				"/Arch": reflect.ValueOf("Redfish"),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),
@@ -86,7 +86,7 @@ func fixtureMuts() []lib.StateMutation {
 				"/Arch": reflect.ValueOf("Redfish"),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),
@@ -103,7 +103,7 @@ func fixtureMuts() []lib.StateMutation {
 			map[string]reflect.Value{
 				"/RunState": reflect.ValueOf(pb.Node_SYNC),
 			},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*10,
 			[3]string{"", "", ""},
 		),

@@ -13,7 +13,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/hpc/kraken/lib"
 	"go/build"
 	"io/ioutil"
 	"log"
@@ -25,6 +24,7 @@ import (
 	"strings"
 	"text/template"
 
+	libbuild "github.com/hpc/kraken/lib/build"
 	cp "github.com/hpc/kraken/lib/copy"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -125,7 +125,7 @@ func compileTemplates(krakenDir, tmpDir string, forUroot bool) (targets []string
 					if *verbose {
 						log.Printf("%s: %s -> %s", targPath, from, to)
 					}
-					if e = lib.SearchAndReplace(targPath, from, to); e != nil {
+					if e = libbuild.SearchAndReplace(targPath, from, to); e != nil {
 						return
 					}
 				}
@@ -253,7 +253,7 @@ func modifySources(dir string) (e error) {
 	if *verbose {
 		log.Printf("%s: updating import paths to match u-root build dir", dir)
 	}
-	if e = lib.RegexReplace(dir, from, to); e != nil {
+	if e = libbuild.RegexReplace(dir, from, to); e != nil {
 		e = fmt.Errorf("unable to replace import paths for files in %s: %v", dir, e)
 		return
 	}
@@ -262,7 +262,7 @@ func modifySources(dir string) (e error) {
 	// TODO: This is a hack that deserves a better fix.
 	// See: https://github.com/hpc/kraken/issues/185
 	siPath := path.Join(dir, "core/ServiceInstance.go")
-	e = lib.SearchAndReplace(siPath,
+	e = libbuild.SearchAndReplace(siPath,
 		"si.cmd.Args = []string{\"[kraken:\" + si.ID() + \"]\"}",
 		"si.cmd.Args = []string{os.Args[0]}")
 	if e != nil {

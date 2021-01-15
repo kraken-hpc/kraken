@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	. "github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 // TestEventDispatchEngine tests that NewEventDispatchEngine initializes correctly
@@ -37,18 +37,18 @@ func ExampleFilterSimple() {
 		"/a/test",
 	}
 	el := NewEventListener("example",
-		lib.Event_STATE_CHANGE,
-		func(ev lib.Event) bool {
+		types.Event_STATE_CHANGE,
+		func(ev types.Event) bool {
 			return FilterSimple(ev, list)
 		},
 		nil)
 
 	ev1 := NewEvent(
-		lib.Event_STATE_CHANGE,
+		types.Event_STATE_CHANGE,
 		"/this/is",
 		nil)
 	ev2 := NewEvent(
-		lib.Event_STATE_CHANGE,
+		types.Event_STATE_CHANGE,
 		"/blatz",
 		nil)
 	fmt.Printf("%s -> %v\n", ev1.URL(), el.Filter(ev1))

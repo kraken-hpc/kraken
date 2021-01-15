@@ -13,7 +13,8 @@ package core
 import (
 	"reflect"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -26,7 +27,7 @@ import (
  * If you need a new value, create a new one.
  */
 
-var _ lib.NodeID = (*NodeID)(nil)
+var _ types.NodeID = (*NodeID)(nil)
 
 // NodeID uses UUID for node IDs, the default
 type NodeID struct {
@@ -53,12 +54,12 @@ func NewNodeIDFromBinary(b []byte) *NodeID {
 
 // NewNodeIDFromURL creates a NodeID matching the url string
 func NewNodeIDFromURL(url string) *NodeID {
-	id, _ := lib.NodeURLSplit(url)
+	id, _ := util.NodeURLSplit(url)
 	return NewNodeID(id)
 }
 
 // Equal determines if two NodeIDs are equal
-func (n *NodeID) Equal(n2 lib.NodeID) bool {
+func (n *NodeID) Equal(n2 types.NodeID) bool {
 	if reflect.TypeOf(n) != reflect.TypeOf(n2) {
 		return false
 	}

@@ -15,17 +15,18 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 //////////////////
 // State Object /
 ////////////////
 
-var _ lib.CRUD = (*State)(nil)
-var _ lib.BulkCRUD = (*State)(nil)
-var _ lib.Resolver = (*State)(nil)
-var _ lib.State = (*State)(nil)
+var _ types.CRUD = (*State)(nil)
+var _ types.BulkCRUD = (*State)(nil)
+var _ types.Resolver = (*State)(nil)
+var _ types.State = (*State)(nil)
 
 // A State stores and manipulates a collection of Nodes
 type State struct {
@@ -46,7 +47,7 @@ func NewState() *State {
  */
 
 // Create creates a node in the state
-func (s *State) Create(n lib.Node) (r lib.Node, e error) {
+func (s *State) Create(n types.Node) (r types.Node, e error) {
 	s.nodesMutex.Lock()
 	defer s.nodesMutex.Unlock()
 
@@ -61,7 +62,7 @@ func (s *State) Create(n lib.Node) (r lib.Node, e error) {
 }
 
 // Read returns a node from the state
-func (s *State) Read(nid lib.NodeID) (r lib.Node, e error) {
+func (s *State) Read(nid types.NodeID) (r types.Node, e error) {
 	s.nodesMutex.RLock()
 	defer s.nodesMutex.RUnlock()
 
@@ -75,7 +76,7 @@ func (s *State) Read(nid lib.NodeID) (r lib.Node, e error) {
 }
 
 // Update updates a node in the state
-func (s *State) Update(n lib.Node) (r lib.Node, e error) {
+func (s *State) Update(n types.Node) (r types.Node, e error) {
 	s.nodesMutex.Lock()
 	defer s.nodesMutex.Unlock()
 
@@ -90,12 +91,12 @@ func (s *State) Update(n lib.Node) (r lib.Node, e error) {
 }
 
 // Delete removes a node from the state
-func (s *State) Delete(n lib.Node) (r lib.Node, e error) {
+func (s *State) Delete(n types.Node) (r types.Node, e error) {
 	return s.DeleteByID(n.ID())
 }
 
 // DeleteByID deletes a node from the state keyed by NodeID
-func (s *State) DeleteByID(nid lib.NodeID) (r lib.Node, e error) {
+func (s *State) DeleteByID(nid types.NodeID) (r types.Node, e error) {
 	s.nodesMutex.Lock()
 	defer s.nodesMutex.Unlock()
 
@@ -114,32 +115,32 @@ func (s *State) DeleteByID(nid lib.NodeID) (r lib.Node, e error) {
  */
 
 // BulkCreate creates multiple nodes
-func (s *State) BulkCreate(ns []lib.Node) (r []lib.Node, e error) {
+func (s *State) BulkCreate(ns []types.Node) (r []types.Node, e error) {
 	return bulkCRUD(ns, s.Create)
 }
 
 // BulkRead reads multiple nodes
-func (s *State) BulkRead(nids []lib.NodeID) (r []lib.Node, e error) {
+func (s *State) BulkRead(nids []types.NodeID) (r []types.Node, e error) {
 	return bulkCRUDByID(nids, s.Read)
 }
 
 // BulkUpdate updates multiple nodes
-func (s *State) BulkUpdate(ns []lib.Node) (r []lib.Node, e error) {
+func (s *State) BulkUpdate(ns []types.Node) (r []types.Node, e error) {
 	return bulkCRUD(ns, s.Update)
 }
 
 // BulkDelete removes multiple nodes
-func (s *State) BulkDelete(ns []lib.Node) (r []lib.Node, e error) {
+func (s *State) BulkDelete(ns []types.Node) (r []types.Node, e error) {
 	return bulkCRUD(ns, s.Delete)
 }
 
 // BulkDeleteByID removes multiple nodes keyed by NodeID
-func (s *State) BulkDeleteByID(nids []lib.NodeID) (r []lib.Node, e error) {
+func (s *State) BulkDeleteByID(nids []types.NodeID) (r []types.Node, e error) {
 	return bulkCRUDByID(nids, s.DeleteByID)
 }
 
 // ReadAll returns a slice of all nodes from the state
-func (s *State) ReadAll() (r []lib.Node, e error) {
+func (s *State) ReadAll() (r []types.Node, e error) {
 	s.nodesMutex.RLock()
 	defer s.nodesMutex.RUnlock()
 
@@ -150,7 +151,7 @@ func (s *State) ReadAll() (r []lib.Node, e error) {
 }
 
 // DeleteAll will remove all nodes from the state
-func (s *State) DeleteAll() (r []lib.Node, e error) {
+func (s *State) DeleteAll() (r []types.Node, e error) {
 	s.nodesMutex.Lock()
 	defer s.nodesMutex.Unlock()
 
@@ -188,15 +189,15 @@ func (s *State) SetValue(url string, v reflect.Value) (r reflect.Value, e error)
 func (s *State) CreateIndex(key string) (e error)                                        { return }
 func (s *State) DeleteIndex(key string) (e error)                                        { return }
 func (s *State) RebuildIndex(key string) (e error)                                       { return }
-func (s *State) QueryIndex(key string, value string) (ns []lib.IndexableNode, e error) { return }
+func (s *State) QueryIndex(key string, value string) (ns []types.IndexableNode, e error) { return }
 */
 
 /*
  * TODO: Queryable funcs
 func (s *State) Search(key string, value reflect.Value) (r []string)                        { return }
-func (s *State) QuerySelect(query string) (r []lib.Node, e error)                         { return }
+func (s *State) QuerySelect(query string) (r []types.Node, e error)                         { return }
 func (s *State) QueryUpdate(query string, value reflect.Value) (r []reflect.Value, e error) { return }
-func (s *State) QueryDelete(query string) (r []lib.Node, e error)                         { return }
+func (s *State) QueryDelete(query string) (r []types.Node, e error)                         { return }
 */
 
 ////////////////////////
@@ -210,8 +211,8 @@ func (s *State) QueryDelete(query string) (r []lib.Node, e error)               
  * sub - the sub-URL remaining with root removed (has leading /)
  * e - error should be nil on success. Should always be set if no node found.
  */
-func (s *State) resolveNode(url string) (n lib.Node, root, sub string, e error) {
-	root, sub = lib.NodeURLSplit(url)
+func (s *State) resolveNode(url string) (n types.Node, root, sub string, e error) {
+	root, sub = util.NodeURLSplit(url)
 	n, e = s.Read(NewNodeIDFromURL(root))
 	if n == nil {
 		e = fmt.Errorf("no such node: %s", root)
@@ -219,9 +220,9 @@ func (s *State) resolveNode(url string) (n lib.Node, root, sub string, e error) 
 	return
 }
 
-func bulkCRUD(ns []lib.Node, f func(lib.Node) (lib.Node, error)) (r []lib.Node, e error) {
+func bulkCRUD(ns []types.Node, f func(types.Node) (types.Node, error)) (r []types.Node, e error) {
 	for _, n := range ns {
-		var ret lib.Node
+		var ret types.Node
 		ret, e = f(n)
 		if e != nil {
 			return
@@ -231,9 +232,9 @@ func bulkCRUD(ns []lib.Node, f func(lib.Node) (lib.Node, error)) (r []lib.Node, 
 	return
 }
 
-func bulkCRUDByID(ns []lib.NodeID, f func(lib.NodeID) (lib.Node, error)) (r []lib.Node, e error) {
+func bulkCRUDByID(ns []types.NodeID, f func(types.NodeID) (types.Node, error)) (r []types.Node, e error) {
 	for _, n := range ns {
-		var ret lib.Node
+		var ret types.Node
 		ret, e = f(n)
 		if e != nil {
 			return

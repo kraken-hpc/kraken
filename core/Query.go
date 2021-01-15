@@ -12,40 +12,40 @@ package core
 import (
 	"reflect"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 //////////////////
 // Query Object /
 ////////////////
 
-var _ lib.Query = (*Query)(nil)
+var _ types.Query = (*Query)(nil)
 
 // Query objects describe a state query
 type Query struct {
-	t lib.QueryType
-	s lib.QueryState
+	t types.QueryType
+	s types.QueryState
 	u string
 	v []reflect.Value
-	c chan lib.QueryResponse
+	c chan types.QueryResponse
 }
 
 // NewQuery creates an initialized query; this is how all Queries should be created
-func NewQuery(t lib.QueryType, s lib.QueryState, url string, v []reflect.Value) (*Query, chan lib.QueryResponse) {
+func NewQuery(t types.QueryType, s types.QueryState, url string, v []reflect.Value) (*Query, chan types.QueryResponse) {
 	q := &Query{}
 	q.t = t
 	q.s = s
 	q.u = url
 	q.v = v
-	q.c = make(chan lib.QueryResponse)
+	q.c = make(chan types.QueryResponse)
 	return q, q.c
 }
 
 // Type returns the type of the query (e.g., Create, Update...)
-func (q *Query) Type() lib.QueryType { return q.t }
+func (q *Query) Type() types.QueryType { return q.t }
 
 // State returns the state (Dsc, Cfg, or Both) we are querying
-func (q *Query) State() lib.QueryState { return q.s }
+func (q *Query) State() types.QueryState { return q.s }
 
 // URL returns a string representing the object being queried
 func (q *Query) URL() string { return q.u }
@@ -54,13 +54,13 @@ func (q *Query) URL() string { return q.u }
 func (q *Query) Value() []reflect.Value { return q.v }
 
 // ResponseChan returns the channel that a QueryResponse should be sent on
-func (q *Query) ResponseChan() chan<- lib.QueryResponse { return q.c }
+func (q *Query) ResponseChan() chan<- types.QueryResponse { return q.c }
 
 //////////////////////////
 // QueryResponse Object /
 ////////////////////////
 
-var _ lib.QueryResponse = (*QueryResponse)(nil)
+var _ types.QueryResponse = (*QueryResponse)(nil)
 
 // A QueryResponse is sent by the Engine to the requester with results and possible errors
 type QueryResponse struct {

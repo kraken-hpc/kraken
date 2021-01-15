@@ -19,14 +19,14 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 ////////////////////////////
 // ServiceInstance Object /
 //////////////////////////
 
-var _ lib.ServiceInstance = (*ServiceInstance)(nil)
+var _ types.ServiceInstance = (*ServiceInstance)(nil)
 
 // A ServiceInstance describes a service that will be built-in to the binary and exec'ed by forking
 // note: state information is stored in the node proto object, this object manages a running context
@@ -37,10 +37,10 @@ type ServiceInstance struct {
 	entry  func() // needs to run as a goroutine
 	sock   string
 	cmd    *exec.Cmd
-	ctl    chan<- lib.ServiceControl
-	wchan  chan<- lib.ServiceInstanceUpdate
-	state  lib.ServiceState // note: these states mean a slightly different: RUN means process is running, INIT means nothing
-	m      lib.ModuleSelfService
+	ctl    chan<- types.ServiceControl
+	wchan  chan<- types.ServiceInstanceUpdate
+	state  types.ServiceState // note: these states mean a slightly different: RUN means process is running, INIT means nothing
+	m      types.ModuleSelfService
 	mutex  *sync.Mutex
 }
 
@@ -53,7 +53,7 @@ func NewServiceInstance(id, module string, entry func()) *ServiceInstance {
 		cmd:    nil,
 		mutex:  &sync.Mutex{},
 	}
-	si.setState((lib.Service_STOP)) // we're obviously stopped right now
+	si.setState((types.Service_STOP)) // we're obviously stopped right now
 	si.exe, _ = os.Executable()
 	return si
 }
@@ -65,7 +65,7 @@ func (si *ServiceInstance) ID() string { return si.id }
 func (si *ServiceInstance) Module() string { return si.module }
 
 // GetState returns the current run state of the service
-func (si *ServiceInstance) GetState() lib.ServiceState {
+func (si *ServiceInstance) GetState() types.ServiceState {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
 	return si.state
@@ -74,7 +74,7 @@ func (si *ServiceInstance) GetState() lib.ServiceState {
 // UpdateConfig will send a signal to the running si to check for a config update
 func (si *ServiceInstance) UpdateConfig() {
 	if si.ctl != nil {
-		si.ctl <- lib.ServiceControl{Command: lib.ServiceControl_UPDATE}
+		si.ctl <- types.ServiceControl{Command: types.ServiceControl_UPDATE}
 	}
 }
 
@@ -82,27 +82,27 @@ func (si *ServiceInstance) UpdateConfig() {
 func (si *ServiceInstance) Start() {
 	e := si.start()
 	if e != nil {
-		si.setState(lib.Service_ERROR)
+		si.setState(types.Service_ERROR)
 		return
 	}
-	si.setState(lib.Service_RUN)
+	si.setState(types.Service_RUN)
 	go si.watcher()
 }
 
 // Stop sends a signal to the running si to stop
 func (si *ServiceInstance) Stop() {
 	if si.ctl != nil {
-		si.ctl <- lib.ServiceControl{Command: lib.ServiceControl_STOP}
+		si.ctl <- types.ServiceControl{Command: types.ServiceControl_STOP}
 	}
 }
 
 // Watch provides a channel where process state changes will be reported
-func (si *ServiceInstance) Watch(wchan chan<- lib.ServiceInstanceUpdate) {
+func (si *ServiceInstance) Watch(wchan chan<- types.ServiceInstanceUpdate) {
 	si.wchan = wchan
 }
 
 // SetCtl sets the channel to send control message to (to pass through the API)
-func (si *ServiceInstance) SetCtl(ctl chan<- lib.ServiceControl) {
+func (si *ServiceInstance) SetCtl(ctl chan<- types.ServiceControl) {
 	si.ctl = ctl
 }
 
@@ -112,12 +112,12 @@ func (si *ServiceInstance) SetSock(sock string) {
 }
 
 // setState sets the state, but should only be done internally.  This makes sure we notify any watcher
-func (si *ServiceInstance) setState(state lib.ServiceState) {
+func (si *ServiceInstance) setState(state types.ServiceState) {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
 	si.state = state
 	if si.wchan != nil {
-		si.wchan <- lib.ServiceInstanceUpdate{
+		si.wchan <- types.ServiceInstanceUpdate{
 			ID:    si.id,
 			State: si.state,
 		}
@@ -127,16 +127,16 @@ func (si *ServiceInstance) setState(state lib.ServiceState) {
 func (si *ServiceInstance) watcher() {
 	e := si.cmd.Wait()
 	if e != nil {
-		si.setState(lib.Service_ERROR)
+		si.setState(types.Service_ERROR)
 		return
 	}
-	si.setState(lib.Service_STOP)
+	si.setState(types.Service_STOP)
 }
 
 func (si *ServiceInstance) start() (e error) {
 	si.mutex.Lock()
 	defer si.mutex.Unlock()
-	if si.state == lib.Service_RUN {
+	if si.state == types.Service_RUN {
 		return fmt.Errorf("cannot start service instance not in stop state")
 	}
 	if _, e = os.Stat(si.exe); os.IsNotExist(e) {
@@ -164,13 +164,13 @@ func ModuleExecute(id, module, sock string) {
 		fmt.Printf("trying to launch non-existent module: %s", module)
 		return
 	}
-	mss, ok := m.(lib.ModuleSelfService)
+	mss, ok := m.(types.ModuleSelfService)
 	if !ok {
 		fmt.Printf("module is not executable: %s", module)
 		return
 	}
 	config := false
-	mc, ok := m.(lib.ModuleWithConfig)
+	mc, ok := m.(types.ModuleWithConfig)
 	if ok {
 		config = true
 	}
@@ -191,7 +191,7 @@ func ModuleExecute(id, module, sock string) {
 	}
 
 	// Setup mutation stream if we need it
-	mm, ok := m.(lib.ModuleWithMutations)
+	mm, ok := m.(types.ModuleWithMutations)
 	if ok {
 		cc, e := api.MutationInit(id, module)
 		if e != nil {
@@ -202,7 +202,7 @@ func ModuleExecute(id, module, sock string) {
 	}
 
 	// Setup event stream if we need it
-	me, ok := m.(lib.ModuleWithAllEvents)
+	me, ok := m.(types.ModuleWithAllEvents)
 	if ok {
 		cc, e := api.EventInit(id, module)
 		if e != nil {
@@ -213,7 +213,7 @@ func ModuleExecute(id, module, sock string) {
 	}
 
 	// Setup discovery stream if we need it
-	md, ok := m.(lib.ModuleWithDiscovery)
+	md, ok := m.(types.ModuleWithDiscovery)
 	if ok {
 		cc, e := api.DiscoveryInit(id)
 		if e != nil {
@@ -253,11 +253,11 @@ func ModuleExecute(id, module, sock string) {
 		select {
 		case cmd := <-cc:
 			switch cmd.Command {
-			case lib.ServiceControl_STOP:
+			case types.ServiceControl_STOP:
 				api.Logf(NOTICE, "stopping")
 				mss.Stop()
 				break
-			case lib.ServiceControl_UPDATE:
+			case types.ServiceControl_UPDATE:
 				updateConfig()
 				break
 			default:

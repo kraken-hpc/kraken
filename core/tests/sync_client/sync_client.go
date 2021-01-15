@@ -7,7 +7,7 @@ import (
 
 	"github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 
 	"google.golang.org/grpc"
 )
@@ -67,7 +67,7 @@ const simpleNode3 string = `
 }
 `
 
-func send(n lib.Node) {
+func send(n types.Node) {
 	conn, e := grpc.Dial("127.0.0.1:31415", grpc.WithInsecure())
 	if e != nil {
 		log.Printf("did not connect: %v", e)

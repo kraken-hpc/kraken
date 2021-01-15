@@ -20,17 +20,18 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 	"google.golang.org/grpc"
 )
 
-var _ lib.ModuleAPIClient = (*ModuleAPIClient)(nil)
+var _ types.ModuleAPIClient = (*ModuleAPIClient)(nil)
 
 type ModuleAPIClient struct {
 	sock    string
-	self    lib.NodeID
+	self    types.NodeID
 	logChan chan LoggerEvent
-	log     lib.Logger
+	log     types.Logger
 }
 
 func NewModuleAPIClient(sock string) *ModuleAPIClient {
@@ -40,11 +41,11 @@ func NewModuleAPIClient(sock string) *ModuleAPIClient {
 	return a
 }
 
-func (a *ModuleAPIClient) Self() lib.NodeID { return a.self }
+func (a *ModuleAPIClient) Self() types.NodeID { return a.self }
 
-func (a *ModuleAPIClient) SetSelf(s lib.NodeID) { a.self = s }
+func (a *ModuleAPIClient) SetSelf(s types.NodeID) { a.self = s }
 
-func (a *ModuleAPIClient) QueryCreate(n lib.Node) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryCreate(n types.Node) (r types.Node, e error) {
 	q := &pb.Query{
 		Payload: &pb.Query_Node{
 			Node: n.Message().(*pb.Node),
@@ -58,7 +59,7 @@ func (a *ModuleAPIClient) QueryCreate(n lib.Node) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryRead(id string) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryRead(id string) (r types.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryRead", reflect.ValueOf(q))
 	if e != nil {
@@ -68,7 +69,7 @@ func (a *ModuleAPIClient) QueryRead(id string) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryReadDsc(id string) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryReadDsc(id string) (r types.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryReadDsc", reflect.ValueOf(q))
 	if e != nil {
@@ -78,7 +79,7 @@ func (a *ModuleAPIClient) QueryReadDsc(id string) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryUpdate(n lib.Node) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryUpdate(n types.Node) (r types.Node, e error) {
 	q := &pb.Query{
 		Payload: &pb.Query_Node{
 			Node: n.Message().(*pb.Node),
@@ -92,7 +93,7 @@ func (a *ModuleAPIClient) QueryUpdate(n lib.Node) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryUpdateDsc(n lib.Node) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryUpdateDsc(n types.Node) (r types.Node, e error) {
 	q := &pb.Query{
 		Payload: &pb.Query_Node{
 			Node: n.Message().(*pb.Node),
@@ -106,7 +107,7 @@ func (a *ModuleAPIClient) QueryUpdateDsc(n lib.Node) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryDelete(id string) (r lib.Node, e error) {
+func (a *ModuleAPIClient) QueryDelete(id string) (r types.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryDelete", reflect.ValueOf(q))
 	if e != nil {
@@ -116,7 +117,7 @@ func (a *ModuleAPIClient) QueryDelete(id string) (r lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryReadAll() (r []lib.Node, e error) {
+func (a *ModuleAPIClient) QueryReadAll() (r []types.Node, e error) {
 	q := &empty.Empty{}
 	rvs, e := a.oneshot("QueryReadAll", reflect.ValueOf(q))
 	if e != nil {
@@ -129,7 +130,7 @@ func (a *ModuleAPIClient) QueryReadAll() (r []lib.Node, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) QueryReadAllDsc() (r []lib.Node, e error) {
+func (a *ModuleAPIClient) QueryReadAllDsc() (r []types.Node, e error) {
 	q := &empty.Empty{}
 	rvs, e := a.oneshot("QueryReadAllDsc", reflect.ValueOf(q))
 	if e != nil {
@@ -163,7 +164,7 @@ func (a *ModuleAPIClient) QueryMutationEdges() (r pb.MutationEdgeList, e error) 
 }
 
 func (a *ModuleAPIClient) QueryNodeMutationNodes(id string) (r pb.MutationNodeList, e error) {
-	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/nodes")}
+	q := &pb.Query{URL: util.NodeURLJoin(id, "/graph/nodes")}
 	rv, e := a.oneshot("QueryNodeMutationNodes", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -173,7 +174,7 @@ func (a *ModuleAPIClient) QueryNodeMutationNodes(id string) (r pb.MutationNodeLi
 }
 
 func (a *ModuleAPIClient) QueryNodeMutationEdges(id string) (r pb.MutationEdgeList, e error) {
-	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/edges")}
+	q := &pb.Query{URL: util.NodeURLJoin(id, "/graph/edges")}
 	rv, e := a.oneshot("QueryNodeMutationEdges", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -183,7 +184,7 @@ func (a *ModuleAPIClient) QueryNodeMutationEdges(id string) (r pb.MutationEdgeLi
 }
 
 func (a *ModuleAPIClient) QueryNodeMutationPath(id string) (r pb.MutationPath, e error) {
-	q := &pb.Query{URL: lib.NodeURLJoin(id, "/graph/path")}
+	q := &pb.Query{URL: util.NodeURLJoin(id, "/graph/path")}
 	rv, e := a.oneshot("QueryNodeMutationPath", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -192,7 +193,7 @@ func (a *ModuleAPIClient) QueryNodeMutationPath(id string) (r pb.MutationPath, e
 	return
 }
 
-func (a *ModuleAPIClient) QueryDeleteAll() (r []lib.Node, e error) {
+func (a *ModuleAPIClient) QueryDeleteAll() (r []types.Node, e error) {
 	q := &empty.Empty{}
 	rvs, e := a.oneshot("QueryDeleteAll", reflect.ValueOf(q))
 	if e != nil {
@@ -225,7 +226,7 @@ func (a *ModuleAPIClient) QueryFrozen() (r bool, e error) {
 	return
 }
 
-func (a *ModuleAPIClient) ServiceInit(id string, module string) (c <-chan lib.ServiceControl, e error) {
+func (a *ModuleAPIClient) ServiceInit(id string, module string) (c <-chan types.ServiceControl, e error) {
 	var stream grpc.ClientStream
 	stream, e = a.serverStream("ServiceInit", reflect.ValueOf(&pb.ServiceInitRequest{Id: id, Module: module}))
 	if e != nil {
@@ -241,7 +242,7 @@ func (a *ModuleAPIClient) ServiceInit(id string, module string) (c <-chan lib.Se
 	ptypes.UnmarshalAny(init.Config, self)
 	a.self = NewNodeIDFromBinary(self.GetId())
 
-	cc := make(chan lib.ServiceControl)
+	cc := make(chan types.ServiceControl)
 	go func() {
 		for {
 			var ctl *pb.ServiceControl
@@ -249,30 +250,30 @@ func (a *ModuleAPIClient) ServiceInit(id string, module string) (c <-chan lib.Se
 			if e != nil {
 				return
 			}
-			cc <- lib.ServiceControl{Command: lib.ServiceControl_Command(ctl.Command)}
+			cc <- types.ServiceControl{Command: types.ServiceControl_Command(ctl.Command)}
 		}
 	}()
 	c = cc
 	return
 }
 
-func (a *ModuleAPIClient) MutationInit(id string, module string) (c <-chan lib.Event, e error) {
+func (a *ModuleAPIClient) MutationInit(id string, module string) (c <-chan types.Event, e error) {
 	var stream grpc.ClientStream
 	if stream, e = a.serverStream("MutationInit", reflect.ValueOf(&pb.ServiceInitRequest{Id: id, Module: module})); e != nil {
 		return
 	}
-	cc := make(chan lib.Event)
+	cc := make(chan types.Event)
 	go func() {
 		for {
 			var mc *pb.MutationControl
 			if mc, e = stream.(pb.ModuleAPI_MutationInitClient).Recv(); e != nil {
-				a.Logf(lib.LLERROR, "got stream read error on mutation stream: %v\n", e)
+				a.Logf(types.LLERROR, "got stream read error on mutation stream: %v\n", e)
 				return
 			}
 			cfg := NewNodeFromMessage(mc.GetCfg())
 			dsc := NewNodeFromMessage(mc.GetDsc())
 			cc <- NewEvent(
-				lib.Event_STATE_MUTATION,
+				types.Event_STATE_MUTATION,
 				cfg.ID().String(),
 				&MutationEvent{
 					Type:     mc.GetType(),
@@ -286,17 +287,17 @@ func (a *ModuleAPIClient) MutationInit(id string, module string) (c <-chan lib.E
 	return
 }
 
-func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan lib.Event, e error) {
+func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan types.Event, e error) {
 	var stream grpc.ClientStream
 	if stream, e = a.serverStream("EventInit", reflect.ValueOf(&pb.ServiceInitRequest{Id: id, Module: module})); e != nil {
 		return
 	}
-	cc := make(chan lib.Event)
+	cc := make(chan types.Event)
 	go func() {
 		for {
 			var ec *pb.EventControl
 			if ec, e = stream.(pb.ModuleAPI_EventInitClient).Recv(); e != nil {
-				a.Logf(lib.LLERROR, "got stream read error on event stream: %v\n", e)
+				a.Logf(types.LLERROR, "got stream read error on event stream: %v\n", e)
 				return
 			}
 			switch ec.GetType() {
@@ -305,7 +306,7 @@ func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan lib.Even
 				cfg := NewNodeFromMessage(event.GetCfg())
 				dsc := NewNodeFromMessage(event.GetDsc())
 				cc <- NewEvent(
-					lib.Event_STATE_MUTATION,
+					types.Event_STATE_MUTATION,
 					cfg.ID().String(),
 					&MutationEvent{
 						Type:     event.GetType(),
@@ -316,7 +317,7 @@ func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan lib.Even
 			case pb.EventControl_StateChange:
 				event := ec.GetStateChangeControl()
 				cc <- NewEvent(
-					lib.Event_STATE_CHANGE,
+					types.Event_STATE_CHANGE,
 					event.GetUrl(),
 					&StateChangeEvent{
 						Type:  event.GetType(),
@@ -326,7 +327,7 @@ func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan lib.Even
 			case pb.EventControl_Discovery:
 				event := ec.GetDiscoveryEvent()
 				cc <- NewEvent(
-					lib.Event_DISCOVERY,
+					types.Event_DISCOVERY,
 					event.GetUrl(),
 					&DiscoveryEvent{
 						ID:      event.GetId(),
@@ -340,7 +341,7 @@ func (a *ModuleAPIClient) EventInit(id string, module string) (c <-chan lib.Even
 	return
 }
 
-func (a *ModuleAPIClient) DiscoveryInit(id string) (c chan<- lib.Event, e error) {
+func (a *ModuleAPIClient) DiscoveryInit(id string) (c chan<- types.Event, e error) {
 	var stream pb.ModuleAPI_DiscoveryInitClient
 	var conn *grpc.ClientConn
 	if conn, e = grpc.Dial(a.sock, grpc.WithInsecure()); e != nil {
@@ -350,7 +351,7 @@ func (a *ModuleAPIClient) DiscoveryInit(id string) (c chan<- lib.Event, e error)
 	if stream, e = client.DiscoveryInit(context.Background()); e != nil {
 		return
 	}
-	cc := make(chan lib.Event)
+	cc := make(chan types.Event)
 	go func() {
 		for {
 			v := <-cc
@@ -386,7 +387,7 @@ func (a *ModuleAPIClient) LoggerInit(si string) (e error) {
 	}
 	a.logChan = make(chan LoggerEvent)
 	a.log = &ServiceLogger{}
-	a.log.SetLoggerLevel(lib.LLDDDEBUG)
+	a.log.SetLoggerLevel(types.LLDDDEBUG)
 	a.log.SetModule(si)
 	a.log.(*ServiceLogger).RegisterChannel(a.logChan)
 	go func() {
@@ -470,16 +471,16 @@ func (a *ModuleAPIClient) serverStream(call string, in reflect.Value) (out grpc.
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*ModuleAPIClient)(nil)
+var _ types.Logger = (*ModuleAPIClient)(nil)
 
-func (a *ModuleAPIClient) Log(level lib.LoggerLevel, m string) { a.log.Log(level, m) }
-func (a *ModuleAPIClient) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (a *ModuleAPIClient) Log(level types.LoggerLevel, m string) { a.log.Log(level, m) }
+func (a *ModuleAPIClient) Logf(level types.LoggerLevel, fmt string, v ...interface{}) {
 	a.log.Logf(level, fmt, v...)
 }
-func (a *ModuleAPIClient) SetModule(name string)                { a.log.SetModule(name) }
-func (a *ModuleAPIClient) GetModule() string                    { return a.log.GetModule() }
-func (a *ModuleAPIClient) SetLoggerLevel(level lib.LoggerLevel) { a.log.SetLoggerLevel(level) }
-func (a *ModuleAPIClient) GetLoggerLevel() lib.LoggerLevel      { return a.log.GetLoggerLevel() }
-func (a *ModuleAPIClient) IsEnabledFor(level lib.LoggerLevel) bool {
+func (a *ModuleAPIClient) SetModule(name string)                  { a.log.SetModule(name) }
+func (a *ModuleAPIClient) GetModule() string                      { return a.log.GetModule() }
+func (a *ModuleAPIClient) SetLoggerLevel(level types.LoggerLevel) { a.log.SetLoggerLevel(level) }
+func (a *ModuleAPIClient) GetLoggerLevel() types.LoggerLevel      { return a.log.GetLoggerLevel() }
+func (a *ModuleAPIClient) IsEnabledFor(level types.LoggerLevel) bool {
 	return a.log.IsEnabledFor(level)
 }

@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-package lib
+package build
 
 import (
 	"fmt"

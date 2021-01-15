@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-package lib
+package util
 
 import (
 	fmt "fmt"
@@ -272,27 +272,6 @@ func NodeURLSplit(s string) (node string, url string) {
 func NodeURLJoin(node, url string) string {
 	return node + ":" + url
 }
-
-/*
-type GenericProtoMessage struct {
-	m proto.Message
-}
-
-func (g *GenericProtoMessage) GetMessage() proto.Message  { return g.m }
-func (g *GenericProtoMessage) SetMessage(m proto.Message) { g.m = m }
-func (g *GenericProtoMessage) MarshalProto() ([]byte, error) {
-	return proto.Marshal(g.m)
-}
-func (g *GenericProtoMessage) UnmarshalProto(b []byte) error {
-	return proto.Unmarshal(b, g.m)
-}
-func (g *GenericProtoMessage) MarshalJSON() ([]byte, error) {
-	return MarshalJSON(g)
-}
-func (g *GenericProtoMessage) UnmarshalJSON(b []byte) error {
-	return UnmarshalJSON(b, g.m)
-}
-*/
 
 // ValueToString does its best to convert values into sensible strings for printing
 func ValueToString(v reflect.Value) (s string) {
