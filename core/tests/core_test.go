@@ -218,7 +218,7 @@ func TestNodeGetExtension(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pm := n.GetExtension("type.googleapis.com/proto.IPv4OverEthernet")
+	pm := n.GetExtension("type.googleapis.com/IPv4.IPv4OverEthernet")
 	if pm == nil {
 		t.Errorf("failed to get extionsion that should have been there")
 	}
@@ -245,7 +245,7 @@ func TestNodeDelExtension(t *testing.T) {
 	j, _ = n.MarshalJSON()
 	t.Logf("bad-delete: %s", j)
 
-	n.DelExtension("type.googleapis.com/proto.IPv4OverEthernet")
+	n.DelExtension("type.googleapis.com/IPv4.IPv4OverEthernet")
 
 	j, _ = n.MarshalJSON()
 	t.Logf("post-delete: %s", j)
@@ -311,12 +311,12 @@ func TestResolveURL(t *testing.T) {
 			err: nil,
 		},
 		{
-			url: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mtu",
+			url: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mtu",
 			res: reflect.ValueOf(im.Ifaces[0].Eth.Mtu),
 			err: nil,
 		},
 		{
-			url: "/type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth",
+			url: "/type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth",
 			res: reflect.ValueOf(im.Ifaces[0].Eth),
 			err: nil,
 		},
@@ -358,7 +358,7 @@ func TestNodeMerge(t *testing.T) {
 		t.Errorf("merged %d changes, should have merged 2", len(c))
 	}
 	m := n1.GetMessage().(*pb.Node)
-	i := n1.GetExtension("type.googleapis.com/proto.IPv4OverEthernet").GetMessage().(*pb.IPv4OverEthernet)
+	i := n1.GetExtension("type.googleapis.com/IPv4.IPv4OverEthernet").GetMessage().(*pb.IPv4OverEthernet)
 	if m.Nodename != "node2" {
 		t.Errorf("nodename should be node2, is %s", m.Nodename)
 	}
@@ -392,7 +392,7 @@ func TestSetValue(t *testing.T) {
 
 	var mtu uint32
 	mtu = 9000
-	v, e := n.SetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mtu", reflect.ValueOf(mtu))
+	v, e := n.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mtu", reflect.ValueOf(mtu))
 	if e != nil {
 		t.Error(e)
 	}

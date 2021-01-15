@@ -28,19 +28,20 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 
 	cpb "github.com/hpc/kraken/core/proto"
 	pb "github.com/hpc/kraken/modules/restapi/proto"
 )
 
-var _ lib.Module = (*RestAPI)(nil)
-var _ lib.ModuleSelfService = (*RestAPI)(nil)
-var _ lib.ModuleWithConfig = (*RestAPI)(nil)
+var _ types.Module = (*RestAPI)(nil)
+var _ types.ModuleSelfService = (*RestAPI)(nil)
+var _ types.ModuleWithConfig = (*RestAPI)(nil)
 
 type RestAPI struct {
 	cfg    *pb.RestAPIConfig
-	api    lib.ModuleAPIClient
+	api    types.ModuleAPIClient
 	router *mux.Router
 	srv    *http.Server
 }
@@ -76,7 +77,7 @@ func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
 	return fmt.Errorf("wrong config type")
 }
 
-func (r *RestAPI) Init(api lib.ModuleAPIClient) {
+func (r *RestAPI) Init(api types.ModuleAPIClient) {
 	r.api = api
 	if r.cfg == nil {
 		r.cfg = r.NewConfig().(*pb.RestAPIConfig)
@@ -132,17 +133,17 @@ func (r *RestAPI) startServer() {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
-	r.api.Logf(lib.LLINFO, "restapi is listening on: %s\n", r.srv.Addr)
+	r.api.Logf(types.LLINFO, "restapi is listening on: %s\n", r.srv.Addr)
 	if e := r.srv.ListenAndServe(); e != nil {
 		if e != http.ErrServerClosed {
-			r.api.Logf(lib.LLNOTICE, "http stopped: %v\n", e)
+			r.api.Logf(types.LLNOTICE, "http stopped: %v\n", e)
 		}
 	}
-	r.api.Log(lib.LLNOTICE, "restapi listener stopped")
+	r.api.Log(types.LLNOTICE, "restapi listener stopped")
 }
 
 func (r *RestAPI) srvStop() {
-	r.api.Log(lib.LLDEBUG, "restapi is shutting down listener")
+	r.api.Log(types.LLDEBUG, "restapi is shutting down listener")
 	r.srv.Shutdown(context.Background())
 }
 
@@ -158,18 +159,18 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	// Check if websocket module is running
 	wserv := nself.GetService("websocket")
 	if wserv == nil {
-		r.api.Logf(lib.LLERROR, "Could not find websocket service")
+		r.api.Logf(types.LLERROR, "Could not find websocket service")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	if wserv.GetState() != cpb.ServiceInstance_RUN {
-		r.api.Logf(lib.LLDEBUG, "Got websocket request, but websocket module isn't running. Attempting to start it now")
+		r.api.Logf(types.LLDEBUG, "Got websocket request, but websocket module isn't running. Attempting to start it now")
 		wserv.State = cpb.ServiceInstance_RUN
 
 		_, e := r.api.QueryUpdate(nself)
 		if e != nil {
-			r.api.Logf(lib.LLERROR, "Error updating cfg to start websocket service")
+			r.api.Logf(types.LLERROR, "Error updating cfg to start websocket service")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -178,7 +179,7 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 	// Get port from websocket module config
 	wsPort, e := nself.GetValue("/Services/websocket/Config/Port")
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "Error getting websocket port")
+		r.api.Logf(types.LLERROR, "Error getting websocket port")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -194,13 +195,13 @@ func (r *RestAPI) webSocketRedirect(w http.ResponseWriter, req *http.Request) {
 
 	json, err := json.Marshal(response)
 	if err != nil {
-		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshaling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(json)
-	r.api.Logf(lib.LLDDDEBUG, "Websocket redirecting to: %v", string(json))
+	r.api.Logf(types.LLDDDEBUG, "Websocket redirecting to: %v", string(json))
 }
 
 func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
@@ -214,7 +215,7 @@ func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 	for _, n := range ns {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
-	b, _ := core.MarshalJSON(&rsp)
+	b, _ := json.Marshal(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -251,7 +252,7 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 				}
 				enum := extension{
 					Name:    name,
-					Url:     lib.URLPush(k, name),
+					Url:     util.URLPush(k, name),
 					Options: enumOptions,
 				}
 				extSlice = append(extSlice, enum)
@@ -276,7 +277,7 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	jExt, e := json.Marshal(extSlice)
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "error marshalling json: %v", e)
+		r.api.Logf(types.LLERROR, "error marshalling json: %v", e)
 		w.WriteHeader(http.StatusConflict)
 		w.Write([]byte(e.Error()))
 		return
@@ -295,7 +296,7 @@ func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {
 	for _, n := range ns {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
-	b, _ := core.MarshalJSON(&rsp)
+	b, _ := json.Marshal(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -432,7 +433,7 @@ func (r *RestAPI) readNodeGraphJSON(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDDDEBUG, "Node filtered graph: %v", string(jsonGraph))
+	r.api.Logf(types.LLDDDEBUG, "Node filtered graph: %v", string(jsonGraph))
 	w.Write([]byte(string(jsonGraph)))
 }
 
@@ -465,7 +466,7 @@ func (r *RestAPI) readGraphJSON(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(e.Error()))
 		return
 	}
-	r.api.Logf(lib.LLDDDEBUG, "Graph: %v", string(jsonGraph))
+	r.api.Logf(types.LLDDDEBUG, "Graph: %v", string(jsonGraph))
 	w.Write([]byte(string(jsonGraph)))
 }
 
@@ -505,9 +506,9 @@ func (r *RestAPI) updateMulti(w http.ResponseWriter, req *http.Request) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 	var pbs cpb.NodeList
-	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
+	e := json.Unmarshal(buf.Bytes(), &pbs)
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
+		r.api.Logf(types.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -519,7 +520,7 @@ func (r *RestAPI) updateMulti(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := core.MarshalJSON(&rsp)
+	b, _ := json.Marshal(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -549,9 +550,9 @@ func (r *RestAPI) updateMultiDsc(w http.ResponseWriter, req *http.Request) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 	var pbs cpb.NodeList
-	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
+	e := json.Unmarshal(buf.Bytes(), &pbs)
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
+		r.api.Logf(types.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -563,7 +564,7 @@ func (r *RestAPI) updateMultiDsc(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := core.MarshalJSON(&rsp)
+	b, _ := json.Marshal(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -605,9 +606,9 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 	var pbs cpb.NodeList
-	e := core.UnmarshalJSON(buf.Bytes(), &pbs)
+	e := json.Unmarshal(buf.Bytes(), &pbs)
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "unmarshal JSON error: %v", e)
+		r.api.Logf(types.LLERROR, "unmarshal JSON error: %v", e)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -619,7 +620,7 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := core.MarshalJSON(&rsp)
+	b, _ := json.Marshal(&rsp)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -628,7 +629,7 @@ func (r *RestAPI) freeze(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	e := r.api.QueryFreeze()
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "error freezing sme: %v", e)
+		r.api.Logf(types.LLERROR, "error freezing sme: %v", e)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -637,7 +638,7 @@ func (r *RestAPI) freeze(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshaling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -648,7 +649,7 @@ func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	e := r.api.QueryThaw()
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "error thawing sme: %v", e)
+		r.api.Logf(types.LLERROR, "error thawing sme: %v", e)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -657,7 +658,7 @@ func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshaling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -668,7 +669,7 @@ func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	f, e := r.api.QueryFrozen()
 	if e != nil {
-		r.api.Logf(lib.LLERROR, "error getting state of sme: %v", e)
+		r.api.Logf(types.LLERROR, "error getting state of sme: %v", e)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -678,7 +679,7 @@ func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(lib.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshaling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -694,7 +695,7 @@ func init() {
 		module.Name(),
 		module.Entry,
 	)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{
 		si.ID(): si,
 	})
 }

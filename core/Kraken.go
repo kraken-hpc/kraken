@@ -26,7 +26,7 @@ import (
 // Auxilliary objects /
 //////////////////////
 
-const AddrURL = "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip"
+const AddrURL = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip"
 
 // Context contains information about the current running context
 // such as who we are, and to whom we belong.
@@ -117,7 +117,7 @@ func NewKraken(self types.Node, parents []string, logger types.Logger) *Kraken {
 		Network:   "udp4",
 		Addr:      ip.String(),
 		Port:      31415,
-		AddrURL:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		AddrURL:   "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
 		HelloTime: 10 * time.Second,
 		DeadTime:  40 * time.Second,
 	}

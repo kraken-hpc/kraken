@@ -1,4 +1,5 @@
-/* IPv4.go: this extension adds standard IPv4 and Ethernet properties to the Node state
+/* IPv4.z.go: this extension adds standard IPv4 and Ethernet properties to the Node state
+ *            note: the .z naming convention esures the .pb init() runs first
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -7,31 +8,27 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/IPv4.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. IPv4.proto
 
 package IPv4
 
 import (
 	"net"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/extensions/IPv4/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/json"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 /////////////////////////////
 // IPv4OverEthernet Object /
 ///////////////////////////
 
-var _ lib.Extension = IPv4OverEthernet{}
+var _ types.Extension = (*IPv4OverEthernet)(nil)
 
-// IPv4OverEthernet is a ProtoMessage wrapper around IPv4 protobuf
-type IPv4OverEthernet struct{}
-
-func (i IPv4OverEthernet) New() proto.Message {
-	return &pb.IPv4OverEthernet{
+func (i *IPv4OverEthernet) New() types.Message {
+	return &IPv4OverEthernet{
 		/*
 				Ifaces: []*pb.IPv4OverEthernet_ConfiguredInterface{
 					&pb.IPv4OverEthernet_ConfiguredInterface{
@@ -68,9 +65,8 @@ func (i IPv4OverEthernet) New() proto.Message {
 	}
 }
 
-func (i IPv4OverEthernet) Name() string {
-	a, _ := ptypes.MarshalAny(i.New())
-	return a.GetTypeUrl()
+func (i *IPv4OverEthernet) Name() string {
+	return util.ProtoName(i)
 }
 
 // BytesToIP converts 4 bytes to a net.IP
@@ -89,6 +85,16 @@ func BytesToMAC(b []byte) (hw net.HardwareAddr) {
 	return net.HardwareAddr(b)
 }
 
+// MarshalJSON creats a JSON version of Node
+func (n *IPv4OverEthernet) MarshalJSON() ([]byte, error) {
+	return json.MarshalJSON(n)
+}
+
+// UnmarshalJSON populates a node from JSON
+func (n *IPv4OverEthernet) UnmarshalJSON(j []byte) error {
+	return json.UnmarshalJSON(j, n)
+}
+
 func init() {
-	core.Registry.RegisterExtension(IPv4OverEthernet{})
+	core.Registry.RegisterExtension(&IPv4OverEthernet{})
 }

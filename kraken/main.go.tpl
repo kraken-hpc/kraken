@@ -10,6 +10,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -25,7 +26,7 @@ import (
 	_ "net/http/pprof"
 
 	cpb "github.com/hpc/kraken/core/proto"
-	ip4pb "github.com/hpc/kraken/extensions/IPv4/proto"
+	"github.com/hpc/kraken/extensions/IPv4"
 	rpb "github.com/hpc/kraken/modules/restapi/proto"
 	uuid "github.com/satori/go.uuid"
 )
@@ -139,7 +140,7 @@ func main() {
 			return
 		}
 		var pbs cpb.NodeList
-		if e = core.UnmarshalJSON(data, &pbs); e != nil {
+		if e = json.Unmarshal(data, &pbs); e != nil {
 			fmt.Printf("could not parse cfg state file: %s, %v", *cfg, e)
 			flag.PrintDefaults()
 			return
@@ -190,18 +191,18 @@ func main() {
 			return
 		}
 		log.Logf(types.LLDEBUG, "using interface: %s", iface.Name)
-		pb := &ip4pb.IPv4OverEthernet_ConfiguredInterface{
-			Eth: &ip4pb.Ethernet{
+		pb := &IPv4.IPv4OverEthernet_ConfiguredInterface{
+			Eth: &IPv4.Ethernet{
 				Iface: iface.Name,
 				Mac:   iface.HardwareAddr,
 				Mtu:   uint32(iface.MTU),
 			},
-			Ip: &ip4pb.IPv4{
+			Ip: &IPv4.IPv4{
 				Ip:     netIP.To4(),
 				Subnet: network.Mask,
 			},
 		}
-		self.SetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0", reflect.ValueOf(pb))
+		self.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0", reflect.ValueOf(pb))
 	}
 
 	// Launch Kraken

@@ -19,6 +19,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/hpc/kraken/lib/types"
 )
 
 // MessageDiff compares a & b, returns a slice of differing field names
@@ -290,4 +291,8 @@ func ValueToString(v reflect.Value) (s string) {
 		s = fmt.Sprintf("%v", v)
 	}
 	return
+}
+
+func ProtoName(m types.Message) string {
+	return types.ProtoUrlPrefix + proto.MessageName(m)
 }

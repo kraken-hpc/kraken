@@ -8,7 +8,8 @@
  */
 
 syntax = "proto3";
-package proto;
+package IPv4;
+option go_package = ".;IPv4";
 
 message IPv4 {
     bytes ip      = 2;

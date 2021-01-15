@@ -8,7 +8,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	pb "github.com/hpc/kraken/core/proto"
-	ipb "github.com/hpc/kraken/extensions/IPv4/proto"
+	ipb "github.com/hpc/kraken/extensions/IPv4"
 )
 
 func TestDiff(t *testing.T) {

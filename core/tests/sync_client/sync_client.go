@@ -20,7 +20,7 @@ const simpleNode1 string = `
 "physState": "PHYS_UNKNOWN",
 "extensions": [
   {
-	"@type": "type.googleapis.com/proto.IPv4OverEthernet",
+	"@type": "type.googleapis.com/IPv4.IPv4OverEthernet",
 	"ifaces": [
 	  {
 		"ip": {
@@ -54,7 +54,7 @@ const simpleNode3 string = `
 "physState": "PHYS_UNKNOWN",
 "extensions": [
   {
-	"@type": "type.googleapis.com/proto.IPv4OverEthernet",
+	"@type": "type.googleapis.com/IPv4.IPv4OverEthernet",
 	"ifaces": [
 	  {
 		"ip": {

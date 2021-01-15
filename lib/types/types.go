@@ -17,6 +17,8 @@ import (
 	pb "github.com/hpc/kraken/core/proto"
 )
 
+const ProtoUrlPrefix = "type.googleapis.com/"
+
 /*
  * Every node needs a unique ID
  */
