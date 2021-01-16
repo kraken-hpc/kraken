@@ -7,10 +7,11 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package proto;
+syntax = "proto3";
+package HostThermal;
+option go_package = ".;hostthermal";
 
-message HostThermal {
+message Temp {
      enum cpuState {
         CPU_TEMP_NONE = 0;
         CPU_TEMP_NORMAL = 1;
