@@ -98,6 +98,26 @@ if [ -z "$contents" ]; then
 fi
 echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
+# Check that gobusybox is installed, clone it if not
+if [ ! -d "$GOPATH"/bin/makebb ]; then
+    echo "You don't appear to have gobusybox installed, attempting to install it"
+    GOPATH="$GOPATH" go get github.com/u-root/gobusybox
+    ( cd "$GOPATH"/src/github.com/u-root/gobusybox/src/cmd/makebb && GOPATH="$GOPATH" go install )
+fi
+
+# Check that u-root is installed, clone it if not
+if [ ! -x "$GOPATH"/bin/u-root ]; then
+    echo "You don't appear to have u-root installed, attempting to install it"
+    GOPATH="$GOPATH" go get github.com/u-root/u-root
+fi
+
+# Create BusyBox binary (outside of u-root), as well as symlinks representing
+# the binaries contained in it
+echo "Creating BusyBox binary..."
+mkdir -p "$TMPDIR"/base/bbin
+"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken 2>&1
+ln -s bb "$TMPDIR"/base/bbin/kraken
+
 # copy base_dir over tmpdir if it's set
 if [ -n "${BASEDIR+x}" ]; then
         echo "Overlaying ${BASEDIR}..."
@@ -110,12 +130,6 @@ echo "Creating base cpio..."
     find . | cpio -oc > $TMPDIR/base.cpio
 )
 
-# Check that u-root is installed, clone it if not
-if [ ! -x "$GOPATH"/bin/u-root ]; then
-    echo "You don't appear to have u-root installed, attempting to install it"
-    GOPATH="$GOPATH" go get github.com/u-root/u-root
-fi
-
 # Make sure commands are available
 for c in "${EXTRA_COMMANDS[@]}"; do
    if [ ! -d "$GOPATH/src/$c" ]; then
@@ -126,7 +140,7 @@ done
 
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* ${EXTRA_COMMANDS[@]} 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
