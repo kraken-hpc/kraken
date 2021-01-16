@@ -7,18 +7,19 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package proto;
+syntax = "proto3";
+package RFThermal;
+option go_package = ".;rfthermal";
 
-message RFThermal {
-     enum RFCPUThermalState {
+message Temp {
+     enum CPUThermalState {
         CPU_TEMP_NONE = 0;
-       CPU_TEMP_NORMAL = 1;
+        CPU_TEMP_NORMAL = 1;
         CPU_TEMP_HIGH = 2;
         CPU_TEMP_CRITICAL = 3;
 
         //TEMP_WAIT = 1; // Thermal request sent to node
         
     }
-    RFCPUThermalState state = 1;
+    CPUThermalState state = 1;
 }

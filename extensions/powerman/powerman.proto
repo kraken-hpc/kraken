@@ -8,9 +8,10 @@
  */
 
  syntax = "proto3";
- package proto;
+ package Powerman;
+ option go_package = ".;powerman";
 
-message Powerman {
+message Control {
     string api_server = 1; // api server location
-    string name = 2; // node name
+    string nodeName = 2; // node name
 } 

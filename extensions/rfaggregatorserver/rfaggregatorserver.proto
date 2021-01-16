@@ -8,8 +8,9 @@
  */
 
  syntax = "proto3";
- package proto;
+ package RFAggregator;
+ option go_package = ".;rfaggregatorserver";
 
-message RFAggregatorServer {
+message Server {
     string rf_aggregator = 1; // rf aggregator name
 }
