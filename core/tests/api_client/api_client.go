@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	pbd "github.com/hpc/kraken/modules/dummy/proto"
+	pbd "github.com/hpc/kraken/modules/dummy"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	fmt.Println("changing dummy0 config")
-	dconf := &pbd.DummyConfig{
+	dconf := &pbd.Config{
 		Say:  []string{"one", "more", "test"},
 		Wait: "1s",
 	}
