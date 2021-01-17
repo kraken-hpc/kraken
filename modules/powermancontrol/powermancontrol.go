@@ -128,8 +128,8 @@ var _ types.ModuleWithConfig = (*PMC)(nil)
 // NewConfig returns a fully initialized default config
 func (p *PMC) NewConfig() proto.Message {
 	r := &Config{
-		ServerUrl: "type.googleapis.com/proto.Powerman/ApiServer",
-		NameUrl:   "type.googleapis.com/proto.Powerman/Name",
+		ServerUrl: "type.googleapis.com/Powerman.Control/ApiServer",
+		NameUrl:   "type.googleapis.com/Powerman.Control/Name",
 		Servers: map[string]*Server{
 			"pmc": {
 				Name: "pmc",

@@ -419,7 +419,7 @@ func init() {
 	discovers["/RunState"] = map[string]reflect.Value{
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
-	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
+	discovers["type.googleapis.com/RPi3.Pi/Pxe"] = map[string]reflect.Value{
 		"PXE_NONE": reflect.ValueOf(pipb.Pi_NONE),
 	}
 	discovers["/Services/rfpipower/State"] = map[string]reflect.Value{

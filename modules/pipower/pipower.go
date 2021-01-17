@@ -355,7 +355,7 @@ func (pp *PiPower) handleMutation(m types.Event) {
 						},
 					)
 					pp.dchan <- ev
-				url := util.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
+				url := util.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/RPi3.Pi/Pxe")
 				ev := core.NewEvent(
 					types.Event_DISCOVERY,
 					url,
@@ -410,7 +410,7 @@ func init() {
 	discovers["/RunState"] = map[string]reflect.Value{
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
-	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
+	discovers["type.googleapis.com/RPi3.Pi/Pxe"] = map[string]reflect.Value{
 		"PXE_NONE": reflect.ValueOf(pipb.Pi_NONE),
 	}
 	discovers["/Services/pipower/State"] = map[string]reflect.Value{

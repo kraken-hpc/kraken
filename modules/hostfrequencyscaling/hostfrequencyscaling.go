@@ -68,19 +68,19 @@ type CPUPerfScalingRespColl struct {
 
 const (
 	// PxeURL refers to PXE object
-	pxeURL string = "type.googleapis.com/proto.RPi3/Pxe"
+	pxeURL string = "type.googleapis.com/RPi3.Pi/Pxe"
 
 	// ModuleStateURL refers to module state
 	moduleStateURL string = "/Services/hostfrequencyscaling/State"
 
 	// HostThermalStateURL points to Thermal extension
-	hostThermalStateURL string = "type.googleapis.com/proto.HostThermal/State"
+	hostThermalStateURL string = "type.googleapis.com/HostThermal.Temp/State"
 
 	// NodeIPURL provides node IP address
 	nodeIPURL string = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip"
 
 	// hostFreqScalerURL provides URL for host frequency scaler at host run time
-	hostFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/State"
+	hostFreqScalerURL string = "type.googleapis.com/HostFrequencyScaler.Scaler/State"
 
 	// freqSensorPath holds frequency sensor path on pi node
 	freqSensorPath string = "/sys/devices/system/cpu/cpufreq/policy0/"
