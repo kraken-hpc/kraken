@@ -8,10 +8,11 @@
  */
 
  syntax = "proto3";
- package proto;
+ package HostFrequencyScaling;
+ option go_package = ".;hostfrequencyscaling";
  
- message HostFreqScalingConfig {
-     map<string, HostFreqScalingPolicy> freq_scal_policies = 1;
+ message Config {
+     map<string, Policy> freq_scal_policies = 1;
      string freq_sensor_url = 2;
      string scaling_freq_policy = 3;
      string low_to_high_scaler = 4;
@@ -25,7 +26,7 @@
 
 }
  
- message HostFreqScalingPolicy {
+ message Policy {
     string scaling_governor = 1;
     string scaling_min_freq = 2;
     string scaling_max_freq = 3;

@@ -8,9 +8,10 @@
  */
 
 syntax = "proto3";
-package proto;
+package HostThermalDiscovery;
+option go_package = ".;hostthermaldiscovery";
 
-message HostDiscoveryConfig {
+message Config {
     string polling_interval = 1;
     string temp_sensor_path = 2;
     string freq_sensor_url = 3;

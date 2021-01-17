@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pxe.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. rfthermaldiscovery.proto
 
 package rfthermaldiscovery
 
@@ -27,23 +27,23 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/extensions/IPv4"
-	thpb "github.com/hpc/kraken/extensions/RFThermal/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/rfthermaldiscovery/proto"
+	"github.com/hpc/kraken/extensions/ipv4"
+	thpb "github.com/hpc/kraken/extensions/rfthermal"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 const (
 	// ThermalStateURL points to Thermal extension
-	ThermalStateURL = "type.googleapis.com/proto.RFThermal/State"
+	ThermalStateURL = "type.googleapis.com/RFThermal.Temp/State"
 	// ModuleStateURL refers to module state
 	ModuleStateURL = "/Services/rfthermaldiscovery/State"
 )
 
-var _ lib.Module = (*RFD)(nil)
-var _ lib.ModuleWithConfig = (*RFD)(nil)
-var _ lib.ModuleWithDiscovery = (*RFD)(nil)
-var _ lib.ModuleSelfService = (*RFD)(nil)
+var _ types.Module = (*RFD)(nil)
+var _ types.ModuleWithConfig = (*RFD)(nil)
+var _ types.ModuleWithDiscovery = (*RFD)(nil)
+var _ types.ModuleSelfService = (*RFD)(nil)
 
 // PayLoad struct for collection of nodes
 type PayLoad struct {
@@ -65,9 +65,9 @@ type CPUTempCollection struct {
 
 // RFD provides rfdiscovery module capabilities
 type RFD struct {
-	api        lib.ModuleAPIClient
-	cfg        *pb.RFDiscoveryConfig
-	dchan      chan<- lib.Event
+	api        types.ModuleAPIClient
+	cfg        *Config
+	dchan      chan<- types.Event
 	pollTicker *time.Ticker
 }
 
@@ -76,10 +76,10 @@ func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfthermaldisco
 
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {
-	r := &pb.RFDiscoveryConfig{
-		IpUrl:  "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		AggUrl: "type.googleapis.com/proto.RFAggregatorServer/RfAggregator",
-		Servers: map[string]*pb.RFDiscoveryServer{
+	r := &Config{
+		IpUrl:  "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		AggUrl: "type.googleapis.com/RFAggregator.Server/RfAggregator",
+		Servers: map[string]*Server{
 			"c4": {
 				Name:       "c4",
 				Ip:         "10.15.247.200",
@@ -88,7 +88,7 @@ func (*RFD) NewConfig() proto.Message {
 			},
 		},
 		PollingInterval: "10s",
-		RfThermalThresholds: map[string]*pb.RFThermalThresholds{
+		RfThermalThresholds: map[string]*Thresholds{
 			"RFCPUThermalThresholds": {
 				LowerNormal:   3000,
 				UpperNormal:   60000,
@@ -104,7 +104,7 @@ func (*RFD) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (rfd *RFD) UpdateConfig(cfg proto.Message) (e error) {
-	if rcfg, ok := cfg.(*pb.RFDiscoveryConfig); ok {
+	if rcfg, ok := cfg.(*Config); ok {
 		rfd.cfg = rcfg
 		return
 	}
@@ -113,24 +113,24 @@ func (rfd *RFD) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*RFD) ConfigURL() string {
-	cfg := &pb.RFDiscoveryConfig{}
+	cfg := &Config{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
 
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
-func (rfd *RFD) SetDiscoveryChan(c chan<- lib.Event) { rfd.dchan = c }
+func (rfd *RFD) SetDiscoveryChan(c chan<- types.Event) { rfd.dchan = c }
 
 func init() {
 	module := &RFD{}
 	discovers := make(map[string]map[string]reflect.Value)
 	dtest := make(map[string]reflect.Value)
 
-	dtest[thpb.RFThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_NONE)
-	dtest[thpb.RFThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_NORMAL)
-	dtest[thpb.RFThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_HIGH)
-	dtest[thpb.RFThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.RFThermal_CPU_TEMP_CRITICAL)
+	dtest[thpb.Temp_CPU_TEMP_NONE.String()] = reflect.ValueOf(thpb.Temp_CPU_TEMP_NONE)
+	dtest[thpb.Temp_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(thpb.Temp_CPU_TEMP_NORMAL)
+	dtest[thpb.Temp_CPU_TEMP_HIGH.String()] = reflect.ValueOf(thpb.Temp_CPU_TEMP_HIGH)
+	dtest[thpb.Temp_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(thpb.Temp_CPU_TEMP_CRITICAL)
 
 	discovers[ThermalStateURL] = dtest
 
@@ -141,14 +141,14 @@ func init() {
 
 	// Register it all
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (rfd *RFD) Init(api lib.ModuleAPIClient) {
+func (rfd *RFD) Init(api types.ModuleAPIClient) {
 	rfd.api = api
-	rfd.cfg = rfd.NewConfig().(*pb.RFDiscoveryConfig)
+	rfd.cfg = rfd.NewConfig().(*Config)
 }
 
 // Stop should perform a graceful exit
@@ -158,9 +158,9 @@ func (rfd *RFD) Stop() {
 
 // Entry is the module's executable entrypoint
 func (rfd *RFD) Entry() {
-	url := lib.NodeURLJoin(rfd.api.Self().String(), ModuleStateURL)
+	url := util.NodeURLJoin(rfd.api.Self().String(), ModuleStateURL)
 	ev := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 
@@ -190,16 +190,16 @@ func (rfd *RFD) discoverAllCPUTemp() {
 
 	ns, e := rfd.api.QueryReadAll()
 	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "polling node query failed: %v", e)
+		rfd.api.Logf(types.LLERROR, "polling node query failed: %v", e)
 		return
 	}
-	bySrv := make(map[string][]lib.Node)
+	bySrv := make(map[string][]types.Node)
 
 	// get ip addresses for nodes
 	for _, n := range ns {
 		v, e := n.GetValue(rfd.cfg.GetAggUrl())
 		if e != nil {
-			rfd.api.Logf(lib.LLERROR, "problem getting agg name for nodes")
+			rfd.api.Logf(types.LLERROR, "problem getting agg name for nodes")
 		}
 		aggName := v.String()
 		if aggName != "" {
@@ -213,13 +213,13 @@ func (rfd *RFD) discoverAllCPUTemp() {
 }
 
 // Discover CPU temperatures of nodes associated to an aggregator
-func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []lib.Node) {
+func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []types.Node) {
 
-	idMap := make(map[string]lib.NodeID)
+	idMap := make(map[string]types.NodeID)
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(rfd.cfg.GetIpUrl())
-		ip := IPv4.BytesToIP(v.Bytes()).String()
+		ip := ipv4.BytesToIP(v.Bytes()).String()
 		ipList = append(ipList, ip)
 		idMap[ip] = n.ID()
 	}
@@ -260,16 +260,16 @@ L:
 			break L
 		case e := <-errc:
 			reqError = e.Error()
-			rfd.api.Logf(lib.LLERROR, "Request to RFAggregator failed: %v", reqError)
+			rfd.api.Logf(types.LLERROR, "Request to RFAggregator failed: %v", reqError)
 			break L
 		}
 	}
 
 	for _, r := range rs.CPUTempList {
 		vid, ip := rfd.lambdaStateDiscovery(r)
-		url := lib.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
+		url := util.NodeURLJoin(idMap[ip].String(), ThermalStateURL)
 		v := core.NewEvent(
-			lib.Event_DISCOVERY,
+			types.Event_DISCOVERY,
 			url,
 			&core.DiscoveryEvent{
 
@@ -292,33 +292,33 @@ func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) (CPUTemp
 		Timeout:          nodeReqTimeout,
 	})
 	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "http PUT API request failed: %v", e)
+		rfd.api.Logf(types.LLERROR, "http PUT API request failed: %v", e)
 		return rs, e
 	}
 
 	httpClient := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, aggregatorAddress, bytes.NewBuffer(payLoad))
 	if err != nil {
-		rfd.api.Logf(lib.LLERROR, "http PUT API request failed: %v", err)
+		rfd.api.Logf(types.LLERROR, "http PUT API request failed: %v", err)
 		return rs, err
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		rfd.api.Logf(lib.LLERROR, "http PUT API call failed: %v", err)
+		rfd.api.Logf(types.LLERROR, "http PUT API call failed: %v", err)
 		return rs, err
 	}
 
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "http PUT response failed to read body: %v", e)
+		rfd.api.Logf(types.LLERROR, "http PUT response failed to read body: %v", e)
 		return rs, e
 	}
 
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		rfd.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
+		rfd.api.Logf(types.LLERROR, "got invalid JSON response: %v", e)
 		return rs, e
 	}
 	return rs, nil
@@ -328,7 +328,7 @@ func (rfd *RFD) aggregateCPUTemp(aggregatorAddress string, ns []string) (CPUTemp
 // Discovers state of the CPU based on CPU temperature thresholds
 func (rfd *RFD) lambdaStateDiscovery(v nodeCPUTemp) (string, string) {
 	cpuTemp := v.CPUTemp
-	cpuTempState := thpb.RFThermal_CPU_TEMP_NONE
+	cpuTempState := thpb.Temp_CPU_TEMP_NONE
 
 	cpuThermalThresholds := rfd.cfg.GetRfThermalThresholds()
 	lowerNormal := cpuThermalThresholds["RFCPUThermalThresholds"].GetLowerNormal()
@@ -341,11 +341,11 @@ func (rfd *RFD) lambdaStateDiscovery(v nodeCPUTemp) (string, string) {
 	upperCritical := cpuThermalThresholds["RFCPUThermalThresholds"].GetUpperCritical()
 
 	if cpuTemp <= lowerCritical || cpuTemp >= upperCritical {
-		cpuTempState = thpb.RFThermal_CPU_TEMP_CRITICAL
+		cpuTempState = thpb.Temp_CPU_TEMP_CRITICAL
 	} else if cpuTemp >= lowerHigh && cpuTemp < upperHigh {
-		cpuTempState = thpb.RFThermal_CPU_TEMP_HIGH
+		cpuTempState = thpb.Temp_CPU_TEMP_HIGH
 	} else if cpuTemp > lowerNormal && cpuTemp < upperNormal {
-		cpuTempState = thpb.RFThermal_CPU_TEMP_NORMAL
+		cpuTempState = thpb.Temp_CPU_TEMP_NORMAL
 	}
 	return cpuTempState.String(), v.HostAddress
 

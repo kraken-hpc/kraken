@@ -8,14 +8,15 @@
  */
 
 syntax = "proto3";
-package proto;
+package RFPiPower;
+option go_package = ".;rfpipower";
 
-message RFPiPowerConfig {
-    map<string, RFPiPowerServer> servers = 1;
+message Config {
+    map<string, Server> servers = 1;
     string tick = 2;  // collect messages and bundle them every <tick_duration>
 }
 
-message RFPiPowerServer {
+message Server {
     string name = 1;
     string ip    = 2;
     int32 port = 3;

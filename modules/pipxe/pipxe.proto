@@ -8,9 +8,10 @@
  */
 
 syntax = "proto3";
-package proto;
+package PiPXE;
+option go_package = ".;pipxe";
 
-message PiPXEConfig {
+message Config {
     string srv_iface_url = 1; // interface DHCP/TFTP listen on
     string srv_ip_url = 2; // interface DHCP/TFTP listen on
     string ip_url = 3;

@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/pipower.proto
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. pipower.proto
 
 /*
  * This module will manipulate the PhysState state field.
@@ -34,14 +34,14 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	pipb "github.com/hpc/kraken/extensions/RPi3/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/pipower/proto"
+	pipb "github.com/hpc/kraken/extensions/rpi3"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 const (
-	ChassisURL string = "type.googleapis.com/proto.RPi3/Chassis"
-	RankURL    string = "type.googleapis.com/proto.RPi3/Rank"
+	ChassisURL string = "type.googleapis.com/RPi3.Pi/Chassis"
+	RankURL    string = "type.googleapis.com/RPi3.Pi/Rank"
 )
 
 // ppNode is the PiPower node struct
@@ -103,32 +103,32 @@ var excs = map[string]reflect.Value{}
 
 // PiPower provides a power on/off interface to the proprietary BitScope power control plane
 type PiPower struct {
-	api    lib.ModuleAPIClient
+	api    types.ModuleAPIClient
 	mutex  *sync.Mutex
 	queue  map[string][2]string // map[<nodename>][<mutation>, <nodeidstr>]
-	cfg    *pb.PiPowerConfig
-	mchan  <-chan lib.Event
-	dchan  chan<- lib.Event
+	cfg    *Config
+	mchan  <-chan types.Event
+	dchan  chan<- types.Event
 	ticker *time.Ticker
 }
 
 /*
- *lib.Module
+ *types.Module
  */
-var _ lib.Module = (*PiPower)(nil)
+var _ types.Module = (*PiPower)(nil)
 
 // Name returns the FQDN of the module
 func (*PiPower) Name() string { return "github.com/hpc/kraken/modules/pipower" }
 
 /*
- * lib.ModuleWithConfig
+ * types.ModuleWithConfig
  */
-var _ lib.ModuleWithConfig = (*PiPower)(nil)
+var _ types.ModuleWithConfig = (*PiPower)(nil)
 
 // NewConfig returns a fully initialized default config
 func (*PiPower) NewConfig() proto.Message {
-	r := &pb.PiPowerConfig{
-		Servers: map[string]*pb.PiPowerServer{
+	r := &Config{
+		Servers: map[string]*Server{
 			"c0": {
 				Name: "c0",
 				Ip:   "127.0.0.1",
@@ -142,7 +142,7 @@ func (*PiPower) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (pp *PiPower) UpdateConfig(cfg proto.Message) (e error) {
-	if ppcfg, ok := cfg.(*pb.PiPowerConfig); ok {
+	if ppcfg, ok := cfg.(*Config); ok {
 		pp.cfg = ppcfg
 		if pp.ticker != nil {
 			pp.ticker.Stop()
@@ -156,36 +156,36 @@ func (pp *PiPower) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*PiPower) ConfigURL() string {
-	cfg := &pb.PiPowerConfig{}
+	cfg := &Config{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
 
 /*
- * lib.ModuleWithMutations & lib.ModuleWithDiscovery
+ * types.ModuleWithMutations & types.ModuleWithDiscovery
  */
-var _ lib.ModuleWithMutations = (*PiPower)(nil)
-var _ lib.ModuleWithDiscovery = (*PiPower)(nil)
+var _ types.ModuleWithMutations = (*PiPower)(nil)
+var _ types.ModuleWithDiscovery = (*PiPower)(nil)
 
 // SetMutationChan sets the current mutation channel
 // this is generally done by the API
-func (pp *PiPower) SetMutationChan(c <-chan lib.Event) { pp.mchan = c }
+func (pp *PiPower) SetMutationChan(c <-chan types.Event) { pp.mchan = c }
 
 // SetDiscoveryChan sets the current discovery channel
 // this is generally done by the API
-func (pp *PiPower) SetDiscoveryChan(c chan<- lib.Event) { pp.dchan = c }
+func (pp *PiPower) SetDiscoveryChan(c chan<- types.Event) { pp.dchan = c }
 
 /*
- * lib.ModuleSelfService
+ * types.ModuleSelfService
  */
-var _ lib.ModuleSelfService = (*PiPower)(nil)
+var _ types.ModuleSelfService = (*PiPower)(nil)
 
 // Entry is the module's executable entrypoint
 func (pp *PiPower) Entry() {
-	url := lib.NodeURLJoin(pp.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "pipower"), "State"))
+	url := util.NodeURLJoin(pp.api.Self().String(),
+		util.URLPush(util.URLPush("/Services", "pipower"), "State"))
 	pp.dchan <- core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -209,11 +209,11 @@ func (pp *PiPower) Entry() {
 }
 
 // Init is used to intialize an executable module prior to entrypoint
-func (pp *PiPower) Init(api lib.ModuleAPIClient) {
+func (pp *PiPower) Init(api types.ModuleAPIClient) {
 	pp.api = api
 	pp.mutex = &sync.Mutex{}
 	pp.queue = make(map[string][2]string)
-	pp.cfg = pp.NewConfig().(*pb.PiPowerConfig)
+	pp.cfg = pp.NewConfig().(*Config)
 }
 
 // Stop should perform a graceful exit
@@ -273,7 +273,7 @@ func (pp *PiPower) fireChanges() {
 func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]string) {
 	srv, ok := pp.cfg.Servers[c]
 	if !ok {
-		pp.api.Logf(lib.LLERROR, "cannot control power for unknown chassis: %s", c)
+		pp.api.Logf(types.LLERROR, "cannot control power for unknown chassis: %s", c)
 		return
 	}
 	addr := srv.Ip + ":" + strconv.Itoa(int(srv.Port))
@@ -281,29 +281,29 @@ func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]stri
 	url := "http://" + addr + "/nodes/" + nlist + cmd
 	resp, e := http.Get(url)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "http GET to API failed: %v", e)
+		pp.api.Logf(types.LLERROR, "http GET to API failed: %v", e)
 		return
 	}
 	defer resp.Body.Close()
 	body, e := ioutil.ReadAll(resp.Body)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "http GET failed to read body: %v", e)
+		pp.api.Logf(types.LLERROR, "http GET failed to read body: %v", e)
 		return
 	}
 	rs := []ppNode{}
 	e = json.Unmarshal(body, &rs)
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "got invalid JSON response: %v", e)
+		pp.api.Logf(types.LLERROR, "got invalid JSON response: %v", e)
 		return
 	}
 	for _, r := range rs {
-		url := lib.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
+		url := util.NodeURLJoin(idmap[c+"n"+r.ID], "/PhysState")
 		vid := "POWER_OFF"
 		if r.State == "on" {
 			vid = "POWER_ON"
 		}
 		v := core.NewEvent(
-			lib.Event_DISCOVERY,
+			types.Event_DISCOVERY,
 			url,
 			&core.DiscoveryEvent{
 				URL:     url,
@@ -314,20 +314,20 @@ func (pp *PiPower) fire(c string, ns []string, cmd string, idmap map[string]stri
 	}
 }
 
-func (pp *PiPower) handleMutation(m lib.Event) {
-	if m.Type() != lib.Event_STATE_MUTATION {
-		pp.api.Log(lib.LLINFO, "got an unexpected event type on mutation channel")
+func (pp *PiPower) handleMutation(m types.Event) {
+	if m.Type() != types.Event_STATE_MUTATION {
+		pp.api.Log(types.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
 	//nodename := me.NodeCfg.Message().(*cpb.Node).Nodename
 	vs, e := me.NodeCfg.GetValues([]string{ChassisURL, RankURL})
 	if e != nil {
-		pp.api.Logf(lib.LLERROR, "error getting values for node: %v", e)
+		pp.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
 	// we make a speciall "nodename" consisting of <chassis>n<rank> to key by
 	// mostly for historical convenience
 	if len(vs) != 2 {
-		pp.api.Logf(lib.LLERROR, "incomplete RPi3 data for power control: %v", vs)
+		pp.api.Logf(types.LLERROR, "incomplete RPi3 data for power control: %v", vs)
 		return
 	}
 	nodename := vs[ChassisURL].String() + "n" + strconv.FormatUint(vs[RankURL].Uint(), 10)
@@ -345,9 +345,9 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 			pp.queue[nodename] = [2]string{me.Mutation[1], me.NodeCfg.ID().String()}
 			pp.mutex.Unlock()
 			/*
-					url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
+					url := util.NodeURLJoin(me.NodeCfg.ID().String(), "/RunState")
 					ev := core.NewEvent(
-						lib.Event_DISCOVERY,
+						types.Event_DISCOVERY,
 						url,
 						&core.DiscoveryEvent{
 							URL:     url,
@@ -355,9 +355,9 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 						},
 					)
 					pp.dchan <- ev
-				url := lib.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
+				url := util.NodeURLJoin(me.NodeCfg.ID().String(), "type.googleapis.com/proto.RPi3/Pxe")
 				ev := core.NewEvent(
-					lib.Event_DISCOVERY,
+					types.Event_DISCOVERY,
 					url,
 					&core.DiscoveryEvent{
 						URL:     url,
@@ -370,7 +370,7 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 		case "UKtoHANG": // we don't actually do this
 			fallthrough
 		default:
-			pp.api.Logf(lib.LLDEBUG, "unexpected event: %s", me.Mutation[1])
+			pp.api.Logf(types.LLDEBUG, "unexpected event: %s", me.Mutation[1])
 		}
 		break
 	case core.MutationEvent_INTERRUPT:
@@ -384,7 +384,7 @@ func (pp *PiPower) handleMutation(m lib.Event) {
 // initialization
 func init() {
 	module := &PiPower{}
-	mutations := make(map[string]lib.StateMutation)
+	mutations := make(map[string]types.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	drstate := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("pipower", module.Name(), module.Entry)
@@ -400,7 +400,7 @@ func init() {
 			},
 			reqs,
 			excs,
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			dur,
 			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
 		)
@@ -411,14 +411,14 @@ func init() {
 		"RUN_UK": reflect.ValueOf(cpb.Node_UNKNOWN),
 	}
 	discovers["type.googleapis.com/proto.RPi3/Pxe"] = map[string]reflect.Value{
-		"PXE_NONE": reflect.ValueOf(pipb.RPi3_NONE),
+		"PXE_NONE": reflect.ValueOf(pipb.Pi_NONE),
 	}
 	discovers["/Services/pipower/State"] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
 	// Register it all
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterDiscoverable(si, discovers)
 	core.Registry.RegisterMutations(si, mutations)
 }

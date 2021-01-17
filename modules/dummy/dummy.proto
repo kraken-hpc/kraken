@@ -8,9 +8,10 @@
  */
 
 syntax = "proto3";
-package proto;
+package Dummy;
+option go_package = ".;dummy";
 
-message DummyConfig {
+message Config {
     repeated string say = 1;
     string wait = 2;
 }

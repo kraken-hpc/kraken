@@ -8,25 +8,26 @@
  */
 
 syntax = "proto3";
-package proto;
+package RFThermalDiscovery;
+option go_package = ".;rfthermaldiscovery";
 
-message RFDiscoveryConfig {
-    map<string, RFDiscoveryServer> servers = 1;
+message Config {
+    map<string, Server> servers = 1;
     string ip_url = 2;
     string agg_url = 3;
     string polling_interval = 4;
-    map<string, RFThermalThresholds> rf_thermal_thresholds = 5;
+    map<string, Thresholds> rf_thermal_thresholds = 5;
     
 }
 
-message RFDiscoveryServer {
+message Server {
     string name = 1;
     string ip    = 2;
     string port = 3;
     int32 req_timeout = 4;
 }
 
-message RFThermalThresholds {
+message Thresholds {
     int32 lower_normal = 1;
     int32 upper_normal = 2;
 

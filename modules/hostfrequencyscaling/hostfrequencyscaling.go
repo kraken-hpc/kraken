@@ -12,6 +12,8 @@
  * See LICENSE file for details.
  */
 
+//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. hostfrequencyscaling.proto
+
 package hostfrequencyscaling
 
 import (
@@ -30,10 +32,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	scalpb "github.com/hpc/kraken/extensions/HostFrequencyScaler/proto"
-	hostthpb "github.com/hpc/kraken/extensions/HostThermal/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/hostfrequencyscaling/proto"
+	scalpb "github.com/hpc/kraken/extensions/hostfrequencyscaler"
+	hostthpb "github.com/hpc/kraken/extensions/hostthermal"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 // CPUPerfScalingReq is payload for RFAggregator API call
@@ -75,7 +77,7 @@ const (
 	hostThermalStateURL string = "type.googleapis.com/proto.HostThermal/State"
 
 	// NodeIPURL provides node IP address
-	nodeIPURL string = "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip"
+	nodeIPURL string = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip"
 
 	// hostFreqScalerURL provides URL for host frequency scaler at host run time
 	hostFreqScalerURL string = "type.googleapis.com/proto.HostFrequencyScaler/State"
@@ -88,14 +90,14 @@ const (
 )
 
 var profileMap = map[string]string{
-	"performance": scalpb.HostFrequencyScaler_PERFORMANCE.String(),
-	"powersave":   scalpb.HostFrequencyScaler_POWER_SAVE.String(),
-	"schedutil":   scalpb.HostFrequencyScaler_SCHEDUTIL.String(),
+	"performance": scalpb.Scaler_PERFORMANCE.String(),
+	"powersave":   scalpb.Scaler_POWER_SAVE.String(),
+	"schedutil":   scalpb.Scaler_SCHEDUTIL.String(),
 }
 
 type hfscalmut struct {
-	f       scalpb.HostFrequencyScaler_ScalerState
-	t       scalpb.HostFrequencyScaler_ScalerState
+	f       scalpb.Scaler_ScalerState
+	t       scalpb.Scaler_ScalerState
 	reqs    map[string]reflect.Value
 	timeout string
 	failTo  string
@@ -109,44 +111,44 @@ var scalerReqs = map[string]reflect.Value{
 }
 var scalMuts = map[string]hfscalmut{
 	"NONEtoPOWERSAVE": {
-		f:       scalpb.HostFrequencyScaler_NONE,
-		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		f:       scalpb.Scaler_NONE,
+		t:       scalpb.Scaler_POWER_SAVE,
 		reqs:    scalerReqs,
 		timeout: "1s",
-		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
+		failTo:  scalpb.Scaler_NONE.String(),
 	},
 	"PERFORMANCEtoPOWERSAVE": {
-		f:       scalpb.HostFrequencyScaler_PERFORMANCE,
-		t:       scalpb.HostFrequencyScaler_POWER_SAVE,
+		f:       scalpb.Scaler_PERFORMANCE,
+		t:       scalpb.Scaler_POWER_SAVE,
 		reqs:    scalerReqs,
 		timeout: "1s",
-		failTo:  scalpb.HostFrequencyScaler_PERFORMANCE.String(),
+		failTo:  scalpb.Scaler_PERFORMANCE.String(),
 	},
 	"NONEtoPERFORMANCE": {
-		f:       scalpb.HostFrequencyScaler_NONE,
-		t:       scalpb.HostFrequencyScaler_PERFORMANCE,
+		f:       scalpb.Scaler_NONE,
+		t:       scalpb.Scaler_PERFORMANCE,
 		reqs:    scalerReqs,
 		timeout: "1s",
-		failTo:  scalpb.HostFrequencyScaler_NONE.String(),
+		failTo:  scalpb.Scaler_NONE.String(),
 	},
 	"POWERSAVEtoPERFORMANCE": {
-		f: scalpb.HostFrequencyScaler_POWER_SAVE,
-		t: scalpb.HostFrequencyScaler_PERFORMANCE,
+		f: scalpb.Scaler_POWER_SAVE,
+		t: scalpb.Scaler_PERFORMANCE,
 		reqs: map[string]reflect.Value{
 			"/PhysState":        reflect.ValueOf(cpb.Node_POWER_ON),
 			"/RunState":         reflect.ValueOf(cpb.Node_SYNC),
 			moduleStateURL:      reflect.ValueOf(cpb.ServiceInstance_RUN),
-			hostThermalStateURL: reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL),
+			hostThermalStateURL: reflect.ValueOf(hostthpb.Temp_CPU_TEMP_NORMAL),
 		},
 		timeout: "1s",
-		failTo:  scalpb.HostFrequencyScaler_POWER_SAVE.String(),
+		failTo:  scalpb.Scaler_POWER_SAVE.String(),
 	},
 }
 
 // Structure for mutation defintion
 type hfsmut struct {
-	f       hostthpb.HostThermalCpuState
-	t       hostthpb.HostThermalCpuState
+	f       hostthpb.TempCpuState
+	t       hostthpb.TempCpuState
 	reqs    map[string]reflect.Value
 	timeout string
 	failTo  string
@@ -156,74 +158,74 @@ type hfsmut struct {
 var muts = map[string]hfsmut{
 
 	"CPU_TEMP_NONEtoCPU_TEMP_NORMAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
-		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
+		f:       hostthpb.Temp_CPU_TEMP_NONE,
+		t:       hostthpb.Temp_CPU_TEMP_NORMAL,
 		reqs:    reqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_HIGH": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
-		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
+		f:       hostthpb.Temp_CPU_TEMP_NONE,
+		t:       hostthpb.Temp_CPU_TEMP_HIGH,
 		reqs:    reqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_NONE.String(),
 	},
 	"CPU_TEMP_NONEtoCPU_TEMP_CRITICAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_NONE,
-		t:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
+		f:       hostthpb.Temp_CPU_TEMP_NONE,
+		t:       hostthpb.Temp_CPU_TEMP_CRITICAL,
 		reqs:    reqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_NONE.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_NONE.String(),
 	},
 
 	"CPU_TEMP_HIGHtoCPU_TEMP_NORMAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_HIGH,
-		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
+		f:       hostthpb.Temp_CPU_TEMP_HIGH,
+		t:       hostthpb.Temp_CPU_TEMP_NORMAL,
 		reqs:    greqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_HIGH.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_HIGH.String(),
 	},
 
 	"CPU_TEMP_CRITICALtoCPU_TEMP_HIGH": {
-		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
-		t:       hostthpb.HostThermal_CPU_TEMP_HIGH,
+		f:       hostthpb.Temp_CPU_TEMP_CRITICAL,
+		t:       hostthpb.Temp_CPU_TEMP_HIGH,
 		reqs:    greqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_CRITICAL.String(),
 	},
 
 	"CPU_TEMP_CRITICALtoCPU_TEMP_NORMAL": {
-		f:       hostthpb.HostThermal_CPU_TEMP_CRITICAL,
-		t:       hostthpb.HostThermal_CPU_TEMP_NORMAL,
+		f:       hostthpb.Temp_CPU_TEMP_CRITICAL,
+		t:       hostthpb.Temp_CPU_TEMP_NORMAL,
 		reqs:    greqs,
 		timeout: "1s",
-		failTo:  hostthpb.HostThermal_CPU_TEMP_CRITICAL.String(),
+		failTo:  hostthpb.Temp_CPU_TEMP_CRITICAL.String(),
 	},
 }
 
 // HFS provides rfcpufreqscaling module capabilities
 type HFS struct {
-	api        lib.ModuleAPIClient
-	cfg        *pb.HostFreqScalingConfig
+	api        types.ModuleAPIClient
+	cfg        *Config
 	mutex      *sync.Mutex
 	psEnforced bool
-	mchan      <-chan lib.Event
-	dchan      chan<- lib.Event
+	mchan      <-chan types.Event
+	dchan      chan<- types.Event
 }
 
-var _ lib.Module = (*HFS)(nil)
-var _ lib.ModuleWithConfig = (*HFS)(nil)
-var _ lib.ModuleWithMutations = (*HFS)(nil)
-var _ lib.ModuleWithDiscovery = (*HFS)(nil)
-var _ lib.ModuleSelfService = (*HFS)(nil)
+var _ types.Module = (*HFS)(nil)
+var _ types.ModuleWithConfig = (*HFS)(nil)
+var _ types.ModuleWithMutations = (*HFS)(nil)
+var _ types.ModuleWithDiscovery = (*HFS)(nil)
+var _ types.ModuleSelfService = (*HFS)(nil)
 
 // Name returns the FQDN of the module
 func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencyscaling" }
 
 // NewConfig returns a fully initialized default config
 func (*HFS) NewConfig() proto.Message {
-	r := &pb.HostFreqScalingConfig{
+	r := &Config{
 		FreqSensorUrl:                          freqSensorPath,
 		ThermalSensorUrl:                       thermalSensorURL,
 		ScalingFreqPolicy:                      hostFreqScalerURL,
@@ -234,7 +236,7 @@ func (*HFS) NewConfig() proto.Message {
 		TimeBoundThrottleRetention:             false,
 		ThermalBoundThrottleRetention:          true,
 		ThermalBoundThrottleRetentionThreshold: 66,
-		FreqScalPolicies: map[string]*pb.HostFreqScalingPolicy{
+		FreqScalPolicies: map[string]*Policy{
 			"powersave": {
 				ScalingGovernor: "powersave",
 				ScalingMinFreq:  "600000",
@@ -263,7 +265,7 @@ func (*HFS) NewConfig() proto.Message {
 
 // UpdateConfig updates the running config
 func (hfs *HFS) UpdateConfig(cfg proto.Message) (e error) {
-	if rcfg, ok := cfg.(*pb.HostFreqScalingConfig); ok {
+	if rcfg, ok := cfg.(*Config); ok {
 		hfs.cfg = rcfg
 		return
 	}
@@ -272,17 +274,17 @@ func (hfs *HFS) UpdateConfig(cfg proto.Message) (e error) {
 
 // ConfigURL gives the any resolver URL for the config
 func (*HFS) ConfigURL() string {
-	cfg := &pb.HostFreqScalingConfig{}
+	cfg := &Config{}
 	any, _ := ptypes.MarshalAny(cfg)
 	return any.GetTypeUrl()
 }
 
 // SetMutationChan sets the current mutation channel
 // this is generally done by the API
-func (hfs *HFS) SetMutationChan(c <-chan lib.Event) { hfs.mchan = c }
+func (hfs *HFS) SetMutationChan(c <-chan types.Event) { hfs.mchan = c }
 
 // SetDiscoveryChan sets the current discovery channel
-func (hfs *HFS) SetDiscoveryChan(d chan<- lib.Event) { hfs.dchan = d }
+func (hfs *HFS) SetDiscoveryChan(d chan<- types.Event) { hfs.dchan = d }
 
 // modify these if you want different requires for mutations
 var reqs = map[string]reflect.Value{
@@ -295,19 +297,19 @@ var greqs = map[string]reflect.Value{
 	"/PhysState":      reflect.ValueOf(cpb.Node_POWER_ON),
 	"/RunState":       reflect.ValueOf(cpb.Node_SYNC),
 	moduleStateURL:    reflect.ValueOf(cpb.ServiceInstance_RUN),
-	hostFreqScalerURL: reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE),
+	hostFreqScalerURL: reflect.ValueOf(scalpb.Scaler_POWER_SAVE),
 }
 
 // modify this if you want excludes
 var excs = map[string]reflect.Value{}
 
 // Init is used to intialize an executable module prior to entrypoint
-func (hfs *HFS) Init(api lib.ModuleAPIClient) {
+func (hfs *HFS) Init(api types.ModuleAPIClient) {
 	hfs.api = api
 	hfs.mutex = &sync.Mutex{}
 	hfs.psEnforced = false
 	// hfs.queue = make(map[string]map[string]NMut)
-	hfs.cfg = hfs.NewConfig().(*pb.HostFreqScalingConfig)
+	hfs.cfg = hfs.NewConfig().(*Config)
 }
 
 // Stop should perform a graceful exit
@@ -317,24 +319,24 @@ func (hfs *HFS) Stop() {
 
 func init() {
 	module := &HFS{}
-	mutations := make(map[string]lib.StateMutation)
+	mutations := make(map[string]types.StateMutation)
 	discovers := make(map[string]map[string]reflect.Value)
 	hostFreqScalerDiscs := make(map[string]reflect.Value)
 	hostThermDiscs := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("hostfrequencyscaling", module.Name(), module.Entry)
 
-	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_NONE.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NONE)
-	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NORMAL)
-	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_HIGH.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_HIGH)
-	hostThermDiscs[hostthpb.HostThermal_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_CRITICAL)
+	hostThermDiscs[hostthpb.Temp_CPU_TEMP_NONE.String()] = reflect.ValueOf(hostthpb.Temp_CPU_TEMP_NONE)
+	hostThermDiscs[hostthpb.Temp_CPU_TEMP_NORMAL.String()] = reflect.ValueOf(hostthpb.Temp_CPU_TEMP_NORMAL)
+	hostThermDiscs[hostthpb.Temp_CPU_TEMP_HIGH.String()] = reflect.ValueOf(hostthpb.Temp_CPU_TEMP_HIGH)
+	hostThermDiscs[hostthpb.Temp_CPU_TEMP_CRITICAL.String()] = reflect.ValueOf(hostthpb.Temp_CPU_TEMP_CRITICAL)
 
 	discovers[hostThermalStateURL] = hostThermDiscs
 	discovers[moduleStateURL] = map[string]reflect.Value{
 		"RUN": reflect.ValueOf(cpb.ServiceInstance_RUN)}
 
-	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_NONE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_NONE)
-	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_PERFORMANCE)
-	hostFreqScalerDiscs[scalpb.HostFrequencyScaler_POWER_SAVE.String()] = reflect.ValueOf(scalpb.HostFrequencyScaler_POWER_SAVE)
+	hostFreqScalerDiscs[scalpb.Scaler_NONE.String()] = reflect.ValueOf(scalpb.Scaler_NONE)
+	hostFreqScalerDiscs[scalpb.Scaler_PERFORMANCE.String()] = reflect.ValueOf(scalpb.Scaler_PERFORMANCE)
+	hostFreqScalerDiscs[scalpb.Scaler_POWER_SAVE.String()] = reflect.ValueOf(scalpb.Scaler_POWER_SAVE)
 	discovers[hostFreqScalerURL] = hostFreqScalerDiscs
 
 	for k, m := range muts {
@@ -348,7 +350,7 @@ func init() {
 			},
 			m.reqs,
 			excs,
-			lib.StateMutationContext_SELF,
+			types.StateMutationContext_SELF,
 			dur,
 			[3]string{si.ID(), hostThermalStateURL, m.failTo},
 		)
@@ -365,9 +367,9 @@ func init() {
 			},
 			m.reqs,
 			map[string]reflect.Value{
-				hostThermalStateURL: reflect.ValueOf(hostthpb.HostThermal_CPU_TEMP_NONE),
+				hostThermalStateURL: reflect.ValueOf(hostthpb.Temp_CPU_TEMP_NONE),
 			},
-			lib.StateMutationContext_SELF,
+			types.StateMutationContext_SELF,
 			dur,
 			[3]string{si.ID(), hostFreqScalerURL, m.failTo},
 		)
@@ -375,7 +377,7 @@ func init() {
 
 	// Register it all
 	core.Registry.RegisterModule(module)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 	core.Registry.RegisterMutations(si, mutations)
 	core.Registry.RegisterDiscoverable(si, discovers)
 }
@@ -383,9 +385,9 @@ func init() {
 // Entry is the module's executable entrypoint
 func (hfs *HFS) Entry() {
 
-	url := lib.NodeURLJoin(hfs.api.Self().String(), moduleStateURL)
+	url := util.NodeURLJoin(hfs.api.Self().String(), moduleStateURL)
 	ev := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 
@@ -416,10 +418,10 @@ func (hfs *HFS) Entry() {
 }
 
 // aggregateHandler makes calls to aggregator for the given nodes with related mutation and frequecy scaling policy
-func (hfs *HFS) mutateCPUFreq(m lib.Event) {
+func (hfs *HFS) mutateCPUFreq(m types.Event) {
 
-	if m.Type() != lib.Event_STATE_MUTATION {
-		hfs.api.Log(lib.LLERROR, "got unexpected non-mutation event")
+	if m.Type() != types.Event_STATE_MUTATION {
+		hfs.api.Log(types.LLERROR, "got unexpected non-mutation event")
 		return
 	}
 	me := m.Data().(*core.MutationEvent)
@@ -529,13 +531,13 @@ func (hfs *HFS) ReadCPUTemp() int32 {
 	cpuTemp, err := ioutil.ReadFile(tempSensorPath)
 
 	if err != nil {
-		hfs.api.Logf(lib.LLERROR, "Reading CPU thermal sensor failed: %v", err)
+		hfs.api.Logf(types.LLERROR, "Reading CPU thermal sensor failed: %v", err)
 		return 0
 	}
 	cpuTempInt, err := strconv.Atoi(strings.TrimSuffix(string(cpuTemp), "\n"))
 
 	if err != nil {
-		hfs.api.Logf(lib.LLERROR, "String to Int conversion failed: %v", err)
+		hfs.api.Logf(types.LLERROR, "String to Int conversion failed: %v", err)
 		return 0
 	}
 
@@ -543,9 +545,9 @@ func (hfs *HFS) ReadCPUTemp() int32 {
 }
 
 // HostFrequencyScaling scales CPU frequency according to given parameters
-func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
+func (hfs *HFS) HostFrequencyScaling(node types.Node, freqScalPolicy string) {
 
-	hfs.api.Logf(lib.LLERROR, "POLICY: %s", freqScalPolicy)
+	hfs.api.Logf(types.LLERROR, "POLICY: %s", freqScalPolicy)
 
 	freqScalPolicies := hfs.cfg.GetFreqScalPolicies()
 
@@ -594,9 +596,9 @@ func (hfs *HFS) HostFrequencyScaling(node lib.Node, freqScalPolicy string) {
 		CPUMaxFreq: cpuMaxFreqq,
 	}
 
-	url := lib.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
+	url := util.NodeURLJoin(node.ID().String(), hostFreqScalerURL)
 	ev := core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
