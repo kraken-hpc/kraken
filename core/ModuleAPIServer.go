@@ -8,7 +8,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/src --go_out=plugins=grpc:proto proto/src/ModuleAPI.proto
+//go:generate protoc -I proto/src --gogo_out=plugins=grpc:proto proto/src/ModuleAPI.proto
 
 package core
 

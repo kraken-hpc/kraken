@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/src --go_out=plugins=grpc:proto proto/src/ServiceInstance.proto
+//go:generate protoc -I proto/src -I proto --gogo_out=plugins=grpc:proto proto/src/ServiceInstance.proto
 
 package core
 
