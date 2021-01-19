@@ -69,7 +69,7 @@ ARCH=$1
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
 EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
-EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
+#EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z "${GOPATH+x}" ]; then
     echo "GOPATH isn't set, using $HOME/go"
