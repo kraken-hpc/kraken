@@ -111,12 +111,29 @@ if [ ! -x "$GOPATH"/bin/u-root ]; then
     GOPATH="$GOPATH" go get github.com/u-root/u-root
 fi
 
-# Create BusyBox binary (outside of u-root), as well as symlinks representing
-# the binaries contained in it
+# Make sure commands are available
+for c in "${EXTRA_COMMANDS[@]}"; do
+   if [ ! -d "$GOPATH/src/$c" ]; then
+    echo "You don't appear to have $c, attempting to install it"
+    GOPATH=$GOPATH go get "$c"
+   fi
+done
+
+# Generate the array of commands to add to BusyBox binary
+BB_COMMANDS=( github.com/u-root/u-root/cmds/{core,boot,exp}/* )
+BB_COMMANDS+=( github.com/hpc/kraken/build/u-root/kraken )
+BB_COMMANDS+=( ${EXTRA_COMMANDS[@]} )
+
+# Create BusyBox binary (outside of u-root)
 echo "Creating BusyBox binary..."
 mkdir -p "$TMPDIR"/base/bbin
-"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken 2>&1
-ln -s bb "$TMPDIR"/base/bbin/kraken
+# shellcheck disable=SC2068
+"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} 2>&1
+
+# Create symlinks of included programs to BusyBox binary
+for cmd in ${BB_COMMANDS[@]}; do
+    ln -s bb "$TMPDIR"/base/bbin/"$cmd"
+done
 
 # copy base_dir over tmpdir if it's set
 if [ -n "${BASEDIR+x}" ]; then
@@ -130,17 +147,9 @@ echo "Creating base cpio..."
     find . | cpio -oc > $TMPDIR/base.cpio
 )
 
-# Make sure commands are available
-for c in "${EXTRA_COMMANDS[@]}"; do
-   if [ ! -d "$GOPATH/src/$c" ]; then
-    echo "You don't appear to have $c, attempting to install it"
-    GOPATH=$GOPATH go get "$c"
-   fi
-done
-
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* ${EXTRA_COMMANDS[@]} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio -nocmd 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
