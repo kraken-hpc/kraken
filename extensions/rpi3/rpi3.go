@@ -15,7 +15,7 @@ import (
 	"github.com/hpc/kraken/lib/types"
 )
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. rpi3.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. rpi3.proto
 
 const Name = "type.googleapis.com/RPi3.Pi"
 

@@ -6,7 +6,7 @@ import (
 	"github.com/hpc/kraken/lib/types"
 )
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. hostfrequencyscaler.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugin=grpc:. hostfrequencyscaler.proto
 
 const Name = "type.googleapis.com/HostFrequencyScaler.Scaler"
 

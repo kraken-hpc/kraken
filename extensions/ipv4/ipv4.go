@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/src -I . --gogo_out=grpc:. IPv4.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugin=grpc:. ipv4.proto
 
 package ipv4
 

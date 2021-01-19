@@ -15,7 +15,7 @@ import (
 	"github.com/hpc/kraken/lib/types"
 )
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. vbox.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. vbox.proto
 
 const Name = "type.googleapis.com/VBox.VirtualMachine"
 

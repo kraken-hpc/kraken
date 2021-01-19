@@ -15,7 +15,7 @@ import (
 	"github.com/hpc/kraken/lib/types"
 )
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. hostthermal.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugin=grpc:. hostthermal.proto
 
 const Name = "type.googleapis.com/HostThermal.Temp"
 
