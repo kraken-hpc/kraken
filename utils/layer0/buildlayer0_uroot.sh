@@ -132,7 +132,7 @@ mkdir -p "$TMPDIR"/base/bbin
 
 # Create symlinks of included programs to BusyBox binary
 for cmd in ${BB_COMMANDS[@]}; do
-    ln -s bb "$TMPDIR"/base/bbin/"$cmd"
+    ln -s bb $(basename "$TMPDIR"/base/bbin/"$cmd")
 done
 
 # copy base_dir over tmpdir if it's set
