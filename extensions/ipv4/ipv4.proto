@@ -19,6 +19,7 @@ message IPv4 {
 }
 
 message Ethernet {
+    string  iface   = 1;
     bytes   mac     = 2 [(gogoproto.customtype) = "MAC"]; /* mac address of the interface */
     uint32  mtu     = 3;
     bool    control = 4; /* should we assume control (if we can)? */

@@ -311,12 +311,12 @@ func TestResolveURL(t *testing.T) {
 			err: nil,
 		},
 		{
-			url: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mtu",
+			url: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Mtu",
 			res: reflect.ValueOf(im.Ifaces[0].Eth.Mtu),
 			err: nil,
 		},
 		{
-			url: "/type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth",
+			url: "/type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth",
 			res: reflect.ValueOf(im.Ifaces[0].Eth),
 			err: nil,
 		},
@@ -392,7 +392,7 @@ func TestSetValue(t *testing.T) {
 
 	var mtu uint32
 	mtu = 9000
-	v, e := n.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mtu", reflect.ValueOf(mtu))
+	v, e := n.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Mtu", reflect.ValueOf(mtu))
 	if e != nil {
 		t.Error(e)
 	}

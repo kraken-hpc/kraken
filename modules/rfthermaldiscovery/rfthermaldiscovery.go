@@ -77,7 +77,7 @@ func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfthermaldisco
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {
 	r := &Config{
-		IpUrl:  "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		IpUrl:  "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip",
 		AggUrl: "type.googleapis.com/RFAggregator.Server/RfAggregator",
 		Servers: map[string]*Server{
 			"c4": {
@@ -219,7 +219,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []types.Node)
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(rfd.cfg.GetIpUrl())
-		ip := ipv4.BytesToIP(v.Bytes()).String()
+		ip := v.Interface().(*ipv4.IP).String()
 		ipList = append(ipList, ip)
 		idMap[ip] = n.ID()
 	}

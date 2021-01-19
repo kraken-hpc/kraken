@@ -202,7 +202,7 @@ func main() {
 				Subnet: network.Mask,
 			},
 		}
-		self.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0", reflect.ValueOf(pb))
+		self.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken", reflect.ValueOf(pb))
 	}
 
 	// Launch Kraken

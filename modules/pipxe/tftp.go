@@ -69,9 +69,9 @@ func (px *PiPXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		}
 		data := tplData{}
 		i, _ := n.GetValue(px.cfg.IpUrl)
-		data.IP = ipv4.BytesToIP(i.Bytes()).String()
+		data.IP = i.Interface().(*ipv4.IP).String()
 		i, _ = n.GetValue(px.cfg.NmUrl)
-		subip := ipv4.BytesToIP(i.Bytes())
+		subip := i.Interface().(*ipv4.IP).IP
 		cidr, _ := net.IPMask(subip.To4()).Size()
 		data.CIDR = strconv.Itoa(cidr)
 		data.ID = n.ID().String()

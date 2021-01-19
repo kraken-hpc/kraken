@@ -181,7 +181,7 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 			return
 		}
 		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ipv4l.BytesToIP(v.Bytes()))
-		ip := ipv4l.BytesToIP(v.Bytes())
+		ip := v.Interface().(*ipv4l.IP).IP
 		px.api.Logf(types.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
 		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
@@ -338,7 +338,7 @@ func (px *PiPXE) wakeNode(n types.Node, stop <-chan bool) {
 		px.api.Logf(types.LLERROR, "Error getting mac address for node: %v", e)
 		return
 	}
-	mac := ipv4l.BytesToMAC(macValue.Bytes())
+	mac := macValue.Interface().(*ipv4l.MAC).HardwareAddr
 	if mac == nil {
 		px.api.Logf(types.LLERROR, "Error parsing mac address from value: %v", macValue.Bytes())
 		return

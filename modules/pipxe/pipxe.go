@@ -137,8 +137,8 @@ func (px *PiPXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-
 	if e != nil {
 		px.api.Logf(types.LLERROR, "error getting values: %v", e)
 	}
-	ip := ipv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
-	mac := ipv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
+	ip := v[px.cfg.IpUrl].Interface().(*ipv4.IP).IP
+	mac := v[px.cfg.MacUrl].Interface().(*ipv4.MAC).HardwareAddr
 	delete(px.nodeBy[queryByIP], ip.String())
 	delete(px.nodeBy[queryByMAC], mac.String())
 	px.mutex.Unlock()
@@ -153,8 +153,8 @@ func (px *PiPXE) NodeCreate(n types.Node) (e error) {
 	if len(v) != 2 {
 		return fmt.Errorf("missing ip or mac for node, aborting")
 	}
-	ip := ipv4.BytesToIP(v[px.cfg.IpUrl].Bytes())
-	mac := ipv4.BytesToMAC(v[px.cfg.MacUrl].Bytes())
+	ip := v[px.cfg.IpUrl].Interface().(*ipv4.IP).IP
+	mac := v[px.cfg.MacUrl].Interface().(*ipv4.MAC).HardwareAddr
 	if ip == nil || mac == nil { // incomplete node
 		return fmt.Errorf("won't add incomplete node: ip: %v, mac: %v", ip, mac)
 	}
@@ -183,12 +183,12 @@ var _ types.Module = (*PiPXE)(nil)
 // NewConfig returns a fully initialized default config
 func (*PiPXE) NewConfig() proto.Message {
 	r := &Config{
-		SrvIfaceUrl: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Iface",
-		SrvIpUrl:    "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		IpUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip",
-		NmUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		SubnetUrl:   "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Subnet",
-		MacUrl:      "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Eth/Mac",
+		SrvIfaceUrl: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Iface",
+		SrvIpUrl:    "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip",
+		IpUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip",
+		NmUrl:       "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Subnet",
+		SubnetUrl:   "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Subnet",
+		MacUrl:      "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Mac",
 		TftpDir:     "tftp",
 		ArpDeadline: "500ms",
 		DhcpRetry:   3,
@@ -235,9 +235,9 @@ var _ types.ModuleSelfService = (*PiPXE)(nil)
 func (px *PiPXE) Entry() {
 	nself, _ := px.api.QueryRead(px.api.Self().String())
 	v, _ := nself.GetValue(px.cfg.SrvIpUrl)
-	px.selfIP = ipv4.BytesToIP(v.Bytes())
+	px.selfIP = v.Interface().(*ipv4.IP).IP
 	v, _ = nself.GetValue(px.cfg.SubnetUrl)
-	px.selfNet = ipv4.BytesToIP(v.Bytes())
+	px.selfNet = v.Interface().(*ipv4.IP).IP
 	v, _ = nself.GetValue(px.cfg.SrvIfaceUrl)
 	go px.StartDHCP(v.String(), px.selfIP)
 	go px.StartTFTP(px.selfIP)
@@ -323,7 +323,7 @@ func (px *PiPXE) handleMutation(m *core.MutationEvent) {
 		if e != nil || !v.IsValid() {
 			break
 		}
-		ip := ipv4.BytesToIP(v.Bytes())
+		ip := v.Interface().(*ipv4.IP).IP
 		px.NodeDelete(queryByIP, ip.String())
 	}
 }

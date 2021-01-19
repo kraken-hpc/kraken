@@ -77,7 +77,7 @@ const (
 	hostThermalStateURL string = "type.googleapis.com/HostThermal.Temp/State"
 
 	// NodeIPURL provides node IP address
-	nodeIPURL string = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/0/Ip/Ip"
+	nodeIPURL string = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip"
 
 	// hostFreqScalerURL provides URL for host frequency scaler at host run time
 	hostFreqScalerURL string = "type.googleapis.com/HostFrequencyScaler.Scaler/State"
