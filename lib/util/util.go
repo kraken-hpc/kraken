@@ -11,7 +11,6 @@ package util
 
 import (
 	fmt "fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -175,8 +174,15 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 	root, sub := URLShift(url)
 
 	switch context.Kind() {
-	case reflect.Map:
-		log.Println("map resolution is not yet implemented")
+	case reflect.Map: // root should be a map key
+		k := StringToValue(root, context.Type().Key())
+		kv := context.MapIndex(k)
+		if !kv.IsValid() {
+			// key is not in map
+			e = fmt.Errorf("no such map key: %s", root)
+			return
+		}
+		v, e = ResolveURL(sub, kv)
 	case reflect.Ptr: // resolve pointers to their target
 		v, e = ResolveURL(url, context.Elem())
 	case reflect.Slice: // root should be a slice index
@@ -221,7 +227,20 @@ func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e err
 
 	switch context.Kind() {
 	case reflect.Map:
-		log.Println("map resolution is not yet implemented")
+		k := StringToValue(root, context.Type().Key())
+		kv := context.MapIndex(k)
+		if !kv.IsValid() {
+			// key is not in map
+			// create an empty entry
+			if context.Type().Elem().Kind() == reflect.Ptr {
+				// we need to make a real object, not just an empty pointer
+				kv = reflect.New(context.Type().Elem().Elem())
+			} else {
+				kv = reflect.New(context.Type().Elem()).Elem()
+			}
+			context.SetMapIndex(k, kv)
+		}
+		v, e = ResolveOrMakeURL(sub, kv)
 	case reflect.Ptr: // resolve pointers to their target
 		if !context.Elem().IsValid() {
 			// we need to allocate an object here
@@ -326,6 +345,28 @@ func ValueToString(v reflect.Value) (s string) {
 	default:
 		s = fmt.Sprintf("%v", v)
 	}
+	return
+}
+
+// StringToValue creats values for a type.  It returns a zero for the type if it's an unsupported type
+// We always return a valid value.  If we fail to parse, you get a zero value
+func StringToValue(s string, t reflect.Type) (r reflect.Value) {
+	r = reflect.New(t).Elem()
+	switch t.Kind() {
+	case reflect.String:
+		r.SetString(s)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		if ui, e := strconv.ParseUint(s, 10, 64); e == nil {
+			r.SetUint(ui)
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if i, e := strconv.ParseInt(s, 10, 64); e == nil {
+			r.SetInt(i)
+		}
+	default:
+		fmt.Printf("unsupproted StringToValue type: %v", t.Kind())
+	}
+	// get a zero value for unkown types
 	return
 }
 
