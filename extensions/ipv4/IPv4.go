@@ -1,4 +1,4 @@
-/* IPv4.z.go: this extension adds standard IPv4 and Ethernet properties to the Node state
+/* IPv4.go: this extension adds standard IPv4 and Ethernet properties to the Node state
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -7,15 +7,12 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. IPv4.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=grpc:. IPv4.proto
 
 package ipv4
 
 import (
-	"net"
-
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -67,32 +64,6 @@ func (i *IPv4OverEthernet) New() types.Message {
 
 func (*IPv4OverEthernet) Name() string {
 	return Name
-}
-
-// BytesToIP converts 4 bytes to a net.IP
-// returns nil if you don't give it 4 bytes
-func BytesToIP(b []byte) (ip net.IP) {
-	if len(b) != 4 {
-		return
-	}
-	return net.IPv4(b[0], b[1], b[2], b[3])
-}
-
-func BytesToMAC(b []byte) (hw net.HardwareAddr) {
-	if len(b) != 6 {
-		return
-	}
-	return net.HardwareAddr(b)
-}
-
-// MarshalJSON creats a JSON version of Node
-func (n *IPv4OverEthernet) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(n)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (n *IPv4OverEthernet) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, n)
 }
 
 func init() {
