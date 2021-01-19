@@ -11,7 +11,6 @@ package hostthermal
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -31,16 +30,6 @@ func (*Temp) New() types.Message {
 
 func (*Temp) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (t *Temp) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(t)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (t *Temp) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, t)
 }
 
 func init() {

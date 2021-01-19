@@ -11,7 +11,6 @@ package vbox
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -31,16 +30,6 @@ func (*VirtualMachine) New() types.Message {
 
 func (*VirtualMachine) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (n *VirtualMachine) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(n)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (n *VirtualMachine) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, n)
 }
 
 func init() {

@@ -11,7 +11,6 @@ package powerman
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -31,16 +30,6 @@ func (*Control) New() types.Message {
 
 func (*Control) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (c *Control) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(c)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (c *Control) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, c)
 }
 
 func init() {

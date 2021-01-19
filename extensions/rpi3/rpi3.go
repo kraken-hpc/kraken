@@ -11,7 +11,6 @@ package rpi3
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -31,16 +30,6 @@ func (*Pi) New() types.Message {
 
 func (*Pi) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (p *Pi) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(p)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (p *Pi) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, p)
 }
 
 func init() {

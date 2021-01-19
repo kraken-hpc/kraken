@@ -15,10 +15,10 @@ import (
 
 // MarshalJSON creats a JSON version of Node
 func (n *Node) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(n)
+	return json.Marshal(n)
 }
 
 // UnmarshalJSON populates a node from JSON
 func (n *Node) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, n)
+	return json.Unmarshal(j, n)
 }

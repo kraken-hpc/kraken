@@ -10,34 +10,27 @@
 package json
 
 import (
-	"strings"
+	"bytes"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 )
 
-// Resolver globally sets the proto resolver
-// Typically, this will be the kraken Registry
-var Resolver jsonpb.AnyResolver
+// Marshaler is a global marshaler that sets our default options
+var Marshaler = jsonpb.Marshaler{}
 
-// MarshalJSON is a helper for default JSON marshaling
-func MarshalJSON(m proto.Message) ([]byte, error) {
-	jm := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
-		Indent:       "  ",
-		OrigName:     false,
-		AnyResolver:  Resolver,
-	}
-	j, err := jm.MarshalToString(m)
-	return []byte(j), err
+// Unmarshaler is a global unmarshaler that sets our default options
+var Unmarshaler = jsonpb.Unmarshaler{}
+
+// Marshal turns a gogo proto.Message into json with the default marshaler
+func Marshal(m proto.Message) ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	e := Marshaler.Marshal(buf, m)
+	return buf.Bytes(), e
 }
 
-// UnmarshalJSON is a helper for default JSON unmarshaling
-func UnmarshalJSON(in []byte, p proto.Message) error {
-	um := &jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
-		AnyResolver:        Resolver,
-	}
-	return um.Unmarshal(strings.NewReader(string(in)), p)
+// Unmarshal turns a json message into a proto.Message with the default marshaler
+func Unmarshal(in []byte, m proto.Message) error {
+	buf := bytes.NewBuffer(in)
+	return Unmarshaler.Unmarshal(buf, m)
 }

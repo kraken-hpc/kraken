@@ -2,7 +2,6 @@ package hostfrequencyscaler
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -22,16 +21,6 @@ func (*Scaler) New() types.Message {
 
 func (*Scaler) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (s *Scaler) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(s)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (s *Scaler) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, s)
 }
 
 func init() {

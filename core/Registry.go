@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
 	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
@@ -30,7 +30,8 @@ var Registry = NewKrakenRegistry()
 
 // Set our registry to be our json resolver
 func init() {
-	json.Resolver = Registry
+	json.Marshaler.AnyResolver = Registry
+	json.Unmarshaler.AnyResolver = Registry
 }
 
 ///////////////////////////

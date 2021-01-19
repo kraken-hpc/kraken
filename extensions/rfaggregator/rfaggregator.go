@@ -13,7 +13,6 @@ package rfaggregator
 
 import (
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -31,16 +30,6 @@ func (*Server) New() types.Message {
 
 func (*Server) Name() string {
 	return Name
-}
-
-// MarshalJSON creats a JSON version of Node
-func (s *Server) MarshalJSON() ([]byte, error) {
-	return json.MarshalJSON(s)
-}
-
-// UnmarshalJSON populates a node from JSON
-func (s *Server) UnmarshalJSON(j []byte) error {
-	return json.UnmarshalJSON(j, s)
 }
 
 func init() {
