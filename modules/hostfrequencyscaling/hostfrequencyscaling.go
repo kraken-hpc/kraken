@@ -12,7 +12,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. hostfrequencyscaling.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. hostfrequencyscaling.proto
 
 package hostfrequencyscaling
 

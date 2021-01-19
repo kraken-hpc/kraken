@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. powermancontrol.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. powermancontrol.proto
 
 /*
  * This module will manipulate the PhysState state field.

@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto -I . --go_out=plugins=grpc:. cpuburn.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. cpuburn.proto
 
 package cpuburn
 
