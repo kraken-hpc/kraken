@@ -1,45 +1,56 @@
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=grpc:. test.proto
+
 package util
 
 import (
-	"net"
 	"reflect"
 	"testing"
-
-	proto "github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	pb "github.com/hpc/kraken/core/proto"
-	ipb "github.com/hpc/kraken/extensions/IPv4"
 )
 
 func TestDiff(t *testing.T) {
-	n1 := &pb.Node{
-		Nodename:  "node1",
-		RunState:  pb.Node_INIT,
-		PhysState: pb.Node_POWER_ON,
+	n1 := &Fixture{
+		Boolean:  true,
+		UInt:     42,
+		Slice:    []string{"this", "is", "a", "test"},
+		Map:      map[string]uint32{"one": 1, "two": 2, "three": 3},
+		Sub:      &SubFixture{A: "A", B: "B"},
+		SliceSub: []*SubFixture{{A: "A", B: "B"}, {A: "C", B: "D"}},
+		MapSub: map[uint32]*SubFixture{
+			7: {
+				A: "lucky",
+				B: "prime",
+			},
+			13: {
+				A: "unlucky",
+				B: "also prime",
+			},
+			42: {
+				A: "meaning",
+				B: "life",
+			},
+		},
 	}
-	n2 := &pb.Node{
-		Nodename:  "node2",
-		RunState:  pb.Node_SYNC,
-		PhysState: pb.Node_POWER_ON,
-	}
-	i1 := &ipb.IPv4{
-		Ip:     net.ParseIP("192.168.1.1").To4(),
-		Subnet: net.ParseIP("255.255.255.0").To4(),
-	}
-	ia1, _ := ptypes.MarshalAny(i1)
-	i2 := &ipb.IPv4{
-		Ip:     net.ParseIP("192.168.1.2").To4(),
-		Subnet: net.ParseIP("255.255.255.0").To4(),
-	}
-	ia2, _ := ptypes.MarshalAny(i2)
-	n1.Extensions = append(n1.Extensions, ia1)
-	n2.Extensions = append(n2.Extensions, ia2)
-	// note: ordering is important since we use DeepEqual
-	s := []string{"/Nodename", "/RunState"}
-	if proto.Equal(n1, n2) {
-		t.Errorf("unequal nodes look equal")
-	} else {
-		t.Logf("nodes are not equal (and shouldn't be)")
+	n2 := &Fixture{
+		Boolean:  true,
+		UInt:     43,
+		Slice:    []string{"this", "is", "the", "test"},
+		Map:      map[string]uint32{"one": 1, "two": 3, "four": 4},
+		Sub:      &SubFixture{A: "A", B: "C"},
+		SliceSub: []*SubFixture{{A: "A", B: "D"}, {A: "C", B: "D"}},
+		MapSub: map[uint32]*SubFixture{
+			7: {
+				A: "lucky",
+				B: "prime",
+			},
+			13: {
+				A: "very unlucky",
+				B: "also prime",
+			},
+			11: {
+				A: "also lucky",
+				B: "also prime",
+			},
+		},
 	}
 
 	d, e := MessageDiff(n1, n2, "")
@@ -47,6 +58,18 @@ func TestDiff(t *testing.T) {
 		t.Error(e)
 	}
 	t.Logf("diff: %v", d)
+	s := []string{
+		"/UInt",
+		"/Slice/2",
+		"/Map/two",
+		"/Map/three",
+		"/Map/four",
+		"/Sub/B",
+		"/SliceSub/0/B",
+		"/MapSub/13/A",
+		"/MapSub/42",
+		"/MapSub/11",
+	}
 	if !reflect.DeepEqual(d, s) {
 		t.Error("Incorrect diff")
 	}

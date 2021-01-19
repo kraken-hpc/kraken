@@ -78,6 +78,40 @@ func diffStruct(a, b reflect.Value, pre string) (r []string, e error) {
 	return
 }
 
+func diffMap(a, b reflect.Value, pre string) (r []string, e error) {
+	if !a.IsValid() || !b.IsValid() {
+		e = fmt.Errorf("diffMap called on invalid value(s)")
+		return
+	}
+	if a.Type() != b.Type() {
+		e = fmt.Errorf("diffMap called on mismatched values types: %s vs %s", a.Type(), b.Type())
+		return
+	}
+	r = []string{}
+	for _, k := range a.MapKeys() {
+		av := a.MapIndex(k)
+		bv := b.MapIndex(k)
+		if !bv.IsValid() {
+			// doesn't exist in b, mark the whole key as a diff
+			r = append(r, URLPush(pre, ValueToString(k)))
+			continue
+		}
+		// exists in both
+		var s []string
+		if s, e = diffAny(av, bv, URLPush(pre, ValueToString(k))); e != nil {
+			return
+		}
+		r = append(r, s...)
+	}
+	for _, k := range b.MapKeys() {
+		if !a.MapIndex(k).IsValid() {
+			// doesn't exist in a, mark the whole key as a diff
+			r = append(r, URLPush(pre, ValueToString(k)))
+		}
+	}
+	return
+}
+
 func diffSlice(a, b reflect.Value, pre string) (r []string, e error) {
 	alen := a.Len()
 	blen := b.Len()
@@ -120,7 +154,9 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 		return diffSlice(a, b, pre)
 	case reflect.Ptr:
 		return diffAny(a.Elem(), b.Elem(), pre)
-	case reflect.Interface, reflect.Map:
+	case reflect.Map:
+		return diffMap(a, b, pre)
+	case reflect.Interface:
 		fallthrough
 	default:
 		//log.Printf("not yet implemented: %v", a.Kind())

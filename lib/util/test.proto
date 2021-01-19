@@ -1,0 +1,27 @@
+/* test.proto: this creates a protobuf fixture to run tests against
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package Test;
+option go_package = ".;util";
+
+message SubFixture {
+    string A = 1;
+    string B = 2;
+}
+
+message Fixture {
+    bool                Boolean     = 1;
+    uint32              UInt        = 2;
+    repeated string     Slice       = 3;
+    map<string, uint32> Map         = 4;
+    SubFixture          Sub         = 5;
+    repeated SubFixture SliceSub    = 6;
+    map<uint32, SubFixture> MapSub  = 7;
+}
