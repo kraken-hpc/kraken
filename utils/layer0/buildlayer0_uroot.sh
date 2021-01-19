@@ -120,8 +120,8 @@ for c in "${EXTRA_COMMANDS[@]}"; do
 done
 
 # Generate the array of commands to add to BusyBox binary
-BB_COMMANDS=( github.com/u-root/u-root/cmds/{core,boot,exp}/* )
-BB_COMMANDS+=( github.com/hpc/kraken/build/u-root/kraken )
+BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
+BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
 BB_COMMANDS+=( ${EXTRA_COMMANDS[@]} )
 
 # Create BusyBox binary (outside of u-root)
