@@ -131,12 +131,15 @@ BB_COMMANDS+=( ${EXTRA_COMMANDS[@]} )
 
 # Create BusyBox binary (outside of u-root)
 echo "Creating BusyBox binary..."
+echo "   Commands: ${BB_COMMANDS[@]}"
 mkdir -p "$TMPDIR"/base/bbin
 # shellcheck disable=SC2068
 "$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} 2>&1
 
 # Create symlinks of included programs to BusyBox binary
+echo "Creating links to BusyBox binary..."
 for cmd in ${BB_COMMANDS[@]}; do
+    echo $(basename "$TMPDIR"/base/bbin/"$cmd") '-> bb'
     ln -s bb $(basename "$TMPDIR"/base/bbin/"$cmd")
 done
 
