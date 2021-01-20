@@ -157,7 +157,7 @@ echo "Creating base cpio..."
 
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -nocmd -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -o "$TMPDIR"/initramfs.cpio 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -nocmd -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -o "$TMPDIR"/initramfs.cpio core 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
