@@ -136,6 +136,26 @@ func TestResolveOrMakeURL(t *testing.T) {
 			t.Errorf("second lookup failed: %s != %s", v2.String(), v.String())
 		}
 	})
+	t.Run("new map entry", func(t *testing.T) {
+		n := &Fixture{}
+		nv := reflect.ValueOf(n)
+		v, e := ResolveOrMakeURL("/MapSub/99", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolvOrMakeURL failure: %v", e)
+			return
+		}
+		sf := SubFixture{A: "eh", B: "bee"}
+		sfv := reflect.ValueOf(sf)
+		v.Set(sfv)
+		v2, e := ResolveURL("/MapSub/99", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolveURL failure: %v", e)
+			return
+		}
+		if !reflect.DeepEqual(sf, v2.Interface()) {
+			t.Errorf("second lookup failed: %s != %s", v2.String(), sfv.String())
+		}
+	})
 	t.Run("nil slice lookup", func(t *testing.T) {
 		n := &Fixture{}
 		nv := reflect.ValueOf(n)

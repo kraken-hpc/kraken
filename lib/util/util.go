@@ -168,6 +168,11 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 	if url == "" {
 		v = context
+		if v.Kind() == reflect.Ptr {
+			// don't return pointers, they're not assignable
+			// this generally happens with maps
+			v = v.Elem()
+		}
 		return
 	}
 
@@ -220,6 +225,11 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e error) {
 	if url == "" {
 		v = context
+		if v.Kind() == reflect.Ptr {
+			// don't return pointers, they're not assignable
+			// this generally happens with maps
+			v = v.Elem()
+		}
 		return
 	}
 
