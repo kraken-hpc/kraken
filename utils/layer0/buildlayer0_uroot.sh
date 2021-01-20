@@ -140,7 +140,7 @@ mkdir -p "$TMPDIR"/base/bbin
 echo "Creating links to BusyBox binary..."
 for cmd in ${BB_COMMANDS[@]}; do
     echo $(basename "$TMPDIR"/base/bbin/"$cmd") '-> bb'
-    ln -s bb $(basename "$TMPDIR"/base/bbin/"$cmd")
+    ln -s bb "$TMPDIR"/base/bbin/"$cmd"
 done
 
 # copy base_dir over tmpdir if it's set
