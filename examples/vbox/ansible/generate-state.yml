@@ -1,8 +1,9 @@
 ---
 - hosts: kraken
-  vars:
-    kraken_cfgdir: ''
-    kraken_state_file: 'kraken-state.json'
   connection: local
-  roles:
-    - kraken-state
+  tasks:
+    - name: "Template state file"
+      copy:
+        content: "{{ lookup('template', 'roles/kraken-state/templates/nodes.json.j2') | to_nice_json }}"
+        dest: "kraken-state.json"
+      
