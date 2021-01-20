@@ -98,7 +98,7 @@ func (s *ModuleAPIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *p
 func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.Read(NewNodeIDFromURL(in.URL))
+	nout, e = s.query.Read(pb.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
@@ -109,7 +109,7 @@ func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.
 func (s *ModuleAPIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.ReadDsc(NewNodeIDFromURL(in.URL))
+	nout, e = s.query.ReadDsc(pb.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
@@ -154,7 +154,7 @@ func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out
 func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.Delete(NewNodeIDFromURL(in.URL))
+	nout, e = s.query.Delete(pb.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}

@@ -76,7 +76,7 @@ func send(n types.Node) {
 	c := pb.NewStateSyncClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: n.ID().Binary()})
+	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: n.ID().Bytes()})
 	if e != nil {
 		log.Printf("could not phone home: %v", e)
 	}

@@ -337,7 +337,7 @@ func mutationPathToProto(path *mutationPath) (r pb.MutationPath, e error) {
 
 // Returns the mutation nodes that have correlating reqs and execs for a given nodeID
 // LOCKS: activeMutex; path.mutex
-func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationNode, e error) {
+func (sme *StateMutationEngine) filterMutNodesFromNode(n pb.NodeID) (r []*mutationNode, e error) {
 	// Get node from path
 	sme.activeMutex.Lock()
 	mp := sme.active[n.String()]
@@ -406,7 +406,7 @@ func (sme *StateMutationEngine) filterMutNodesFromNode(n NodeID) (r []*mutationN
 
 // Returns the mutation edges that match the filtered nodes from filterMutNodesFromNode
 // LOCKS: activeMutex via filterMutNodesFromNode; path.mutex via filterMutNodesFromNode
-func (sme *StateMutationEngine) filterMutEdgesFromNode(n NodeID) (r []*mutationEdge, e error) {
+func (sme *StateMutationEngine) filterMutEdgesFromNode(n pb.NodeID) (r []*mutationEdge, e error) {
 	nodes, e := sme.filterMutNodesFromNode(n)
 	filteredEdges := make(map[*mutationEdge]string)
 
@@ -497,7 +497,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 		types.Event_STATE_CHANGE,
 		func(v types.Event) bool {
 			node, url := util.NodeURLSplit(v.URL())
-			if !NewNodeID(node).Equal(sme.self) {
+			if !pb.NewNodeID(node).Equal(sme.self) {
 				return false
 			}
 			if smurl.MatchString(url) {
@@ -535,7 +535,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
-					n := NewNodeIDFromURL(q.URL())
+					n := pb.NewNodeIDFromURL(q.URL())
 					sme.graphMutex.RLock()
 					fmn, e := sme.filterMutNodesFromNode(*n)
 					mnl := mutationNodesToProto(fmn)
@@ -555,7 +555,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 					go sme.sendQueryResponse(NewQueryResponse(
 						[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				} else {
-					n := NewNodeIDFromURL(q.URL())
+					n := pb.NewNodeIDFromURL(q.URL())
 					sme.graphMutex.RLock()
 					fme, e := sme.filterMutEdgesFromNode(*n)
 					mel := mutationEdgesToProto(fme)
@@ -565,7 +565,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 				}
 				break
 			case types.Query_MUTATIONPATH:
-				n := NewNodeIDFromURL(q.URL())
+				n := pb.NewNodeIDFromURL(q.URL())
 				sme.activeMutex.Lock()
 				mp := sme.active[n.String()]
 				sme.activeMutex.Unlock()
@@ -1358,7 +1358,7 @@ func (sme *StateMutationEngine) findPath(start types.Node, end types.Node) (path
 // LOCKS: graphMutex (R) via findPath; activeMutex; path.mutex
 func (sme *StateMutationEngine) startNewMutation(node string) {
 	// we assume it's already been verified that this is *new*
-	nid := NewNodeIDFromURL(node)
+	nid := pb.NewNodeIDFromURL(node)
 	start, e := sme.query.ReadDsc(nid)
 	if e != nil {
 		sme.Log(ERROR, e.Error())
@@ -1657,7 +1657,7 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 // does *not* check to make sure there is one
 // assumes m.mutex is locked by surrounding func
 func (sme *StateMutationEngine) advanceMutation(node string, m *mutationPath) {
-	nid := NewNodeIDFromURL(node)
+	nid := pb.NewNodeIDFromURL(node)
 	m.cur++
 	m.curSeen = []string{}
 	sme.Logf(DEBUG, "resuming mutation for %s (%d/%d).", nid.String(), m.cur+1, len(m.chain))
@@ -1735,7 +1735,7 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 	m.cmplt = false
 
 	// this is a bit bad.  We don't want to get our own state changes, so we change the node directly
-	nid := NewNodeIDFromURL(node)
+	nid := pb.NewNodeIDFromURL(node)
 	n, e := sme.query.ReadDsc(nid)
 	if e != nil {
 		// ok, I give up.  The node has just disappeared.

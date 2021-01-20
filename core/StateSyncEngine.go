@@ -186,7 +186,7 @@ var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
 // RPCPhoneHome is a gRPC call.  It establishes state sync properties with a child.
 func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRequest) (out *pb.PhoneHomeReply, e error) {
 	// we don't really have any way to make sure this is the right client but timing right now
-	id := NewNodeIDFromBinary(in.GetId())
+	id := pb.NewNodeIDFromBinary(in.GetId())
 	if id.Nil() {
 		e = fmt.Errorf("could not interpet NodeID")
 		return
@@ -249,7 +249,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	sse.Logf(DEBUG, "successful phone home for: %s", id.String())
-	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: ssn.getKey(), Cfg: cfg, Dsc: dsc}, nil
+	return &pb.PhoneHomeReply{Pid: sse.self.Bytes(), Key: ssn.getKey(), Cfg: cfg, Dsc: dsc}, nil
 }
 
 // Run is a goroutine that makes StateSyncEngine active
@@ -359,14 +359,14 @@ func (sse *StateSyncEngine) callParent(p string) {
 	c := pb.NewStateSyncClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: sse.self.Binary()})
+	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: sse.self.Bytes()})
 	if e != nil {
 		sse.Logf(CRITICAL, "could not phone home: %v", e)
 		go retryCall()
 		return
 	}
 	// ok! we successfully phoned home, now let's setup our parent neighbor.  Also, register our cfg state
-	nid := NewNodeIDFromBinary(r.GetPid())
+	nid := pb.NewNodeIDFromBinary(r.GetPid())
 	n := sse.addNeighbor(nid.String(), true)
 	n.lock.Lock()
 	n.key = r.Key
@@ -396,7 +396,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 	}
 
 	// we need to create a stub entry for our parent node
-	pn := NewNodeWithID(NewNodeIDFromBinary(r.Pid).String())
+	pn := NewNodeWithID(pb.NewNodeIDFromBinary(r.Pid).String())
 
 	// FIXME: this is a lockin to ipv4; also a hack
 	/* this isn't necessary as long as the extension is loaded
@@ -429,7 +429,7 @@ func (sse *StateSyncEngine) nodeToMessage(to types.NodeID, n types.Node) (msg *p
 		return
 	}
 	m := &pb.StateSyncMessage{}
-	m.Id = sse.self.Binary()
+	m.Id = sse.self.Bytes()
 	m.Message = n.Binary()
 	if e != nil {
 		return
@@ -449,7 +449,7 @@ func (sse *StateSyncEngine) nodeToBinary(to types.NodeID, n types.Node) (msg []b
 }
 
 func (sse *StateSyncEngine) ssmToNode(m *pb.StateSyncMessage) (rp recvPacket, e error) {
-	rp.From = NewNodeIDFromBinary(m.Id)
+	rp.From = pb.NewNodeIDFromBinary(m.Id)
 	if rp.From.Nil() {
 		e = fmt.Errorf("could not unmarshal NodeID")
 		return
@@ -580,7 +580,7 @@ func (sse *StateSyncEngine) wakeForNext() {
 }
 
 func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighbor {
-	nid := NewNodeID(id)
+	nid := pb.NewNodeID(id)
 	n := &stateSyncNeighbor{
 		lock:      sync.Mutex{},
 		parent:    parent,

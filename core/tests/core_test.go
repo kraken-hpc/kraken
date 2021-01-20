@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewNodeWithID(t *testing.T) {
-	nid := NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	nid := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
 	n := NewNodeWithID("123e4567-e89b-12d3-a456-426655440000")
 	if !n.ID().Equal(nid) {
 		t.Errorf("failed to create equal NIDs on new node: %v", n)
@@ -28,9 +28,9 @@ func TestNode_GetValue(t *testing.T) {
 		t.Errorf("invalid value returned: %v", v)
 		return
 	}
-	bid := NewNodeID("123e4567-e89b-12d3-a456-426655440000")
-	if !NewNodeIDFromBinary(v.Interface().([]byte)).Equal(bid) {
-		t.Errorf("result mismatch: %v != %v", v, bid)
+	ref := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	if !v.Interface().(*pb.NodeID).Equal(ref) {
+		t.Errorf("result mismatch: %v != %v", v.Interface(), ref)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestNode_JSON(t *testing.T) {
 }
 
 func TestNewNodeFromJSON(t *testing.T) {
-	jin := []byte("{\"id\":\"Ej5FZ+ibEtOkVkJmVUQAAA==\",\"nodename\":\"noname\",\"run_state\":\"INIT\",\"phys_state\":1}")
+	jin := []byte("{\"id\":\"123e4567-e89b-12d3-a456-426655440000\",\"nodename\":\"noname\",\"run_state\":\"INIT\",\"phys_state\":1}")
 	t.Logf("in: %s", jin)
 
 	n := NewNodeFromJSON(jin)

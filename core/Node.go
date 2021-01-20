@@ -16,7 +16,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	pb "github.com/hpc/kraken/core/proto"
@@ -42,7 +42,7 @@ type Node struct {
 func NewNodeWithID(id string) *Node {
 	//n := newNode()
 	n := NewNodeFromJSON([]byte(nodeFixture))
-	n.pb.Id = NewNodeID(id).Binary()
+	n.pb.Id = pb.NewNodeID(id)
 	n.indexServices()
 	return n
 }
@@ -85,13 +85,13 @@ func NewNodeFromMessage(m *pb.Node) *Node {
 // ID returns the NodeID object for the node
 // Note: we don't lock on this under the assumption that ID's don't typically change
 func (n *Node) ID() types.NodeID {
-	return NewNodeIDFromBinary(n.pb.Id)
+	return n.pb.Id
 }
 
 // ParentID returns the NodeID of the parent of this node
 func (n *Node) ParentID() (pid types.NodeID) {
 	n.mutex.RLock()
-	pid = NewNodeIDFromBinary(n.pb.ParentId)
+	pid = pb.NewNodeIDFromBinary(n.pb.ParentId)
 	n.mutex.RUnlock()
 	return
 }
@@ -566,7 +566,7 @@ func (n *Node) indexServices() {
 
 const nodeFixture string = `
 {
-	"id": "Ej5FZ+ibEtOkVkJmVUQAAA==",
+	"id": "123e4567-e89b-12d3-a456-426655440000",
 	"nodename": "",
 	"runState": "UNKNOWN",
 	"physState": "PHYS_UNKNOWN",

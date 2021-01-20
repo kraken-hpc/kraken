@@ -240,7 +240,7 @@ func (a *ModuleAPIClient) ServiceInit(id string, module string) (c <-chan types.
 	}
 	self := &pb.Node{}
 	ptypes.UnmarshalAny(init.Config, self)
-	a.self = NewNodeIDFromBinary(self.GetId())
+	a.self = self.GetId()
 
 	cc := make(chan types.ServiceControl)
 	go func() {

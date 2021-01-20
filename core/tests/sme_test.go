@@ -114,15 +114,14 @@ func fixtureNodes() []struct {
 	node  pb.Node
 	count int
 } {
-	id := uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))
-	bid, _ := id.MarshalBinary()
+	id := &pb.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
 	pbs := []struct {
 		node  pb.Node
 		count int
 	}{
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "generic/unknown",
 				RunState:  pb.Node_UNKNOWN,
 				PhysState: pb.Node_PHYS_UNKNOWN,
@@ -132,7 +131,7 @@ func fixtureNodes() []struct {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "ipmi/on",
 				RunState:  pb.Node_INIT,
 				PhysState: pb.Node_POWER_ON,
@@ -142,7 +141,7 @@ func fixtureNodes() []struct {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "redfish/off",
 				RunState:  pb.Node_INIT,
 				PhysState: pb.Node_POWER_OFF,
@@ -152,7 +151,7 @@ func fixtureNodes() []struct {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "redfish/off/sync",
 				RunState:  pb.Node_SYNC,
 				PhysState: pb.Node_POWER_OFF,
@@ -165,8 +164,7 @@ func fixtureNodes() []struct {
 }
 
 func TestStateSpec_NodeMatch(t *testing.T) {
-	id := uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))
-	bid, _ := id.MarshalBinary()
+	id := &pb.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
 
 	nodes := []struct {
 		node  pb.Node
@@ -174,7 +172,7 @@ func TestStateSpec_NodeMatch(t *testing.T) {
 	}{
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "nomatch-noexclude",
 				RunState:  pb.Node_UNKNOWN,
 				PhysState: pb.Node_PHYS_UNKNOWN,
@@ -183,7 +181,7 @@ func TestStateSpec_NodeMatch(t *testing.T) {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "match-noexclude",
 				RunState:  pb.Node_UNKNOWN,
 				PhysState: pb.Node_POWER_OFF,
@@ -192,7 +190,7 @@ func TestStateSpec_NodeMatch(t *testing.T) {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "match-exclude",
 				RunState:  pb.Node_SYNC,
 				PhysState: pb.Node_POWER_OFF,
@@ -201,7 +199,7 @@ func TestStateSpec_NodeMatch(t *testing.T) {
 		},
 		{
 			node: pb.Node{
-				Id:        bid,
+				Id:        id,
 				Nodename:  "nomatch-exclude",
 				RunState:  pb.Node_SYNC,
 				PhysState: pb.Node_POWER_ON,
