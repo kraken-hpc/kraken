@@ -225,6 +225,10 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 		return
 	}
 	// should already be locked from above
+	if value.Kind() == reflect.Ptr {
+		// never try to assign pointers
+		value = value.Elem()
+	}
 	r.Set(value)
 	v = r
 	return
