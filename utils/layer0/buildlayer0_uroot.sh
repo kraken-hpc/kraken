@@ -65,16 +65,16 @@ fi
 
 ARCH=$1
 
+if [ -z "${GOPATH+x}" ]; then
+    echo "GOPATH isn't set, using $HOME/go"
+    GOPATH=$HOME/go
+fi
+
 # Commands to build into u-root busybox
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/entropy/cmd/entropy )
 EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/uinit/cmds/uinit )
 #EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
-
-if [ -z "${GOPATH+x}" ]; then
-    echo "GOPATH isn't set, using $HOME/go"
-    GOPATH=$HOME/go
-fi
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
     KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
