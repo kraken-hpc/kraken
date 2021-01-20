@@ -1,0 +1,512 @@
+swagger: "2.0"
+info:
+  description: "Kraken is a distributed state engine for scalable system boot and automation"
+  version: "1.0.0"
+  title: "Kraken"
+  contact:
+    url: "https://github.com/hpc/kraken"
+  license:
+    name: "BSD 3"
+    url: "https://raw.githubusercontent.com/hpc/kraken/master/LICENSE"
+tags:
+- name: "cfg"
+  description: "Read and manipulate configuration state"
+- name: "dsc"
+  description: "Read and manipulate discovery state"
+- name: "sme"
+  description: "Control the State Mutation Engine"
+- name: "graph"
+  description: "Read graph info"
+- name: "miscellaneous"
+schemes:
+- "http"
+- "https"
+paths:
+  /cfg/nodes:
+    get:
+      tags:
+        - "cfg"
+      summary: "Get configuration info for all nodes"
+      description: "Returns an array containing configuration information for all nodes."
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties: 
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+    put:
+      tags:
+        - "cfg"
+      summary: "Update configuration info for multiple nodes"
+      description: "Use this method to update multilple nodes to a desired configuration."
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            nodes: 
+              type: "array"
+              items:
+                $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties: 
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+    post:
+      tags:
+        - "cfg"
+      summary: "Create multiple nodes"
+      description: "Accepts an array of node configurations to be craeted in Kraken."
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          type: "object"
+          properties:
+            nodes: 
+              type: "array"
+              items:
+                $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties: 
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+  /cfg/node:
+    put:
+      tags:
+        - "cfg"
+      summary: "Update configuration info for a node"
+      description: "Use this method up update a single node's configuration state.\n\nNote: the input body does not require `nodes:[]` like in `cfg/nodes`"
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+    post:
+      tags:
+        - "cfg"
+      summary: "Create a node"
+      description: "Use this method up create a single node in Kraken.\n\nNote: the input body does not require `nodes:[]` like in `cfg/nodes`"
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+  /cfg/node/{id}:
+    get:
+      tags:
+        - "cfg"
+      summary: "Get configuration info for a node"
+      description: "Use this method to get the configuration info of a single node"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the desired node"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+    put:
+      tags:
+        - "cfg"
+      summary: "Update configuration info for a node"
+      description: "Use this method to update a single node. This is identical to `PUT:/cfg/node`, but with the option of including the node id as a url parameter instead of in the body."
+      consumes:
+        - "application/json"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the node you want to update"
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+    post:
+      tags:
+        - "cfg"
+      summary: "Create a node"
+      description: "Use this method to create a single node. This is identical to `POST:/cfg/node`, but with the option of including the node id as a url parameter instead of in the body."
+      consumes:
+        - "application/json"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the node you want to create"
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+    delete:
+      tags:
+        - "cfg"
+      summary: "Delete a node"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the node you want to delete"
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+  /dsc/nodes:
+    get:
+      tags:
+        - "dsc"
+      summary: "Get discovery info for all nodes"
+      description: "Returns an array containing discovery information for all nodes."
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties: 
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+    put:
+      tags:
+        - "dsc"
+      summary: "Update discovery info for multiple nodes"
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          type: "object"
+          properties: 
+            nodes:
+              type: "array"
+              items:
+                $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            type: "object"
+            properties: 
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+  /dsc/node:
+    put:
+      tags:
+        - "dsc"
+      summary: "Update discovery info for a node"
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+  /dsc/node/{id}:
+    get:
+      tags:
+        - "dsc"
+      summary: "Get discovery info for a node"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the node you want to delete"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+    put:
+      tags:
+        - "dsc"
+      summary: "Update discovery info for a node"
+      consumes:
+        - "application/json"
+      parameters:
+      - in: body
+        name: "node config"
+        required: true
+        schema:
+          $ref: "#/definitions/NodeConfig"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/NodeConfig"
+  /graph/json:
+    get:
+      tags:
+        - "graph"
+      summary: "Get graph info for all nodes"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/GraphJson"
+  /graph/node/{id}/json:
+    get:
+      tags:
+        - "graph"
+      summary: "Get graph info for a node"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/GraphJson"
+  /sme/freeze:
+    get:
+      tags:
+        - "sme"
+      summary: "Freeze the state mutation engine"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+  /sme/thaw:
+    get:
+      tags:
+        - "sme"
+      summary: "Thaw the state mutation engine"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+  /sme/frozen:
+    get:
+      tags:
+        - "sme"
+      summary: "Check if the state mutation engine is frozen"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+  /enumerables:
+    get:
+      tags:
+        - "miscellaneous"
+      summary: "Get enumerables for all extensions built with this kraken instance"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Enumerables"
+  /ws:
+    get:
+      tags:
+        - "miscellaneous"
+      summary: "Get url to start a websocket session"
+      produces: 
+      - "application/json"
+      responses:
+        "200":
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/WebsocketRedirect"
+
+definitions:
+  NodeConfig:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "byte"
+      parentId: 
+        type: "string"
+        format: "byte"
+      runState: 
+        type: "string"
+      physState:
+        type: "string"
+      nodename:
+        type: "string"
+      arch:
+        type: "string"
+      platform:
+        type: "string"
+      extensions:
+        type: "array"
+        items:
+          type: "object"
+          additionalProperties: 
+            type: "object"
+          properties: 
+            "@type": 
+              type: "string"
+      services:
+        type: "array"
+        items:
+          type: "object"
+          additionalProperties: 
+            type: "object"
+          properties:
+            id: 
+              type: "string"
+            module: 
+              type: "string"
+            state: 
+              type: "string"
+  GraphJson:
+    type: "object"
+    properties:
+      nodes:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            label:
+              type: "string"
+            id:
+              type: "string"
+            color:
+              type: "string"
+      edges:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            from:
+              type: "string"
+            to:
+              type: "string"
+            id:
+              type: "string"
+            color:
+              type: "string"
+  Enumerables:
+    type: array
+    items:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        url: 
+          type: "string"
+        options:
+          type: "object"
+          additionalProperties:
+            type: string
+  WebsocketRedirect:
+    type: object
+    properties: 
+      host:
+        type: string
+      port:
+        type: string
+      url:
+        type: string
+
+externalDocs:
+  description: "Find out more about Swagger"
+  url: "http://swagger.io"
