@@ -101,22 +101,59 @@ func TestResolveURL(t *testing.T) {
 }
 
 func TestResolveOrMakeURL(t *testing.T) {
-	// make more tests
-	nv := reflect.ValueOf(n1)
-	v, e := ResolveOrMakeURL("/MapSub/99/A", nv)
-	if e != nil {
-		t.Errorf("unexpected ResolvOrMakeURL failure: %v", e)
-		return
-	}
-	v.SetString("testing")
-	v2, e := ResolveURL("/MapSub/99/A", nv)
-	if e != nil {
-		t.Errorf("unexpected ResolveURL failure: %v", e)
-		return
-	}
-	if v2.String() != v.String() {
-		t.Errorf("second lookup failed: %s != %s", v2.String(), v.String())
-	}
+	t.Run("map lookup", func(t *testing.T) {
+		nv := reflect.ValueOf(n1)
+		v, e := ResolveOrMakeURL("/MapSub/99/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolvOrMakeURL failure: %v", e)
+			return
+		}
+		v.SetString("testing")
+		v2, e := ResolveURL("/MapSub/99/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolveURL failure: %v", e)
+			return
+		}
+		if v2.String() != v.String() {
+			t.Errorf("second lookup failed: %s != %s", v2.String(), v.String())
+		}
+	})
+	t.Run("nil map lookup", func(t *testing.T) {
+		n := &Fixture{}
+		nv := reflect.ValueOf(n)
+		v, e := ResolveOrMakeURL("/MapSub/99/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolvOrMakeURL failure: %v", e)
+			return
+		}
+		v.SetString("testing")
+		v2, e := ResolveURL("/MapSub/99/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolveURL failure: %v", e)
+			return
+		}
+		if v2.String() != v.String() {
+			t.Errorf("second lookup failed: %s != %s", v2.String(), v.String())
+		}
+	})
+	t.Run("nil slice lookup", func(t *testing.T) {
+		n := &Fixture{}
+		nv := reflect.ValueOf(n)
+		v, e := ResolveOrMakeURL("/SliceSub/1/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolvOrMakeURL failure: %v", e)
+			return
+		}
+		v.SetString("testing")
+		v2, e := ResolveURL("/SliceSub/1/A", nv)
+		if e != nil {
+			t.Errorf("unexpected ResolveURL failure: %v", e)
+			return
+		}
+		if v2.String() != v.String() {
+			t.Errorf("second lookup failed: %s != %s", v2.String(), v.String())
+		}
+	})
 }
 
 func TestURLShift(t *testing.T) {

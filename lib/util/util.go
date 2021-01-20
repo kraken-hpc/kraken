@@ -227,6 +227,11 @@ func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e err
 
 	switch context.Kind() {
 	case reflect.Map:
+		if context.IsNil() {
+			// map has not been allocated
+			m := reflect.MakeMap(context.Type())
+			context.Set(m)
+		}
 		k := StringToValue(root, context.Type().Key())
 		kv := context.MapIndex(k)
 		if !kv.IsValid() {
