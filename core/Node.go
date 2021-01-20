@@ -91,7 +91,7 @@ func (n *Node) ID() types.NodeID {
 // ParentID returns the NodeID of the parent of this node
 func (n *Node) ParentID() (pid types.NodeID) {
 	n.mutex.RLock()
-	pid = pb.NewNodeIDFromBinary(n.pb.ParentId)
+	pid = n.pb.ParentId
 	n.mutex.RUnlock()
 	return
 }
