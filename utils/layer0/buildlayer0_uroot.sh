@@ -171,6 +171,6 @@ if [ -z "${OUTFILE+x}" ]; then
 fi
 mv -v "$TMPDIR"/initramfs.cpio.gz "$PWD"/"$OUTFILE"
 
-rm -rf "$TMPDIR"
+#rm -rf "$TMPDIR"
 
 echo "Image built as $OUTFILE"
