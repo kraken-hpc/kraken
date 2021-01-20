@@ -5,7 +5,7 @@ parent_nm = ENV['KRAKEN_PARENT_NETMASK'] || '255.255.255.0'
 
 $script = <<-SCRIPT
 echo "Installing some prerequisits to run ansible locally"
-dnf -y --nogpgcheck install ansible python3-netaddr
+dnf -y --nogpgcheck --nobest install ansible python3-netaddr
 SCRIPT
 
 Vagrant.require_version ">= 2.0.0"
