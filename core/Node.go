@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/src -I proto --gogo_out=plugins=grpc:proto proto/src/Node.proto
+//go:generate protoc -I proto/src -I proto --gogo_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,plugins=grpc:proto proto/src/Node.proto
 
 package core
 
@@ -17,8 +17,7 @@ import (
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	ptypes "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
@@ -176,6 +175,10 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 // note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e error) {
 	var r reflect.Value
+	if value.Kind() == reflect.Ptr {
+		// never try to assign pointers
+		value = value.Elem()
+	}
 	root, sub := util.URLShift(url)
 	switch root {
 	case "/type.googleapis.com":
@@ -220,15 +223,14 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 	if e != nil {
 		return
 	}
+	if !r.IsValid() {
+		panic(url)
+	}
 	if r.Type() != value.Type() {
 		e = fmt.Errorf("type mismatch: %s != %s", value.Type(), r.Type())
 		return
 	}
 	// should already be locked from above
-	if value.Kind() == reflect.Ptr {
-		// never try to assign pointers
-		value = value.Elem()
-	}
 	r.Set(value)
 	v = r
 	return
@@ -526,12 +528,12 @@ func (n *Node) importExtensions() {
 		}
 	}
 	// now we clear the field
-	n.pb.Extensions = []*any.Any{}
+	n.pb.Extensions = []*ptypes.Any{}
 }
 
 // Assume n.mutex is locked
 func (n *Node) exportExtensions() {
-	n.pb.Extensions = []*any.Any{}
+	n.pb.Extensions = []*ptypes.Any{}
 	for _, ext := range n.exts {
 		if any, e := ptypes.MarshalAny(ext); e == nil {
 			n.pb.Extensions = append(n.pb.Extensions, any)
@@ -558,7 +560,12 @@ func (n *Node) indexServices() {
 				Module: si.Module(),
 			}
 			if mc, ok := Registry.Modules[si.Module()].(types.ModuleWithConfig); ok {
-				any, _ := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
+				any, e := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
+				if e != nil {
+					// this shouldn't happen
+					fmt.Printf("MarshalAny failure for service config: %v\n", e)
+					continue
+				}
 				srv.Config = any
 			}
 			n.AddService(srv)

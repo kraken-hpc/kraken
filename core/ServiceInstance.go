@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/src -I proto --gogo_out=plugins=grpc:proto proto/src/ServiceInstance.proto
+//go:generate protoc -I proto/src -I proto --gogo_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,plugins=grpc:proto proto/src/ServiceInstance.proto
 
 package core
 
@@ -17,7 +17,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/hpc/kraken/lib/types"
 )

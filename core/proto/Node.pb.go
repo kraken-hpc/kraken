@@ -7,7 +7,7 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	any "github.com/golang/protobuf/ptypes/any"
+	types "github.com/gogo/protobuf/types"
 	math "math"
 )
 
@@ -137,7 +137,7 @@ type Node struct {
 	Platform             string             `protobuf:"bytes,6,opt,name=platform,proto3" json:"platform,omitempty"`
 	ParentId             *NodeID            `protobuf:"bytes,7,opt,name=parent_id,json=parentId,proto3,customtype=NodeID" json:"parent_id,omitempty"`
 	Services             []*ServiceInstance `protobuf:"bytes,14,rep,name=services,proto3" json:"services,omitempty"`
-	Extensions           []*any.Any         `protobuf:"bytes,15,rep,name=extensions,proto3" json:"extensions,omitempty"`
+	Extensions           []*types.Any       `protobuf:"bytes,15,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -209,7 +209,7 @@ func (m *Node) GetServices() []*ServiceInstance {
 	return nil
 }
 
-func (m *Node) GetExtensions() []*any.Any {
+func (m *Node) GetExtensions() []*types.Any {
 	if m != nil {
 		return m.Extensions
 	}

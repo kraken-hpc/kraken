@@ -16,9 +16,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
@@ -118,7 +117,7 @@ func (a *ModuleAPIClient) QueryDelete(id string) (r types.Node, e error) {
 }
 
 func (a *ModuleAPIClient) QueryReadAll() (r []types.Node, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rvs, e := a.oneshot("QueryReadAll", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -131,7 +130,7 @@ func (a *ModuleAPIClient) QueryReadAll() (r []types.Node, e error) {
 }
 
 func (a *ModuleAPIClient) QueryReadAllDsc() (r []types.Node, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rvs, e := a.oneshot("QueryReadAllDsc", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -144,7 +143,7 @@ func (a *ModuleAPIClient) QueryReadAllDsc() (r []types.Node, e error) {
 }
 
 func (a *ModuleAPIClient) QueryMutationNodes() (r pb.MutationNodeList, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rv, e := a.oneshot("QueryMutationNodes", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -154,7 +153,7 @@ func (a *ModuleAPIClient) QueryMutationNodes() (r pb.MutationNodeList, e error) 
 }
 
 func (a *ModuleAPIClient) QueryMutationEdges() (r pb.MutationEdgeList, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rv, e := a.oneshot("QueryMutationEdges", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -194,7 +193,7 @@ func (a *ModuleAPIClient) QueryNodeMutationPath(id string) (r pb.MutationPath, e
 }
 
 func (a *ModuleAPIClient) QueryDeleteAll() (r []types.Node, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rvs, e := a.oneshot("QueryDeleteAll", reflect.ValueOf(q))
 	if e != nil {
 		return
@@ -206,18 +205,18 @@ func (a *ModuleAPIClient) QueryDeleteAll() (r []types.Node, e error) {
 	return
 }
 func (a *ModuleAPIClient) QueryFreeze() (e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	_, e = a.oneshot("QueryFreeze", reflect.ValueOf(q))
 	return
 }
 func (a *ModuleAPIClient) QueryThaw() (e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	_, e = a.oneshot("QueryThaw", reflect.ValueOf(q))
 	return
 }
 
 func (a *ModuleAPIClient) QueryFrozen() (r bool, e error) {
-	q := &empty.Empty{}
+	q := &ptypes.Empty{}
 	rv, e := a.oneshot("QueryFrozen", reflect.ValueOf(q))
 	if e != nil {
 		return

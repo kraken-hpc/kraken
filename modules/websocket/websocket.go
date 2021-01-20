@@ -26,7 +26,7 @@ import (
 	cpb "github.com/hpc/kraken/core/proto"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"

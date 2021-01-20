@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	scalpb "github.com/hpc/kraken/extensions/hostfrequencyscaler"

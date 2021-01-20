@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib/types"

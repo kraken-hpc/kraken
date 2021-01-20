@@ -25,7 +25,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/mdlayher/raw"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/hpc/kraken/core"

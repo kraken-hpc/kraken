@@ -8,7 +8,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/src --gogo_out=plugins=grpc:proto proto/src/ModuleAPI.proto
+//go:generate protoc -I proto/src --gogo_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,plugins=grpc:proto proto/src/ModuleAPI.proto
 
 package core
 
@@ -17,9 +17,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
@@ -162,7 +161,7 @@ func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *p
 	return
 }
 
-func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *ptypes.Empty) (out *pb.QueryMulti, e error) {
 	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -179,7 +178,7 @@ func (s *ModuleAPIServer) QueryReadAll(ctx context.Context, in *empty.Empty) (ou
 	return
 }
 
-func (s *ModuleAPIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryReadAllDsc(ctx context.Context, in *ptypes.Empty) (out *pb.QueryMulti, e error) {
 	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -196,7 +195,7 @@ func (s *ModuleAPIServer) QueryReadAllDsc(ctx context.Context, in *empty.Empty) 
 	return
 }
 
-func (s *ModuleAPIServer) QueryMutationNodes(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryMutationNodes(ctx context.Context, in *ptypes.Empty) (out *pb.Query, e error) {
 	var mnlout pb.MutationNodeList
 	url := "/graph/nodes"
 	out = &pb.Query{}
@@ -210,7 +209,7 @@ func (s *ModuleAPIServer) QueryMutationNodes(ctx context.Context, in *empty.Empt
 	return
 }
 
-func (s *ModuleAPIServer) QueryMutationEdges(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryMutationEdges(ctx context.Context, in *ptypes.Empty) (out *pb.Query, e error) {
 	var melout pb.MutationEdgeList
 	url := "/graph/nodes"
 	out = &pb.Query{}
@@ -263,7 +262,7 @@ func (s *ModuleAPIServer) QueryNodeMutationPath(ctx context.Context, in *pb.Quer
 	return
 }
 
-func (s *ModuleAPIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (out *pb.QueryMulti, e error) {
+func (s *ModuleAPIServer) QueryDeleteAll(ctx context.Context, in *ptypes.Empty) (out *pb.QueryMulti, e error) {
 	var nout []types.Node
 	out = &pb.QueryMulti{}
 	out.Queries = []*pb.Query{}
@@ -280,17 +279,17 @@ func (s *ModuleAPIServer) QueryDeleteAll(ctx context.Context, in *empty.Empty) (
 	return
 }
 
-func (s *ModuleAPIServer) QueryFreeze(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryFreeze(ctx context.Context, in *ptypes.Empty) (out *pb.Query, e error) {
 	e = s.query.Freeze()
 	out = &pb.Query{}
 	return
 }
-func (s *ModuleAPIServer) QueryThaw(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryThaw(ctx context.Context, in *ptypes.Empty) (out *pb.Query, e error) {
 	e = s.query.Thaw()
 	out = &pb.Query{}
 	return
 }
-func (s *ModuleAPIServer) QueryFrozen(ctx context.Context, in *empty.Empty) (out *pb.Query, e error) {
+func (s *ModuleAPIServer) QueryFrozen(ctx context.Context, in *ptypes.Empty) (out *pb.Query, e error) {
 	out = &pb.Query{}
 	rb, e := s.query.Frozen()
 	out.Payload = &pb.Query_Bool{Bool: rb}

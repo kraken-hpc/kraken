@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	pbd "github.com/hpc/kraken/modules/dummy"

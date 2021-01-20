@@ -6,7 +6,7 @@ package proto
 import (
 	fmt "fmt"
 	proto "github.com/gogo/protobuf/proto"
-	any "github.com/golang/protobuf/ptypes/any"
+	types "github.com/gogo/protobuf/types"
 	math "math"
 )
 
@@ -59,7 +59,7 @@ type ServiceInstance struct {
 	Id                   string                       `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Module               string                       `protobuf:"bytes,2,opt,name=module,proto3" json:"module,omitempty"`
 	State                ServiceInstance_ServiceState `protobuf:"varint,3,opt,name=state,proto3,enum=proto.ServiceInstance_ServiceState" json:"state,omitempty"`
-	Config               *any.Any                     `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
+	Config               *types.Any                   `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
 	ErrorMsg             string                       `protobuf:"bytes,5,opt,name=error_msg,json=errorMsg,proto3" json:"error_msg,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                     `json:"-"`
 	XXX_unrecognized     []byte                       `json:"-"`
@@ -111,7 +111,7 @@ func (m *ServiceInstance) GetState() ServiceInstance_ServiceState {
 	return ServiceInstance_UNKNOWN
 }
 
-func (m *ServiceInstance) GetConfig() *any.Any {
+func (m *ServiceInstance) GetConfig() *types.Any {
 	if m != nil {
 		return m.Config
 	}

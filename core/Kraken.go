@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/any"
+	any "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/lib/types"
 )

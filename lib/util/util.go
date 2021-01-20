@@ -16,8 +16,7 @@ import (
 	"strings"
 
 	proto "github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -202,11 +201,11 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 		}
 		v, e = ResolveURL(sub, context.Index(i))
 	case reflect.Struct: // root should be a field name
-		if context.Type() == reflect.TypeOf(any.Any{}) {
-			any := context.Interface().(any.Any)
+		if context.Type() == reflect.TypeOf(ptypes.Any{}) {
+			any := context.Interface().(ptypes.Any)
 			var da ptypes.DynamicAny
 			if err := ptypes.UnmarshalAny(&any, &da); err != nil {
-				e = fmt.Errorf("failed to unmarshal any.Any object, %v", err)
+				e = fmt.Errorf("failed to unmarshal ptypes.Any object, %v", err)
 				return
 			}
 			v, e = ResolveURL(root, reflect.ValueOf(da.Message).Elem())
