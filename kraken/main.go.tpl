@@ -194,12 +194,12 @@ func main() {
 		pb := &ipv4.IPv4OverEthernet_ConfiguredInterface{
 			Eth: &ipv4.Ethernet{
 				Iface: iface.Name,
-				Mac:   iface.HardwareAddr,
+				Mac:   &ipv4.MAC{iface.HardwareAddr},
 				Mtu:   uint32(iface.MTU),
 			},
 			Ip: &ipv4.IPv4{
-				Ip:     netIP.To4(),
-				Subnet: network.Mask,
+				Ip:     &ipv4.IP{netIP.To4()},
+				Subnet: &ipv4.IP{net.IP(network.Mask)},
 			},
 		}
 		self.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken", reflect.ValueOf(pb))
