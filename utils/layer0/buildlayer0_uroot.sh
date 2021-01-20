@@ -119,6 +119,11 @@ for c in "${EXTRA_COMMANDS[@]}"; do
    fi
 done
 
+# Resolve the u-root dependency conflict between local copy and that required by
+# github.com/jlowellwofford/uinit according to:
+# https://github.com/u-root/gobusybox#common-dependency-conflicts
+echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
+
 # Generate the array of commands to add to BusyBox binary
 BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
 BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
