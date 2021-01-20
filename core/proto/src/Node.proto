@@ -40,7 +40,7 @@ message Node {
     PhysState phys_state = 4;
     string arch = 5;
     string platform = 6;
-    bytes parent_id = 7;
+    bytes parent_id = 7 [(gogoproto.customtype) = "NodeID"];
     reserved 8 to 13;
     repeated ServiceInstance services = 14;
     repeated google.protobuf.Any extensions = 15;
