@@ -27,7 +27,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
 	"github.com/hpc/kraken/extensions/ipv4"

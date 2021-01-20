@@ -27,7 +27,7 @@ import (
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

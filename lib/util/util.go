@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	proto "github.com/golang/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/hpc/kraken/lib/types"

@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"

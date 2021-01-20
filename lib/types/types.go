@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"time"
 
-	proto "github.com/golang/protobuf/proto"
+	proto "github.com/gogo/protobuf/proto"
 	pb "github.com/hpc/kraken/core/proto"
 )
 
@@ -26,8 +26,8 @@ const ProtoUrlPrefix = "type.googleapis.com/"
 // NodeID interface defines what we require of a node identification field
 // NodeID methods don't return errors, but may be Nil
 type NodeID interface {
-	Equal(NodeID) bool
-	Binary() []byte
+	Equal(interface{}) bool
+	Bytes() []byte
 	String() string
 	Nil() bool
 }

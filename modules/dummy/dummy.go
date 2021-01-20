@@ -17,7 +17,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	corepb "github.com/hpc/kraken/core/proto"

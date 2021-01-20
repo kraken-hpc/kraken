@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
