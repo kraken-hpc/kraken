@@ -124,6 +124,11 @@ done
 # https://github.com/u-root/gobusybox#common-dependency-conflicts
 echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
 
+# Delete vendor/ directory so that makebb will only see modules and not throw the error:
+# "busybox does not support mixed module/non-module compilation"
+# This is a hack.
+rm -rf "$GOPATH"/src/github.com/bensallen/modscan/vendor
+
 # Generate the array of commands to add to BusyBox binary
 BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
 BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
