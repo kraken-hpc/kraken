@@ -38,6 +38,7 @@ rpm -D "KrakenWorkingDirectory %{?KrakenWorkingDirectory}%{?!KrakenWorkingDirect
 rpm --eval "$(cat utils/rpm/kraken.environment)" > kraken.environment
 
 cat << EOF >> build.yaml 
+
 targets:
   'rpm':
     os: 'linux'
