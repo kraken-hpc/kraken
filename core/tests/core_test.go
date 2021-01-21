@@ -30,7 +30,7 @@ func TestNode_GetValue(t *testing.T) {
 		return
 	}
 	ref := ct.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
-	if !v.Interface().(*ct.NodeID).EqualTo(ref) {
+	if !v.Interface().(ct.NodeID).Equal(*ref) {
 		t.Errorf("result mismatch: %v != %v", v.Interface(), ref)
 	}
 }
