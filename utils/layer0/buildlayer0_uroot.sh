@@ -128,7 +128,7 @@ done
 # Resolve the u-root dependency conflict between local copy and that required by
 # github.com/jlowellwofford/uinit according to:
 # https://github.com/u-root/gobusybox#common-dependency-conflicts
-echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
+go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
 
 # Delete vendor/ directory so that makebb will only see modules and not throw the error:
 # "busybox does not support mixed module/non-module compilation"
@@ -137,8 +137,8 @@ echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/
 (
  modscan_path="$GOPATH"/src/github.com/bensallen/modscan
  cd "${modscan_path}" || fatal "Could not enter ${modscan_path}. Does it exist?"
+ go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root go.mod
  rm -rf vendor/
- sed -i '/replace github.com\/u-root\/u-root/ c replace github.com/u-root/u-root => ../../u-root/u-root' go.mod
 )
 
 # Generate the array of commands to add to BusyBox binary
