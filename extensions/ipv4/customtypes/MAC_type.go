@@ -38,7 +38,7 @@ func (m *MAC) Unmarshal(data []byte) error {
 	if len(data) > 20 { // IPoIB is longest we allow
 		return fmt.Errorf("incorrect hardware address lenght: %d > 20", len(data))
 	}
-	copy(m.HardwareAddr, data)
+	m.HardwareAddr = net.HardwareAddr(data)
 	return nil
 }
 

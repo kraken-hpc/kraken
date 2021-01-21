@@ -38,11 +38,13 @@ func (i *IP) Unmarshal(data []byte) error {
 	if len(data) != 4 {
 		return fmt.Errorf("incorrect IP address lenght: %d != 4", len(data))
 	}
-	copy(i.IP, data)
+	i.IP = net.IPv4(data[0], data[1], data[2], data[3])
 	return nil
 }
 
-func (i *IP) Size() int { return 4 }
+func (i *IP) Size() int {
+	return 4
+}
 
 func (i IP) MarshalJSON() (j []byte, e error) {
 	return []byte(strconv.Quote(i.String())), nil
