@@ -100,7 +100,9 @@ type Kraken struct {
 func NewKraken(self types.Node, parents []string, logger types.Logger) *Kraken {
 	// FIXME: we probably shouldn't rely on this
 	ipv, _ := self.GetValue(AddrURL)
-	ip := net.IP(ipv.Bytes())
+	// we can't import ipv4, so we do this little hack
+	// really, in the future, it would be better not to require this at all
+	ip := ipv.FieldByName("IP").Interface().(net.IP)
 
 	k := &Kraken{
 		Ctx: Context{

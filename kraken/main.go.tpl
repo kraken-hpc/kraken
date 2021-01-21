@@ -149,7 +149,7 @@ func main() {
 		for _, m := range pbs.GetNodes() {
 			n := core.NewNodeFromMessage(m)
 			log.Logf(types.LLDDDEBUG, "got node state for node: %s", n.ID().String())
-			if n.ID().Equal(self.ID()) {
+			if n.ID().EqualTo(self.ID()) {
 				// we found ourself
 				self.Merge(n, "")
 			} else {

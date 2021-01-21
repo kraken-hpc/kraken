@@ -381,7 +381,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 		sse.Logf(ERROR, "malformed response from phone home: %v", e)
 		return
 	}
-	if !rp.Node.ID().Equal(sse.self) {
+	if !rp.Node.ID().EqualTo(sse.self) {
 		sse.Logf(CRITICAL, "we phoned home and got info about someone else: %s", rp.Node.ID().String())
 		sse.delNeighbor(nid)
 		return
@@ -608,7 +608,7 @@ func (sse *StateSyncEngine) delNeighbor(id types.NodeID) {
 	defer n.lock.Unlock()
 	delete(sse.pool, string(id.String()))
 	for i, n := range sse.queue {
-		if n.id.Equal(id) {
+		if n.id.EqualTo(id) {
 			sse.queue = append(sse.queue[:i], sse.queue[i+1:]...)
 			// no sort; shouldn't disrupt queue order
 			return

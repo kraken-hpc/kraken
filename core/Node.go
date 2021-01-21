@@ -129,9 +129,13 @@ func (n *Node) Message() proto.Message {
 	defer n.mutex.Unlock()
 
 	n.exportExtensions()
-	m := proto.Clone(n.pb)
+	// this is broken with custom types
+	//m := proto.Clone(n.pb)
+	// this is likely inefficient
+	m := NewNodeWithID(n.ID().String())
+	m.Merge(n, "")
 	n.importExtensions()
-	return m
+	return m.pb
 }
 
 // GetValue returns a specific value (reflect.Value) by URL
@@ -560,7 +564,7 @@ func (n *Node) indexServices() {
 				Module: si.Module(),
 			}
 			if mc, ok := Registry.Modules[si.Module()].(types.ModuleWithConfig); ok {
-				any, e := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
+				any, e := ptypes.MarshalAny(mc.NewConfig())
 				if e != nil {
 					// this shouldn't happen
 					fmt.Printf("MarshalAny failure for service config: %v\n", e)

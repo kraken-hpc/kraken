@@ -12,7 +12,7 @@ import (
 func TestNewNodeWithID(t *testing.T) {
 	nid := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
 	n := NewNodeWithID("123e4567-e89b-12d3-a456-426655440000")
-	if !n.ID().Equal(nid) {
+	if !n.ID().EqualTo(nid) {
 		t.Errorf("failed to create equal NIDs on new node: %v", n)
 	}
 }
@@ -29,7 +29,7 @@ func TestNode_GetValue(t *testing.T) {
 		return
 	}
 	ref := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
-	if !v.Interface().(*pb.NodeID).Equal(ref) {
+	if !v.Interface().(*pb.NodeID).EqualTo(ref) {
 		t.Errorf("result mismatch: %v != %v", v.Interface(), ref)
 	}
 }

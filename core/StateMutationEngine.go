@@ -497,7 +497,7 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 		types.Event_STATE_CHANGE,
 		func(v types.Event) bool {
 			node, url := util.NodeURLSplit(v.URL())
-			if !pb.NewNodeID(node).Equal(sme.self) {
+			if !pb.NewNodeID(node).EqualTo(sme.self) {
 				return false
 			}
 			if smurl.MatchString(url) {
@@ -1860,12 +1860,12 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 func (sme *StateMutationEngine) mutationInContext(n types.Node, m types.StateMutation) (r bool) {
 	switch m.Context() {
 	case types.StateMutationContext_SELF:
-		if sme.self.Equal(n.ID()) {
+		if sme.self.EqualTo(n.ID()) {
 			return true
 		}
 		break
 	case types.StateMutationContext_CHILD:
-		if sme.self.Equal(n.ParentID()) {
+		if sme.self.EqualTo(n.ParentID()) {
 			return true
 		}
 		break

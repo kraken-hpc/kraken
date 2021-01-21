@@ -26,7 +26,8 @@ const ProtoUrlPrefix = "type.googleapis.com/"
 // NodeID interface defines what we require of a node identification field
 // NodeID methods don't return errors, but may be Nil
 type NodeID interface {
-	Equal(interface{}) bool
+	// Note: using Equal would conflict with non-pointer declaration for gogo customtype
+	EqualTo(interface{}) bool
 	Bytes() []byte
 	String() string
 	Nil() bool

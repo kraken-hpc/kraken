@@ -40,10 +40,7 @@ func MessageDiff(a, b proto.Message, pre string) (r []string, e error) {
 		e = fmt.Errorf("refusing to diff objects of different type")
 		return
 	}
-	// Are they equal?
-	if proto.Equal(a, b) {
-		return
-	}
+
 	return diffStruct(va.Elem(), vb.Elem(), pre)
 }
 

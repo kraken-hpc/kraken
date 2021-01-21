@@ -51,11 +51,19 @@ func (u *NodeID) UnmarshalJSON(data []byte) error {
 	return u.UnmarshalText([]byte(s))
 }
 
-func (u *NodeID) Equal(i interface{}) bool {
+func (u *NodeID) EqualTo(i interface{}) bool {
 	if u2, ok := i.(*NodeID); ok {
 		return uuid.Equal(u.UUID, u2.UUID)
 	}
 	return false
+}
+
+func (u NodeID) Equal(u2 NodeID) bool {
+	return uuid.Equal(u.UUID, u2.UUID)
+}
+
+func (u NodeID) Compare(u2 NodeID) int {
+	return strings.Compare(u.String(), u2.String())
 }
 
 func (u *NodeID) Nil() bool {
