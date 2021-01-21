@@ -15,11 +15,6 @@
   args:
     chdir: "{{ kr_src_dir }}"
 
-- name: go mod vendor kraken (for u-root)
-  shell: "go mod vendor"
-  args:
-    chdir: "{{ kr_src_dir }}"
-
 - name: Build kraken-build
   shell: "go build {{ kr_build }}.go"
   args:

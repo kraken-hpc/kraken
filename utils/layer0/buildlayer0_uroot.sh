@@ -27,6 +27,12 @@ usage() {
         echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
 
+# Exit with a failure message
+fatal() {
+    echo "$1" >&2
+    exit 1
+}
+
 if ! opts=$(getopt o:b:k:B: "$@"); then
     usage
     exit
@@ -65,16 +71,16 @@ fi
 
 ARCH=$1
 
+if [ -z "${GOPATH+x}" ]; then
+    echo "GOPATH isn't set, using $HOME/go"
+    GOPATH=$HOME/go
+fi
+
 # Commands to build into u-root busybox
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
 EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
 EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
-
-if [ -z "${GOPATH+x}" ]; then
-    echo "GOPATH isn't set, using $HOME/go"
-    GOPATH=$HOME/go
-fi
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
     KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
@@ -98,17 +104,12 @@ if [ -z "$contents" ]; then
 fi
 echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 
-# copy base_dir over tmpdir if it's set
-if [ -n "${BASEDIR+x}" ]; then
-        echo "Overlaying ${BASEDIR}..."
-        rsync -av "$BASEDIR"/ "$TMPDIR"/base
+# Check that gobusybox is installed, clone it if not
+if [ ! -d "$GOPATH"/bin/makebb ]; then
+    echo "You don't appear to have gobusybox installed, attempting to install it"
+    GOPATH="$GOPATH" go get github.com/u-root/gobusybox
+    ( cd "$GOPATH"/src/github.com/u-root/gobusybox/src/cmd/makebb && GOPATH="$GOPATH" go install )
 fi
-
-echo "Creating base cpio..."
-(
-    cd $TMPDIR/base
-    find . | cpio -oc > $TMPDIR/base.cpio
-)
 
 # Check that u-root is installed, clone it if not
 if [ ! -x "$GOPATH"/bin/u-root ]; then
@@ -124,9 +125,58 @@ for c in "${EXTRA_COMMANDS[@]}"; do
    fi
 done
 
+# Resolve the u-root dependency conflict between local copy and that required by
+# github.com/jlowellwofford/uinit according to:
+# https://github.com/u-root/gobusybox#common-dependency-conflicts
+go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
+
+# Delete vendor/ directory so that makebb will only see modules and not throw the error:
+# "busybox does not support mixed module/non-module compilation"
+# Also, modify the go.mod to use the local u-root.
+# This is a hack.
+(
+ modscan_path="$GOPATH"/src/github.com/bensallen/modscan
+ cd "${modscan_path}" || fatal "Could not enter ${modscan_path}. Does it exist?"
+ go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root go.mod
+ rm -rf vendor/
+)
+
+# Generate the array of commands to add to BusyBox binary
+BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
+BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
+# shellcheck disable=SC2068
+for cmd in ${EXTRA_COMMANDS[@]}; do
+    BB_COMMANDS+=( "$GOPATH"/src/"$cmd" )
+done
+
+# Create BusyBox binary (outside of u-root)
+echo "Creating BusyBox binary..."
+mkdir -p "$TMPDIR"/base/bbin
+# shellcheck disable=SC2068
+"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} || fatal "makebb: failed to create BusyBox binary"
+
+# Create symlinks of included programs to BusyBox binary
+echo "Creating links to BusyBox binary..."
+# shellcheck disable=SC2068
+for cmd in ${BB_COMMANDS[@]}; do
+    ln -s bb "$TMPDIR"/base/bbin/"$(basename "$TMPDIR"/base/bbin/"$cmd")"
+done
+
+# copy base_dir over tmpdir if it's set
+if [ -n "${BASEDIR+x}" ]; then
+        echo "Overlaying ${BASEDIR}..."
+        rsync -av "$BASEDIR"/ "$TMPDIR"/base
+fi
+
+echo "Creating base cpio..."
+(
+    cd "$TMPDIR"/base || exit 1
+    find . | cpio -oc > "$TMPDIR"/base.cpio
+) || fatal "Creating base cpio failed"
+
 echo "Creating image..."
 # shellcheck disable=SC2068
-GOARCH="$ARCH" "$GOPATH"/bin/u-root -uinitcmd=/bbin/uinit -base "$TMPDIR"/base.cpio -build bb -o "$TMPDIR"/initramfs.cpio core boot github.com/u-root/u-root/cmds/exp/* github.com/hpc/kraken/build/u-root/kraken ${EXTRA_COMMANDS[@]} 2>&1
+GOARCH="$ARCH" "$GOPATH"/bin/u-root -nocmd -initcmd=/bbin/init -uinitcmd=/bbin/uinit -defaultsh=/bbin/elvish -base "$TMPDIR"/base.cpio -o "$TMPDIR"/initramfs.cpio 2>&1
 
 echo "CONTENTS:"
 cpio -itv < "$TMPDIR"/initramfs.cpio
