@@ -27,6 +27,12 @@ usage() {
         echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
 
+# Exit with a failure message
+fatal() {
+    echo "$1" >&2
+    exit 1
+}
+
 if ! opts=$(getopt o:b:k:B: "$@"); then
     usage
     exit
@@ -129,7 +135,8 @@ echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/
 # Also, modify the go.mod to use the local u-root.
 # This is a hack.
 (
- cd "$GOPATH"/src/github.com/bensallen/modscan
+ modscan_path="$GOPATH"/src/github.com/bensallen/modscan
+ cd "${modscan_path}" || fatal "Could not enter ${modscan_path}. Does it exist?"
  rm -rf vendor/
  sed -i '/replace github.com\/u-root\/u-root/ c replace github.com/u-root/u-root => ../../u-root/u-root' go.mod
 )
@@ -137,6 +144,7 @@ echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/
 # Generate the array of commands to add to BusyBox binary
 BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
 BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
+# shellcheck disable=SC2068
 for cmd in ${EXTRA_COMMANDS[@]}; do
     BB_COMMANDS+=( "$GOPATH"/src/"$cmd" )
 done
@@ -145,12 +153,13 @@ done
 echo "Creating BusyBox binary..."
 mkdir -p "$TMPDIR"/base/bbin
 # shellcheck disable=SC2068
-"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} 2>&1
+"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} 2>&1 || fatal "makebb: failed to create BusyBox binary"
 
 # Create symlinks of included programs to BusyBox binary
 echo "Creating links to BusyBox binary..."
+# shellcheck disable=SC2068
 for cmd in ${BB_COMMANDS[@]}; do
-    ln -s bb "$TMPDIR"/base/bbin/$(basename "$TMPDIR"/base/bbin/"$cmd")
+    ln -s bb "$TMPDIR"/base/bbin/"$(basename "$TMPDIR"/base/bbin/"$cmd")"
 done
 
 # copy base_dir over tmpdir if it's set
@@ -161,9 +170,9 @@ fi
 
 echo "Creating base cpio..."
 (
-    cd $TMPDIR/base
-    find . | cpio -oc > $TMPDIR/base.cpio
-)
+    cd "$TMPDIR"/base || exit 1
+    find . | cpio -oc > "$TMPDIR"/base.cpio
+) || fatal "Creating base cpio failed"
 
 echo "Creating image..."
 # shellcheck disable=SC2068
