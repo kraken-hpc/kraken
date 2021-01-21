@@ -572,7 +572,7 @@ func (n *Node) indexServices() {
 				if e != nil {
 					fmt.Printf("MarshalAny failure for service config: %v\n", e)
 				}
-				any, e := ptypes.MarshalAny(cfg)
+				any, e := ptypes.MarshalAny(reflect.New(reflect.ValueOf(cfg).Elem().Type()).Interface().(proto.Message))
 				if e != nil {
 					// this shouldn't happen
 					fmt.Printf("MarshalAny failure for service config: %v\n", e)
