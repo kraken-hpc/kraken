@@ -72,8 +72,8 @@ fi
 
 # Commands to build into u-root busybox
 EXTRA_COMMANDS=()
-EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/entropy/cmd/entropy )
-EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/uinit/cmds/uinit )
+EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
+EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
 EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
@@ -137,7 +137,9 @@ echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/
 # Generate the array of commands to add to BusyBox binary
 BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
 BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
-BB_COMMANDS+=( ${EXTRA_COMMANDS[@]} )
+for cmd in ${EXTRA_COMMANDS[@]}; do
+    BB_COMMANDS+=( "$GOPATH"/src/"$cmd" )
+done
 
 # Create BusyBox binary (outside of u-root)
 echo "Creating BusyBox binary..."
