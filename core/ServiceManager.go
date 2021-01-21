@@ -101,7 +101,7 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 			go sm.processStateChange(v.Data().(*StateChangeEvent))
 		case su := <-sm.wchan:
 			// si changed process state
-			sm.log.Logf(types.LLDDEBUG, "processing SI state update: %s -> %+v", su.ID, su.State)
+			sm.log.Logf(types.LLDDEBUG, "processing SI state update: %s -> %s", su.ID, su.State)
 			go sm.processUpdate(su)
 		}
 	}

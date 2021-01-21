@@ -465,6 +465,26 @@ const (
 	Service_ERROR   ServiceState = ServiceState(pb.ServiceInstance_ERROR)
 )
 
+var ServiceStateString = map[ServiceState]string{
+	Service_UNKNOWN: "UNKNOWN",
+	Service_STOP:    "STOP",
+	Service_INIT:    "INIT",
+	Service_RUN:     "RUN",
+	Service_ERROR:   "ERROR",
+}
+
+var ServiceStateValue = map[string]ServiceState{
+	"UNKNOWN": Service_UNKNOWN,
+	"STOP":    Service_STOP,
+	"INIT":    Service_INIT,
+	"RUN":     Service_RUN,
+	"ERROR":   Service_ERROR,
+}
+
+func (s ServiceState) String() string {
+	return ServiceStateString[s]
+}
+
 // consume these so the client doesn't need to import the protobuf
 type ServiceControl_Command pb.ServiceControl_Command
 
