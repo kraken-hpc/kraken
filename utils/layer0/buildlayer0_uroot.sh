@@ -74,7 +74,7 @@ fi
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/entropy/cmd/entropy )
 EXTRA_COMMANDS+=( "$GOPATH"/src/github.com/jlowellwofford/uinit/cmds/uinit )
-#EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
+EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
     KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
