@@ -15,14 +15,41 @@
   args:
     chdir: "{{ kr_src_dir }}"
 
-- name: Build kraken-build
-  shell: "go build {{ kr_build }}.go"
-  args:
-    creates: "{{ kr_build }}"
-    chdir: "{{ kr_src_dir }}"
+- name: Build kraken from source
+  block:
+  - name: Build kraken-build
+    shell: "go build {{ kr_build }}.go"
+    args:
+      creates: "{{ kr_build }}"
+      chdir: "{{ kr_src_dir }}"
 
-- name: Build kraken
-  shell: "./{{ kr_build }} {{ kr_build_args }} -config {{ kr_conf_file }}"
-  args:
-    creates: "{{ kr_build_dir }}"
-    chdir: "{{ kr_src_dir }}"
+  - name: Build kraken
+    shell: "./{{ kr_build }} {{ kr_build_args }} -config {{ kr_conf_file }}"
+    args:
+      creates: "{{ kr_build_dir }}"
+      chdir: "{{ kr_src_dir }}"
+
+- name: Build and install kraken rpm
+  when: kr_rpm
+  block:
+  - name: Install rpm build prerequisites
+    become: true
+    package:
+      name: rpm-build
+      state: present
+  - name: Create distribution tarball
+    command: git archive -o "kraken-{{ kr_version }}.tar.gz" --prefix="kraken-{{ kr_version }}/" HEAD
+    args:
+      creates: "kraken-{{ kr_version }}.tar.gz"
+      chdir: "{{ kr_src_dir }}"
+  - name: Build kraken RPM
+    command: rpmbuild --target x86_64-generic-linux -D "dist {{ kr_dist_string }}" -D "KrakenConfig {{ kr_src_dir }}/config/vbox.yaml" -D "KrakenWorkingDirectory {{ ansible_env.HOME }}" -ta "kraken-{{ kr_version }}.tar.gz"
+    args:
+      chdir: "{{ kr_src_dir }}"
+      creates: "{{ kr_rpm_path }}"
+  - name: Install kraken rpm
+    become: true
+    dnf:
+      name: "{{ kr_rpm_path }}"
+      state: present
+      disable_gpg_check: true
