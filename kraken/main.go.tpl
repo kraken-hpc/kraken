@@ -12,6 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"reflect"
@@ -37,15 +38,23 @@ func main() {
 	parent := flag.String("parent", "", "IP adddress of parent")
 	llevel := flag.Int("log", 3, "set the log level (0-9)")
 	sdnotify := flag.Bool("sdnotify", false, "notify systemd when kraken is initialized")
-	journald := flag.Bool("journald", false, "assuming we are logging through journald, disable log prefixes")
+	noprefix := flag.Bool("noprefix", true, "don't prefix log messages with timestamps")
+	cfg := flag.String("cfg", "", "path to a JSON file containing initial configuration state to load")
+	freeze := flag.Bool("freeze", false, "start the SME frozen (i.e. don't try to mutate any states at startup)")
 	flag.Parse()
+
+	// This gives us an easy way to distinguesh when a flag happened to be set to its default
+	// And when a flag wasn't specified.  We give those two things differen precedence.
+	// If the flag was set, it will override -cfg values, even if it's the default.
+	setFlags := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { setFlags[f.Name] = true })
 
 	// Create a new logger interface
 	log := &core.WriterLogger{}
 	log.RegisterWriter(os.Stderr)
 	log.SetModule("main")
 	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
-	if *journald {
+	if *noprefix {
 		log.DisablePrefix = true
 	}
 
@@ -94,8 +103,11 @@ func main() {
 
 	// Build our starting node (CFG) state based on command line arguments
 	self := core.NewNodeWithID(*idstr)
+	selfDsc := core.NewNodeWithID(*idstr)
 
-	{ // Enable the restapi by default
+	// Set some defaults if we're a full state node
+	if len(parents) == 0 {
+		// Enable the restapi by default
 		conf := &rpb.RestAPIConfig{
 			Addr: *ipapi,
 			Port: 3141,
@@ -107,9 +119,47 @@ func main() {
 		if _, e := self.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_RUN)); e != nil {
 			log.Logf(lib.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
 		}
+
+		// Set our run/phys states.  If we're full state these are implicit
+		self.SetValue("/PhysState", reflect.ValueOf(cpb.Node_POWER_ON))
+		selfDsc.SetValue("/PhysState", reflect.ValueOf(cpb.Node_POWER_ON))
+		self.SetValue("/RunState", reflect.ValueOf(cpb.Node_SYNC))
+		selfDsc.SetValue("/RunState", reflect.ValueOf(cpb.Node_SYNC))
 	}
 
-	{ // Populate interface0 information based on IP
+	nodes := []lib.Node{}
+
+	// Parse -cfg file
+	if *cfg != "" {
+		log.Logf(lib.LLINFO, "loading initial configuration state from: %s", *cfg)
+		data, e := ioutil.ReadFile(*cfg)
+		if e != nil {
+			fmt.Printf("failed to read cfg state file: %s, %v", *cfg, e)
+			flag.PrintDefaults()
+			return
+		}
+		var pbs cpb.NodeList
+		if e = core.UnmarshalJSON(data, &pbs); e != nil {
+			fmt.Printf("could not parse cfg state file: %s, %v", *cfg, e)
+			flag.PrintDefaults()
+			return
+		}
+		log.Logf(lib.LLDEBUG, "found initial state information for %d nodes", len(pbs.Nodes))
+		for _, m := range pbs.GetNodes() {
+			n := core.NewNodeFromMessage(m)
+			log.Logf(lib.LLDDDEBUG, "got node state for node: %s", n.ID().String())
+			if n.ID().Equal(self.ID()) {
+				// we found ourself
+				self.Merge(n, "")
+			} else {
+				// note: duplicates will cause a later failure
+				nodes = append(nodes, n)
+			}
+		}
+	}
+
+	// Populate interface0 information based on IP (iff cfg wasn't specified, or ip was explicitly specified)
+	if ok, _ := setFlags["ip"]; *cfg == "" || ok {
 		netIP := net.ParseIP(*ip)
 		if netIP == nil {
 			log.Logf(lib.LLCRITICAL, "could not parse IP address: %s", *ip)
@@ -156,10 +206,14 @@ func main() {
 
 	// Launch Kraken
 	k := core.NewKraken(self, parents, log)
+	if len(nodes) > 0 {
+		k.Ctx.SDE.InitialCfg = append(k.Ctx.SDE.InitialCfg, nodes...)
+	}
+	k.Ctx.SDE.InitialDsc = []lib.Node{selfDsc}
 	k.Release()
 
-	// Thaw if full state
-	if len(parents) == 0 {
+	// Thaw if full state and not told to freeze
+	if len(parents) == 0 || !*freeze {
 		k.Sme.Thaw()
 	}
 

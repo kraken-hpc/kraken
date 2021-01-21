@@ -67,12 +67,6 @@ if ! VG=$(command -v vagrant); then
 fi
 echo "Using vagrant at: $VG"
 
-if ! AN=$(command -v ansible); then
-    echo "could not find ansible, is it installed?"
-    exit 1
-fi
-echo "Using ansible at: $AN"
-
 GOPATH="${GOPATH:-"$HOME/go"}"
 
 echo "Using GOPATH: $GOPATH"

@@ -85,7 +85,7 @@ type StateDifferenceEngine struct {
 }
 
 // NewStateDifferenceEngine initializes a new StateDifferenceEngine object given a Context
-func NewStateDifferenceEngine(me lib.Node, ctx Context, qc chan lib.Query) *StateDifferenceEngine {
+func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEngine {
 	n := &StateDifferenceEngine{}
 	n.dsc = NewState()
 	n.cfg = NewState()
@@ -94,7 +94,12 @@ func NewStateDifferenceEngine(me lib.Node, ctx Context, qc chan lib.Query) *Stat
 	n.schan = ctx.SubChan
 	n.log = &ctx.Logger
 	n.log.SetModule("StateDifferenceEngine")
-	n.Create(me)
+	// load initial states
+	n.BulkCreate(ctx.SDE.InitialCfg)
+	n.BulkUpdateDsc(ctx.SDE.InitialDsc)
+	// we're done with this now, so no need to keep them around
+	ctx.SDE.InitialCfg = []lib.Node{}
+	ctx.SDE.InitialDsc = []lib.Node{}
 	return n
 }
 

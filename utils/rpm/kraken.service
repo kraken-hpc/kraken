@@ -1,0 +1,13 @@
+[Unit]
+Description=Kraken distributed state engine
+After=network.target network-online.target
+Requires=network.target
+
+[Service]
+EnvironmentFile=%{_sysconfdir}/sysconfig/kraken
+Type=notify
+WorkingDirectory=%{?KrakenWorkingDirectory}%{?!KrakenWorkingDirectory:/}
+ExecStart=%{_sbindir}/kraken -cfg "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
+
+[Install]
+WantedBy=multi-user.target
