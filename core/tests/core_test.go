@@ -89,6 +89,13 @@ func TestNode_JSON(t *testing.T) {
 	t.Logf("Proto message (JSON): \n%s\n", out)
 }
 
+func TestNode_Message(t *testing.T) {
+	n := simpleNode()
+
+	out := n.Message()
+	t.Logf("Proto message: \n%s\n", out.String())
+}
+
 func TestNewNodeFromJSON(t *testing.T) {
 	jin := []byte("{\"id\":\"123e4567-e89b-12d3-a456-426655440000\",\"nodename\":\"noname\",\"run_state\":\"INIT\",\"phys_state\":1}")
 	t.Logf("in: %s", jin)

@@ -7,20 +7,27 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package PowermanControl;
- option go_package = ".;powermancontrol";
- 
- message Config {
-     map<string, Server> servers = 1;
-     string polling_interval = 2;
-     string fire_interval = 3;
-     string name_url = 4;
-     string server_url = 5;
- }
- 
- message Server {
-     string name = 1;
-     string ip    = 2;
-     int32 port = 3;
- }
+syntax = "proto3";
+package PowermanControl;
+option go_package = ".;powermancontrol";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Config {
+    map<string, Server> servers = 1;
+    string polling_interval = 2;
+    string fire_interval = 3;
+    string name_url = 4;
+    string server_url = 5;
+}
+
+message Server {
+    string name = 1;
+    string ip    = 2;
+    int32 port = 3;
+}

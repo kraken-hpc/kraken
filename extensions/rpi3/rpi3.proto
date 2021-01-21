@@ -11,6 +11,13 @@ syntax = "proto3";
 package RPi3;
 option go_package = ".;rpi3";
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
 message Pi {
     string chassis = 1; // chassis name
     uint32 rank = 2; // Pi's rank in chassis

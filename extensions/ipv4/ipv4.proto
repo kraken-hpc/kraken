@@ -12,6 +12,12 @@ package IPv4;
 option go_package = ".;ipv4";
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
 
 message IPv4 {
     bytes ip      = 2 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/ipv4/customtypes.IP"];

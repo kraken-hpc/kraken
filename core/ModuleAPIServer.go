@@ -302,14 +302,24 @@ func (s *ModuleAPIServer) QueryFrozen(ctx context.Context, in *ptypes.Empty) (ou
  */
 
 func (s *ModuleAPIServer) ServiceInit(sir *pb.ServiceInitRequest, stream pb.ModuleAPI_ServiceInitServer) (e error) {
+	s.log.Logf(types.LLDDDEBUG, "got service init request for module (%s) id (%s)\n", sir.Module, sir.Id)
 	srv := s.sm.GetService(sir.GetId())
 
-	self, _ := s.query.Read(s.self)
-	any, _ := ptypes.MarshalAny(self.Message())
-	stream.Send(&pb.ServiceControl{
+	self, e := s.query.Read(s.self)
+	if e != nil {
+		return
+	}
+	any, e := ptypes.MarshalAny(self.Message())
+	if e != nil {
+		return
+	}
+	e = stream.Send(&pb.ServiceControl{
 		Command: pb.ServiceControl_INIT,
 		Config:  any,
 	})
+	if e != nil {
+		return
+	}
 	c := make(chan types.ServiceControl)
 	srv.SetCtl(c)
 	for {

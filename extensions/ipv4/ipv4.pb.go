@@ -7,12 +7,16 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	golang_proto "github.com/golang/protobuf/proto"
 	github_com_hpc_kraken_extensions_ipv4_customtypes "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = golang_proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
@@ -37,22 +41,35 @@ func (*IPv4) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{0}
 }
 func (m *IPv4) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_IPv4.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *IPv4) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_IPv4.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_IPv4.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *IPv4) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_IPv4.Merge(m, src)
 }
 func (m *IPv4) XXX_Size() int {
-	return xxx_messageInfo_IPv4.Size(m)
+	return m.Size()
 }
 func (m *IPv4) XXX_DiscardUnknown() {
 	xxx_messageInfo_IPv4.DiscardUnknown(m)
 }
 
 var xxx_messageInfo_IPv4 proto.InternalMessageInfo
+
+func (*IPv4) XXX_MessageName() string {
+	return "IPv4.IPv4"
+}
 
 type Ethernet struct {
 	Iface                string                                                 `protobuf:"bytes,1,opt,name=iface,proto3" json:"iface,omitempty"`
@@ -71,16 +88,25 @@ func (*Ethernet) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{1}
 }
 func (m *Ethernet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Ethernet.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *Ethernet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Ethernet.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_Ethernet.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *Ethernet) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Ethernet.Merge(m, src)
 }
 func (m *Ethernet) XXX_Size() int {
-	return xxx_messageInfo_Ethernet.Size(m)
+	return m.Size()
 }
 func (m *Ethernet) XXX_DiscardUnknown() {
 	xxx_messageInfo_Ethernet.DiscardUnknown(m)
@@ -109,6 +135,10 @@ func (m *Ethernet) GetControl() bool {
 	return false
 }
 
+func (*Ethernet) XXX_MessageName() string {
+	return "IPv4.Ethernet"
+}
+
 type IPv4OverEthernet struct {
 	Ifaces               map[string]*IPv4OverEthernet_ConfiguredInterface `protobuf:"bytes,1,rep,name=ifaces,proto3" json:"ifaces,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	Routes               []*IPv4                                          `protobuf:"bytes,2,rep,name=routes,proto3" json:"routes,omitempty"`
@@ -127,16 +157,25 @@ func (*IPv4OverEthernet) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{2}
 }
 func (m *IPv4OverEthernet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_IPv4OverEthernet.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *IPv4OverEthernet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_IPv4OverEthernet.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_IPv4OverEthernet.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *IPv4OverEthernet) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_IPv4OverEthernet.Merge(m, src)
 }
 func (m *IPv4OverEthernet) XXX_Size() int {
-	return xxx_messageInfo_IPv4OverEthernet.Size(m)
+	return m.Size()
 }
 func (m *IPv4OverEthernet) XXX_DiscardUnknown() {
 	xxx_messageInfo_IPv4OverEthernet.DiscardUnknown(m)
@@ -179,6 +218,10 @@ func (m *IPv4OverEthernet) GetHostname() *DNSA {
 	return nil
 }
 
+func (*IPv4OverEthernet) XXX_MessageName() string {
+	return "IPv4.IPv4OverEthernet"
+}
+
 type IPv4OverEthernet_ConfiguredInterface struct {
 	Eth                  *Ethernet `protobuf:"bytes,1,opt,name=eth,proto3" json:"eth,omitempty"`
 	Ip                   *IPv4     `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
@@ -194,16 +237,25 @@ func (*IPv4OverEthernet_ConfiguredInterface) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{2, 0}
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Merge(m, src)
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_Size() int {
-	return xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.Size(m)
+	return m.Size()
 }
 func (m *IPv4OverEthernet_ConfiguredInterface) XXX_DiscardUnknown() {
 	xxx_messageInfo_IPv4OverEthernet_ConfiguredInterface.DiscardUnknown(m)
@@ -225,6 +277,10 @@ func (m *IPv4OverEthernet_ConfiguredInterface) GetIp() *IPv4 {
 	return nil
 }
 
+func (*IPv4OverEthernet_ConfiguredInterface) XXX_MessageName() string {
+	return "IPv4.IPv4OverEthernet.ConfiguredInterface"
+}
+
 type DNSA struct {
 	Hostname             string   `protobuf:"bytes,1,opt,name=hostname,proto3" json:"hostname,omitempty"`
 	Domainname           string   `protobuf:"bytes,2,opt,name=domainname,proto3" json:"domainname,omitempty"`
@@ -241,16 +297,25 @@ func (*DNSA) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{3}
 }
 func (m *DNSA) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DNSA.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *DNSA) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DNSA.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_DNSA.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *DNSA) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_DNSA.Merge(m, src)
 }
 func (m *DNSA) XXX_Size() int {
-	return xxx_messageInfo_DNSA.Size(m)
+	return m.Size()
 }
 func (m *DNSA) XXX_DiscardUnknown() {
 	xxx_messageInfo_DNSA.DiscardUnknown(m)
@@ -279,6 +344,10 @@ func (m *DNSA) GetIp() *IPv4 {
 	return nil
 }
 
+func (*DNSA) XXX_MessageName() string {
+	return "IPv4.DNSA"
+}
+
 type DNSCNAME struct {
 	Cname                string   `protobuf:"bytes,1,opt,name=cname,proto3" json:"cname,omitempty"`
 	Hostname             string   `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
@@ -294,16 +363,25 @@ func (*DNSCNAME) Descriptor() ([]byte, []int) {
 	return fileDescriptor_851d42603524a7cd, []int{4}
 }
 func (m *DNSCNAME) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_DNSCNAME.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *DNSCNAME) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_DNSCNAME.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_DNSCNAME.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *DNSCNAME) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_DNSCNAME.Merge(m, src)
 }
 func (m *DNSCNAME) XXX_Size() int {
-	return xxx_messageInfo_DNSCNAME.Size(m)
+	return m.Size()
 }
 func (m *DNSCNAME) XXX_DiscardUnknown() {
 	xxx_messageInfo_DNSCNAME.DiscardUnknown(m)
@@ -325,51 +403,1671 @@ func (m *DNSCNAME) GetHostname() string {
 	return ""
 }
 
+func (*DNSCNAME) XXX_MessageName() string {
+	return "IPv4.DNSCNAME"
+}
 func init() {
 	proto.RegisterType((*IPv4)(nil), "IPv4.IPv4")
+	golang_proto.RegisterType((*IPv4)(nil), "IPv4.IPv4")
 	proto.RegisterType((*Ethernet)(nil), "IPv4.Ethernet")
+	golang_proto.RegisterType((*Ethernet)(nil), "IPv4.Ethernet")
 	proto.RegisterType((*IPv4OverEthernet)(nil), "IPv4.IPv4OverEthernet")
+	golang_proto.RegisterType((*IPv4OverEthernet)(nil), "IPv4.IPv4OverEthernet")
 	proto.RegisterMapType((map[string]*IPv4OverEthernet_ConfiguredInterface)(nil), "IPv4.IPv4OverEthernet.IfacesEntry")
+	golang_proto.RegisterMapType((map[string]*IPv4OverEthernet_ConfiguredInterface)(nil), "IPv4.IPv4OverEthernet.IfacesEntry")
 	proto.RegisterType((*IPv4OverEthernet_ConfiguredInterface)(nil), "IPv4.IPv4OverEthernet.ConfiguredInterface")
+	golang_proto.RegisterType((*IPv4OverEthernet_ConfiguredInterface)(nil), "IPv4.IPv4OverEthernet.ConfiguredInterface")
 	proto.RegisterType((*DNSA)(nil), "IPv4.DNSA")
+	golang_proto.RegisterType((*DNSA)(nil), "IPv4.DNSA")
 	proto.RegisterType((*DNSCNAME)(nil), "IPv4.DNSCNAME")
+	golang_proto.RegisterType((*DNSCNAME)(nil), "IPv4.DNSCNAME")
 }
 
 func init() { proto.RegisterFile("ipv4.proto", fileDescriptor_851d42603524a7cd) }
+func init() { golang_proto.RegisterFile("ipv4.proto", fileDescriptor_851d42603524a7cd) }
 
 var fileDescriptor_851d42603524a7cd = []byte{
-	// 514 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x53, 0xcd, 0x6e, 0xd3, 0x40,
-	0x10, 0x96, 0xed, 0x34, 0x84, 0x09, 0x94, 0x6a, 0xe1, 0xb0, 0xca, 0x81, 0x5a, 0x3e, 0xa0, 0x08,
-	0x84, 0x2d, 0xb5, 0x41, 0x2a, 0x85, 0x03, 0x69, 0x12, 0x89, 0x08, 0x35, 0x44, 0x9b, 0x1b, 0x07,
-	0x90, 0xe3, 0x6c, 0x62, 0x2b, 0xf5, 0xae, 0xb5, 0xbb, 0xb6, 0xc8, 0xa3, 0x70, 0xe5, 0x29, 0x78,
-	0x96, 0x1e, 0xfa, 0x2c, 0x68, 0xd7, 0x6e, 0xe2, 0xd0, 0x72, 0x40, 0xdc, 0x76, 0xfc, 0xcd, 0x37,
-	0xdf, 0x37, 0x3f, 0x06, 0x48, 0xb2, 0xa2, 0xe7, 0x67, 0x82, 0x2b, 0x8e, 0x1a, 0xe3, 0x69, 0xd1,
-	0xeb, 0xbc, 0x5e, 0x25, 0x2a, 0xce, 0xe7, 0x7e, 0xc4, 0xd3, 0x60, 0xc5, 0x57, 0x3c, 0x30, 0xe0,
-	0x3c, 0x5f, 0x9a, 0xc8, 0x04, 0xe6, 0x55, 0x92, 0xbc, 0x9f, 0x16, 0x18, 0x1e, 0xfa, 0x08, 0x76,
-	0x92, 0x61, 0xdb, 0xb5, 0xba, 0x8f, 0x2e, 0xce, 0xae, 0x6f, 0x8e, 0x7b, 0xb5, 0x3a, 0x71, 0x16,
-	0x05, 0x6b, 0x11, 0xae, 0x29, 0x0b, 0xe8, 0x77, 0x45, 0x99, 0x4c, 0x38, 0x93, 0x81, 0x96, 0x0e,
-	0xa2, 0x5c, 0x2a, 0x9e, 0xaa, 0x4d, 0x46, 0xa5, 0x3f, 0x9e, 0x12, 0x3b, 0xc9, 0xd0, 0x14, 0x9a,
-	0x32, 0x9f, 0x33, 0xaa, 0xb0, 0xf3, 0x9f, 0xd5, 0xaa, 0x3a, 0xde, 0x0f, 0x0b, 0x5a, 0x23, 0x15,
-	0x53, 0xc1, 0xa8, 0x42, 0xcf, 0xe0, 0x20, 0x59, 0x86, 0x11, 0xc5, 0x96, 0x6b, 0x75, 0x1f, 0x92,
-	0x32, 0x40, 0x9f, 0xc0, 0x49, 0xc3, 0xa8, 0xf2, 0xff, 0xf6, 0xfa, 0xe6, 0xf8, 0xcd, 0xbf, 0x2b,
-	0x5e, 0xf6, 0x07, 0x44, 0x57, 0x41, 0x47, 0xe0, 0xa4, 0x2a, 0x37, 0xf6, 0x1f, 0x13, 0xfd, 0x44,
-	0x18, 0x1e, 0x44, 0x9c, 0x29, 0xc1, 0xaf, 0x70, 0xc3, 0xb5, 0xba, 0x2d, 0x72, 0x1b, 0x7a, 0xbf,
-	0x1c, 0x38, 0xd2, 0x03, 0xfc, 0x5c, 0x50, 0xb1, 0xf5, 0x78, 0x0e, 0x4d, 0x63, 0x4b, 0x62, 0xcb,
-	0x75, 0xba, 0xed, 0x13, 0xcf, 0xd7, 0x29, 0xfe, 0x9f, 0x79, 0xfe, 0xd8, 0x24, 0x8d, 0x98, 0x12,
-	0x1b, 0x52, 0x31, 0x90, 0x07, 0x4d, 0xc1, 0x73, 0x45, 0x25, 0xb6, 0x0d, 0x17, 0x76, 0x5c, 0x52,
-	0x21, 0xe8, 0x14, 0x9e, 0x2c, 0x98, 0xfc, 0xc6, 0xc2, 0x94, 0x4a, 0x2a, 0x0a, 0x2a, 0x24, 0x76,
-	0xee, 0x24, 0x1f, 0x2e, 0x98, 0x9c, 0xec, 0x32, 0xd0, 0x2b, 0x68, 0x6b, 0xd2, 0x82, 0xa7, 0x61,
-	0xc2, 0x24, 0x6e, 0xdc, 0x21, 0xc0, 0x82, 0xc9, 0x61, 0x89, 0xa2, 0x17, 0xd0, 0x8a, 0xb9, 0x54,
-	0x5a, 0x01, 0x1f, 0xb8, 0xd6, 0x2e, 0x73, 0x38, 0x99, 0xf5, 0xc9, 0x16, 0xeb, 0xcc, 0xe0, 0xe9,
-	0x80, 0xb3, 0x65, 0xb2, 0xca, 0x05, 0x5d, 0x8c, 0x99, 0xa2, 0xc2, 0xac, 0xc3, 0x05, 0x87, 0xaa,
-	0xd8, 0xac, 0xa8, 0x7d, 0x72, 0x58, 0x32, 0x6f, 0xbb, 0x26, 0x1a, 0x42, 0x9d, 0xed, 0xbd, 0xed,
-	0x9b, 0xb0, 0x93, 0xac, 0x43, 0xa1, 0x5d, 0x9b, 0x8c, 0x5e, 0xc7, 0x9a, 0x6e, 0xaa, 0x7d, 0xeb,
-	0x27, 0xfa, 0x00, 0x07, 0x45, 0x78, 0x95, 0xd3, 0x8a, 0xff, 0xf2, 0x2f, 0xe3, 0xbd, 0xc7, 0x19,
-	0x29, 0x89, 0xe7, 0xf6, 0x99, 0xe5, 0x7d, 0x85, 0x86, 0xee, 0x06, 0x75, 0x6a, 0xbd, 0x96, 0x22,
-	0xdb, 0x18, 0x3d, 0x07, 0x28, 0x07, 0x66, 0x50, 0xdb, 0xa0, 0xb5, 0x2f, 0x55, 0x1b, 0xce, 0x7d,
-	0x6d, 0x78, 0xef, 0xa1, 0x35, 0x9c, 0xcc, 0x06, 0x93, 0xfe, 0xe5, 0x48, 0x5f, 0x6d, 0x54, 0x13,
-	0x28, 0x83, 0x3d, 0x65, 0x7b, 0x5f, 0xf9, 0xa2, 0xf5, 0xa5, 0xe9, 0xbf, 0xd3, 0x37, 0x3a, 0x6f,
-	0x9a, 0x5f, 0xf5, 0xf4, 0x77, 0x00, 0x00, 0x00, 0xff, 0xff, 0xc5, 0x68, 0x23, 0xce, 0xed, 0x03,
-	0x00, 0x00,
+	// 539 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x53, 0xcd, 0x6e, 0xd3, 0x4c,
+	0x14, 0xd5, 0xd8, 0x49, 0xbe, 0x7c, 0x37, 0x50, 0xaa, 0x81, 0x85, 0x15, 0x21, 0xd7, 0xf2, 0x02,
+	0x45, 0x20, 0x6c, 0xa9, 0x0d, 0x52, 0x29, 0x2c, 0x48, 0x93, 0x48, 0x44, 0xa8, 0x21, 0x72, 0x76,
+	0x2c, 0x40, 0x8e, 0x33, 0x49, 0xac, 0xd4, 0x33, 0xd6, 0xcc, 0x38, 0x22, 0x8f, 0xc2, 0x96, 0xa7,
+	0x60, 0xc9, 0xb2, 0x4b, 0xd6, 0x5d, 0x54, 0x28, 0x7d, 0x11, 0x34, 0x63, 0x37, 0x3f, 0xb4, 0x2c,
+	0x10, 0xbb, 0xb9, 0x3e, 0xf7, 0xdc, 0x73, 0xee, 0x8f, 0x01, 0xe2, 0x74, 0xd1, 0xf4, 0x52, 0xce,
+	0x24, 0xc3, 0xa5, 0xde, 0x60, 0xd1, 0xac, 0x3f, 0x9f, 0xc6, 0x72, 0x96, 0x8d, 0xbc, 0x88, 0x25,
+	0xfe, 0x94, 0x4d, 0x99, 0xaf, 0xc1, 0x51, 0x36, 0xd1, 0x91, 0x0e, 0xf4, 0x2b, 0x27, 0xb9, 0x5f,
+	0x11, 0x68, 0x1e, 0x7e, 0x0b, 0x46, 0x9c, 0x5a, 0x86, 0x83, 0x1a, 0xf7, 0x4e, 0x8f, 0x2f, 0xaf,
+	0x0e, 0x9a, 0x5b, 0x75, 0x66, 0x69, 0xe4, 0xcf, 0x79, 0x38, 0x27, 0xd4, 0x27, 0x9f, 0x25, 0xa1,
+	0x22, 0x66, 0x54, 0xf8, 0x4a, 0xda, 0x8f, 0x32, 0x21, 0x59, 0x22, 0x97, 0x29, 0x11, 0x5e, 0x6f,
+	0x10, 0x18, 0x71, 0x8a, 0x07, 0x50, 0x11, 0xd9, 0x88, 0x12, 0x69, 0x99, 0xff, 0x58, 0xad, 0xa8,
+	0xe3, 0x7e, 0x41, 0x50, 0xed, 0xca, 0x19, 0xe1, 0x94, 0x48, 0xfc, 0x08, 0xca, 0xf1, 0x24, 0x8c,
+	0x88, 0x85, 0x1c, 0xd4, 0xf8, 0x3f, 0xc8, 0x03, 0xfc, 0x0e, 0xcc, 0x24, 0x8c, 0x0a, 0xff, 0x2f,
+	0x2f, 0xaf, 0x0e, 0x5e, 0xfc, 0xbd, 0xe2, 0x59, 0xab, 0x1d, 0xa8, 0x2a, 0x78, 0x1f, 0xcc, 0x44,
+	0x66, 0xda, 0xfe, 0xfd, 0x40, 0x3d, 0xb1, 0x05, 0xff, 0x45, 0x8c, 0x4a, 0xce, 0xce, 0xad, 0x92,
+	0x83, 0x1a, 0xd5, 0xe0, 0x26, 0x74, 0xbf, 0x99, 0xb0, 0xaf, 0x06, 0xf8, 0x7e, 0x41, 0xf8, 0xda,
+	0xe3, 0x09, 0x54, 0xb4, 0x2d, 0x61, 0x21, 0xc7, 0x6c, 0xd4, 0x0e, 0x5d, 0x4f, 0xa5, 0x78, 0xbf,
+	0xe7, 0x79, 0x3d, 0x9d, 0xd4, 0xa5, 0x92, 0x2f, 0x83, 0x82, 0x81, 0x5d, 0xa8, 0x70, 0x96, 0x49,
+	0x22, 0x2c, 0x43, 0x73, 0x61, 0xc3, 0x0d, 0x0a, 0x04, 0x1f, 0xc1, 0x83, 0x31, 0x15, 0x9f, 0x68,
+	0x98, 0x10, 0x41, 0xf8, 0x82, 0x70, 0x61, 0x99, 0xb7, 0x92, 0xf7, 0xc6, 0x54, 0xf4, 0x37, 0x19,
+	0xf8, 0x19, 0xd4, 0x14, 0x69, 0xcc, 0x92, 0x30, 0xa6, 0xc2, 0x2a, 0xdd, 0x22, 0xc0, 0x98, 0x8a,
+	0x4e, 0x8e, 0xe2, 0x27, 0x50, 0x9d, 0x31, 0x21, 0x95, 0x82, 0x55, 0x76, 0xd0, 0x26, 0xb3, 0xd3,
+	0x1f, 0xb6, 0x82, 0x35, 0x56, 0x1f, 0xc2, 0xc3, 0x36, 0xa3, 0x93, 0x78, 0x9a, 0x71, 0x32, 0xee,
+	0x51, 0x49, 0xb8, 0x5e, 0x87, 0x03, 0x26, 0x91, 0x33, 0xbd, 0xa2, 0xda, 0xe1, 0x5e, 0xce, 0xbc,
+	0xe9, 0x3a, 0x50, 0x10, 0xae, 0xaf, 0xef, 0x6d, 0xd7, 0x84, 0x11, 0xa7, 0x75, 0x02, 0xb5, 0xad,
+	0xc9, 0xa8, 0x75, 0xcc, 0xc9, 0xb2, 0xd8, 0xb7, 0x7a, 0xe2, 0x37, 0x50, 0x5e, 0x84, 0xe7, 0x19,
+	0x29, 0xf8, 0x4f, 0xff, 0x30, 0xde, 0x3b, 0x9c, 0x05, 0x39, 0xf1, 0xc4, 0x38, 0x46, 0xee, 0x47,
+	0x28, 0xa9, 0x6e, 0x70, 0x7d, 0xab, 0xd7, 0x5c, 0x64, 0x1d, 0x63, 0x1b, 0x20, 0x1f, 0x98, 0x46,
+	0x0d, 0x8d, 0x6e, 0x7d, 0x29, 0xda, 0x30, 0xef, 0x6a, 0xc3, 0x7d, 0x0d, 0xd5, 0x4e, 0x7f, 0xd8,
+	0xee, 0xb7, 0xce, 0xba, 0xea, 0x6a, 0xa3, 0x2d, 0x81, 0x3c, 0xd8, 0x51, 0x36, 0x76, 0x95, 0x4f,
+	0x1f, 0x5f, 0xac, 0x6c, 0xf4, 0x63, 0x65, 0xa3, 0x9f, 0x2b, 0x1b, 0x7d, 0xbf, 0xb6, 0xd1, 0xc5,
+	0xb5, 0x8d, 0x3e, 0x54, 0xbc, 0x57, 0xea, 0x6e, 0x47, 0x15, 0xfd, 0xfb, 0x1e, 0xfd, 0x0a, 0x00,
+	0x00, 0xff, 0xff, 0x4f, 0x5a, 0x55, 0x43, 0x01, 0x04, 0x00, 0x00,
 }
+
+func (m *IPv4) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IPv4) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IPv4) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Subnet != nil {
+		{
+			size := m.Subnet.Size()
+			i -= size
+			if _, err := m.Subnet.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Ip != nil {
+		{
+			size := m.Ip.Size()
+			i -= size
+			if _, err := m.Ip.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Ethernet) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Ethernet) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Ethernet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Control {
+		i--
+		if m.Control {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Mtu != 0 {
+		i = encodeVarintIpv4(dAtA, i, uint64(m.Mtu))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.Mac != nil {
+		{
+			size := m.Mac.Size()
+			i -= size
+			if _, err := m.Mac.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Iface) > 0 {
+		i -= len(m.Iface)
+		copy(dAtA[i:], m.Iface)
+		i = encodeVarintIpv4(dAtA, i, uint64(len(m.Iface)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *IPv4OverEthernet) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IPv4OverEthernet) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IPv4OverEthernet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Hostname != nil {
+		{
+			size, err := m.Hostname.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.DnsDomains) > 0 {
+		for iNdEx := len(m.DnsDomains) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.DnsDomains[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintIpv4(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x22
+		}
+	}
+	if len(m.DnsNameservers) > 0 {
+		for iNdEx := len(m.DnsNameservers) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.DnsNameservers[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintIpv4(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Routes) > 0 {
+		for iNdEx := len(m.Routes) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Routes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintIpv4(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Ifaces) > 0 {
+		for k := range m.Ifaces {
+			v := m.Ifaces[k]
+			baseI := i
+			if v != nil {
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintIpv4(dAtA, i, uint64(size))
+				}
+				i--
+				dAtA[i] = 0x12
+			}
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintIpv4(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintIpv4(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *IPv4OverEthernet_ConfiguredInterface) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IPv4OverEthernet_ConfiguredInterface) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IPv4OverEthernet_ConfiguredInterface) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Ip != nil {
+		{
+			size, err := m.Ip.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Eth != nil {
+		{
+			size, err := m.Eth.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DNSA) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DNSA) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DNSA) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Ip != nil {
+		{
+			size, err := m.Ip.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintIpv4(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Domainname) > 0 {
+		i -= len(m.Domainname)
+		copy(dAtA[i:], m.Domainname)
+		i = encodeVarintIpv4(dAtA, i, uint64(len(m.Domainname)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Hostname) > 0 {
+		i -= len(m.Hostname)
+		copy(dAtA[i:], m.Hostname)
+		i = encodeVarintIpv4(dAtA, i, uint64(len(m.Hostname)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DNSCNAME) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DNSCNAME) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DNSCNAME) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.Hostname) > 0 {
+		i -= len(m.Hostname)
+		copy(dAtA[i:], m.Hostname)
+		i = encodeVarintIpv4(dAtA, i, uint64(len(m.Hostname)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Cname) > 0 {
+		i -= len(m.Cname)
+		copy(dAtA[i:], m.Cname)
+		i = encodeVarintIpv4(dAtA, i, uint64(len(m.Cname)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func encodeVarintIpv4(dAtA []byte, offset int, v uint64) int {
+	offset -= sovIpv4(v)
+	base := offset
+	for v >= 1<<7 {
+		dAtA[offset] = uint8(v&0x7f | 0x80)
+		v >>= 7
+		offset++
+	}
+	dAtA[offset] = uint8(v)
+	return base
+}
+func (m *IPv4) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Ip != nil {
+		l = m.Ip.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.Subnet != nil {
+		l = m.Subnet.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Ethernet) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Iface)
+	if l > 0 {
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.Mac != nil {
+		l = m.Mac.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.Mtu != 0 {
+		n += 1 + sovIpv4(uint64(m.Mtu))
+	}
+	if m.Control {
+		n += 2
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *IPv4OverEthernet) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Ifaces) > 0 {
+		for k, v := range m.Ifaces {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.Size()
+				l += 1 + sovIpv4(uint64(l))
+			}
+			mapEntrySize := 1 + len(k) + sovIpv4(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sovIpv4(uint64(mapEntrySize))
+		}
+	}
+	if len(m.Routes) > 0 {
+		for _, e := range m.Routes {
+			l = e.Size()
+			n += 1 + l + sovIpv4(uint64(l))
+		}
+	}
+	if len(m.DnsNameservers) > 0 {
+		for _, e := range m.DnsNameservers {
+			l = e.Size()
+			n += 1 + l + sovIpv4(uint64(l))
+		}
+	}
+	if len(m.DnsDomains) > 0 {
+		for _, e := range m.DnsDomains {
+			l = e.Size()
+			n += 1 + l + sovIpv4(uint64(l))
+		}
+	}
+	if m.Hostname != nil {
+		l = m.Hostname.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *IPv4OverEthernet_ConfiguredInterface) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Eth != nil {
+		l = m.Eth.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.Ip != nil {
+		l = m.Ip.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *DNSA) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Hostname)
+	if l > 0 {
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	l = len(m.Domainname)
+	if l > 0 {
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.Ip != nil {
+		l = m.Ip.Size()
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *DNSCNAME) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Cname)
+	if l > 0 {
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	l = len(m.Hostname)
+	if l > 0 {
+		n += 1 + l + sovIpv4(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func sovIpv4(x uint64) (n int) {
+	return (math_bits.Len64(x|1) + 6) / 7
+}
+func sozIpv4(x uint64) (n int) {
+	return sovIpv4(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *IPv4) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IPv4: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IPv4: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ip", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var v github_com_hpc_kraken_extensions_ipv4_customtypes.IP
+			m.Ip = &v
+			if err := m.Ip.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subnet", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var v github_com_hpc_kraken_extensions_ipv4_customtypes.IP
+			m.Subnet = &v
+			if err := m.Subnet.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Ethernet) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Ethernet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Ethernet: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Iface", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Iface = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mac", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			var v github_com_hpc_kraken_extensions_ipv4_customtypes.MAC
+			m.Mac = &v
+			if err := m.Mac.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mtu", wireType)
+			}
+			m.Mtu = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Mtu |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Control", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Control = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *IPv4OverEthernet) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IPv4OverEthernet: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IPv4OverEthernet: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ifaces", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Ifaces == nil {
+				m.Ifaces = make(map[string]*IPv4OverEthernet_ConfiguredInterface)
+			}
+			var mapkey string
+			var mapvalue *IPv4OverEthernet_ConfiguredInterface
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowIpv4
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowIpv4
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthIpv4
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthIpv4
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowIpv4
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLengthIpv4
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLengthIpv4
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &IPv4OverEthernet_ConfiguredInterface{}
+					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipIpv4(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLengthIpv4
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Ifaces[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Routes", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Routes = append(m.Routes, &IPv4{})
+			if err := m.Routes[len(m.Routes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DnsNameservers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DnsNameservers = append(m.DnsNameservers, &IPv4{})
+			if err := m.DnsNameservers[len(m.DnsNameservers)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DnsDomains", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DnsDomains = append(m.DnsDomains, &IPv4{})
+			if err := m.DnsDomains[len(m.DnsDomains)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Hostname == nil {
+				m.Hostname = &DNSA{}
+			}
+			if err := m.Hostname.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *IPv4OverEthernet_ConfiguredInterface) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ConfiguredInterface: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ConfiguredInterface: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Eth", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Eth == nil {
+				m.Eth = &Ethernet{}
+			}
+			if err := m.Eth.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ip", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Ip == nil {
+				m.Ip = &IPv4{}
+			}
+			if err := m.Ip.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DNSA) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DNSA: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DNSA: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hostname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Domainname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Domainname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ip", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Ip == nil {
+				m.Ip = &IPv4{}
+			}
+			if err := m.Ip.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DNSCNAME) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DNSCNAME: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DNSCNAME: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Cname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Cname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Hostname", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Hostname = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipIpv4(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthIpv4
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func skipIpv4(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
+	iNdEx := 0
+	depth := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return 0, ErrIntOverflowIpv4
+			}
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if dAtA[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+		case 1:
+			iNdEx += 8
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowIpv4
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if length < 0 {
+				return 0, ErrInvalidLengthIpv4
+			}
+			iNdEx += length
+		case 3:
+			depth++
+		case 4:
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupIpv4
+			}
+			depth--
+		case 5:
+			iNdEx += 4
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthIpv4
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
+	}
+	return 0, io.ErrUnexpectedEOF
+}
+
+var (
+	ErrInvalidLengthIpv4        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowIpv4          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupIpv4 = fmt.Errorf("proto: unexpected end of group")
+)

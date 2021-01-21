@@ -11,6 +11,13 @@ syntax = "proto3";
 package PiPXE;
 option go_package = ".;pipxe";
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
 message Config {
     string srv_iface_url = 1; // interface DHCP/TFTP listen on
     string srv_ip_url = 2; // interface DHCP/TFTP listen on

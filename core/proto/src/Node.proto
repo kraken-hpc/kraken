@@ -11,9 +11,15 @@ syntax = "proto3";
 package proto;
 option go_package = ".;proto";
 
-import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
 import "ServiceInstance.proto";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
 
 message NodeList {
     repeated Node nodes = 1;

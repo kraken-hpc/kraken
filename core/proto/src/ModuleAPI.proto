@@ -7,13 +7,20 @@
  * See LICENSE file for details.
  */
 
- syntax = "proto3";
- package proto;
- option go_package = ".;proto";
- 
- import "Node.proto";
- import "google/protobuf/any.proto";
- import "google/protobuf/empty.proto";
+syntax = "proto3";
+package proto;
+option go_package = ".;proto";
+
+import "Node.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
  
  message Query {
      string URL = 1;

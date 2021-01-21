@@ -127,15 +127,18 @@ func (n *Node) Binary() []byte {
 // Message returns the proto.Message interface for the node
 func (n *Node) Message() proto.Message {
 	n.mutex.Lock()
-	defer n.mutex.Unlock()
 
 	n.exportExtensions()
 	// this is broken with custom types
 	//m := proto.Clone(n.pb)
 	// this is likely inefficient
 	m := NewNodeWithID(n.ID().String())
+	// This could be a race?
+	n.mutex.Unlock()
 	m.Merge(n, "")
+	n.mutex.Lock()
 	n.importExtensions()
+	n.mutex.Unlock()
 	return m.pb
 }
 

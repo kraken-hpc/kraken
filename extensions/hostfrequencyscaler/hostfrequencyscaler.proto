@@ -11,6 +11,13 @@ syntax = "proto3";
 package HostFrequencyScaler;
 option go_package = ".;hostfrequencyscaler";
 
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
 message Scaler {
     enum ScalerState {
         NONE = 0;

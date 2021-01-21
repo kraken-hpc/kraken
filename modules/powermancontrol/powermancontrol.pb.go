@@ -5,12 +5,17 @@ package powermancontrol
 
 import (
 	fmt "fmt"
+	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
+	golang_proto "github.com/golang/protobuf/proto"
+	io "io"
 	math "math"
+	math_bits "math/bits"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = golang_proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
@@ -38,16 +43,25 @@ func (*Config) Descriptor() ([]byte, []int) {
 	return fileDescriptor_555afd2db12d586c, []int{0}
 }
 func (m *Config) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Config.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_Config.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *Config) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
-	return xxx_messageInfo_Config.Size(m)
+	return m.Size()
 }
 func (m *Config) XXX_DiscardUnknown() {
 	xxx_messageInfo_Config.DiscardUnknown(m)
@@ -90,6 +104,10 @@ func (m *Config) GetServerUrl() string {
 	return ""
 }
 
+func (*Config) XXX_MessageName() string {
+	return "PowermanControl.Config"
+}
+
 type Server struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Ip                   string   `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
@@ -106,16 +124,25 @@ func (*Server) Descriptor() ([]byte, []int) {
 	return fileDescriptor_555afd2db12d586c, []int{1}
 }
 func (m *Server) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Server.Unmarshal(m, b)
+	return m.Unmarshal(b)
 }
 func (m *Server) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Server.Marshal(b, m, deterministic)
+	if deterministic {
+		return xxx_messageInfo_Server.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
 }
 func (m *Server) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Server.Merge(m, src)
 }
 func (m *Server) XXX_Size() int {
-	return xxx_messageInfo_Server.Size(m)
+	return m.Size()
 }
 func (m *Server) XXX_DiscardUnknown() {
 	xxx_messageInfo_Server.DiscardUnknown(m)
@@ -144,32 +171,777 @@ func (m *Server) GetPort() int32 {
 	return 0
 }
 
+func (*Server) XXX_MessageName() string {
+	return "PowermanControl.Server"
+}
 func init() {
 	proto.RegisterType((*Config)(nil), "PowermanControl.Config")
+	golang_proto.RegisterType((*Config)(nil), "PowermanControl.Config")
 	proto.RegisterMapType((map[string]*Server)(nil), "PowermanControl.Config.ServersEntry")
+	golang_proto.RegisterMapType((map[string]*Server)(nil), "PowermanControl.Config.ServersEntry")
 	proto.RegisterType((*Server)(nil), "PowermanControl.Server")
+	golang_proto.RegisterType((*Server)(nil), "PowermanControl.Server")
 }
 
 func init() { proto.RegisterFile("powermancontrol.proto", fileDescriptor_555afd2db12d586c) }
+func init() { golang_proto.RegisterFile("powermancontrol.proto", fileDescriptor_555afd2db12d586c) }
 
 var fileDescriptor_555afd2db12d586c = []byte{
-	// 283 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x91, 0xcf, 0x4a, 0xc3, 0x40,
-	0x10, 0x87, 0x49, 0xd2, 0xa4, 0x76, 0x5a, 0x6d, 0x1d, 0x11, 0xa3, 0x20, 0x94, 0xea, 0xa1, 0x1e,
-	0xcc, 0xa1, 0x5e, 0x44, 0x41, 0xc4, 0xe2, 0xc1, 0x9b, 0xa4, 0xf4, 0xe2, 0xa5, 0x44, 0xd9, 0x96,
-	0xc5, 0xed, 0xee, 0x32, 0x4d, 0x23, 0x7d, 0x22, 0x5f, 0x53, 0x32, 0xbb, 0xfe, 0xa1, 0xde, 0x26,
-	0xdf, 0x7c, 0x93, 0x9d, 0x1f, 0x03, 0x87, 0xd6, 0x7c, 0x08, 0x5a, 0x16, 0xfa, 0xcd, 0xe8, 0x92,
-	0x8c, 0xca, 0x2c, 0x99, 0xd2, 0x60, 0xf7, 0xd9, 0xe3, 0xb1, 0xc3, 0x83, 0xcf, 0x10, 0x92, 0xb1,
-	0xd1, 0x73, 0xb9, 0xc0, 0x3b, 0x68, 0xae, 0x04, 0x55, 0x82, 0x56, 0x69, 0xd0, 0x8f, 0x86, 0xed,
-	0xd1, 0x79, 0xb6, 0x65, 0x67, 0xce, 0xcc, 0x26, 0x4e, 0x7b, 0xd4, 0x25, 0x6d, 0xf2, 0xef, 0x21,
-	0xbc, 0x80, 0x9e, 0x35, 0x4a, 0x49, 0xbd, 0x98, 0x49, 0x5d, 0x0a, 0xaa, 0x0a, 0x95, 0x86, 0xfd,
-	0x60, 0xd8, 0xca, 0xbb, 0x9e, 0x3f, 0x79, 0x8c, 0x67, 0xb0, 0x3b, 0x97, 0x24, 0x7e, 0xbd, 0x88,
-	0xbd, 0x4e, 0x0d, 0x7f, 0xa4, 0x63, 0xd8, 0xd1, 0xc5, 0x52, 0xcc, 0xd6, 0xa4, 0xd2, 0x06, 0xf7,
-	0x9b, 0xf5, 0xf7, 0x94, 0x14, 0x9e, 0x02, 0xb8, 0x57, 0xb9, 0x19, 0x73, 0xb3, 0xe5, 0xc8, 0x94,
-	0xd4, 0xc9, 0x04, 0x3a, 0x7f, 0x57, 0xc4, 0x1e, 0x44, 0xef, 0x62, 0x93, 0x06, 0xec, 0xd5, 0x25,
-	0x5e, 0x42, 0x5c, 0x15, 0x6a, 0x2d, 0x78, 0xc1, 0xf6, 0xe8, 0xe8, 0x5f, 0x52, 0x37, 0x9f, 0x3b,
-	0xeb, 0x26, 0xbc, 0x0e, 0x06, 0xf7, 0x90, 0x38, 0x88, 0x08, 0x8d, 0x7a, 0x11, 0xff, 0x3f, 0xae,
-	0x71, 0x0f, 0x42, 0x69, 0x7d, 0xdc, 0x50, 0xda, 0xda, 0xb1, 0x86, 0x4a, 0x0e, 0x16, 0xe7, 0x5c,
-	0x3f, 0x1c, 0xbc, 0xec, 0x67, 0xb7, 0x5b, 0x77, 0x79, 0x4d, 0xf8, 0x30, 0x57, 0x5f, 0x01, 0x00,
-	0x00, 0xff, 0xff, 0xe0, 0xff, 0x4e, 0x7a, 0xb1, 0x01, 0x00, 0x00,
+	// 332 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x64, 0x91, 0xcd, 0x4a, 0x03, 0x31,
+	0x10, 0x80, 0xc9, 0xf6, 0xcf, 0x4e, 0xab, 0xad, 0x01, 0x71, 0x2d, 0xb8, 0x94, 0x2a, 0x58, 0x0f,
+	0xdd, 0x42, 0xbd, 0x88, 0x82, 0x88, 0xc5, 0x83, 0x37, 0xd9, 0xd2, 0x8b, 0x97, 0xb2, 0x2d, 0xe9,
+	0x1a, 0x4c, 0x93, 0x25, 0xcd, 0x56, 0xfa, 0x44, 0xbe, 0x86, 0xc7, 0x1e, 0x7d, 0x04, 0x69, 0x5f,
+	0x44, 0x76, 0xb2, 0xfe, 0x50, 0x6f, 0x33, 0xdf, 0x7c, 0x93, 0xcc, 0x30, 0x70, 0x10, 0xab, 0x57,
+	0xa6, 0x67, 0xa1, 0x9c, 0x28, 0x69, 0xb4, 0x12, 0x7e, 0xac, 0x95, 0x51, 0xb4, 0xf6, 0x98, 0xe1,
+	0xbe, 0xc5, 0x8d, 0x4e, 0xc4, 0xcd, 0x73, 0x32, 0xf6, 0x27, 0x6a, 0xd6, 0x8d, 0x54, 0xa4, 0xba,
+	0xe8, 0x8d, 0x93, 0x29, 0x66, 0x98, 0x60, 0x64, 0xfb, 0x5b, 0x6f, 0x0e, 0x14, 0xfb, 0x4a, 0x4e,
+	0x79, 0x44, 0x6f, 0xa0, 0x34, 0x67, 0x7a, 0xc1, 0xf4, 0xdc, 0x25, 0xcd, 0x5c, 0xbb, 0xd2, 0x3b,
+	0xf5, 0xb7, 0x1e, 0xf7, 0xad, 0xe9, 0x0f, 0xac, 0x76, 0x2f, 0x8d, 0x5e, 0x06, 0xdf, 0x4d, 0xf4,
+	0x1c, 0xea, 0xb1, 0x12, 0x82, 0xcb, 0x68, 0xc4, 0xa5, 0x61, 0x7a, 0x11, 0x0a, 0xd7, 0x69, 0x92,
+	0x76, 0x39, 0xa8, 0x65, 0xfc, 0x21, 0xc3, 0xf4, 0x04, 0x76, 0xa7, 0x5c, 0xb3, 0x5f, 0x2f, 0x87,
+	0x5e, 0x35, 0x85, 0x3f, 0xd2, 0x11, 0xec, 0xc8, 0x70, 0xc6, 0x46, 0x89, 0x16, 0x6e, 0x1e, 0xeb,
+	0xa5, 0x34, 0x1f, 0x6a, 0x41, 0x8f, 0x01, 0xec, 0xaf, 0x58, 0x2c, 0x60, 0xb1, 0x6c, 0xc9, 0x50,
+	0x8b, 0xc6, 0x00, 0xaa, 0x7f, 0x47, 0xa4, 0x75, 0xc8, 0xbd, 0xb0, 0xa5, 0x4b, 0xd0, 0x4b, 0x43,
+	0xda, 0x81, 0xc2, 0x22, 0x14, 0x09, 0xc3, 0x01, 0x2b, 0xbd, 0xc3, 0x7f, 0x9b, 0xda, 0xfe, 0xc0,
+	0x5a, 0x57, 0xce, 0x25, 0x69, 0xdd, 0x42, 0xd1, 0x42, 0x4a, 0x21, 0x9f, 0x0e, 0x92, 0xbd, 0x87,
+	0x31, 0xdd, 0x03, 0x87, 0xc7, 0xd9, 0xba, 0x0e, 0x8f, 0x53, 0x27, 0x56, 0xda, 0xe0, 0x62, 0x85,
+	0x00, 0xe3, 0xbb, 0xb3, 0xd5, 0xda, 0x23, 0x1f, 0x6b, 0x8f, 0x7c, 0xae, 0x3d, 0xf2, 0xbe, 0xf1,
+	0xc8, 0x6a, 0xe3, 0x91, 0xa7, 0x7d, 0xff, 0x7a, 0xeb, 0xb4, 0xe3, 0x22, 0xde, 0xe6, 0xe2, 0x2b,
+	0x00, 0x00, 0xff, 0xff, 0x91, 0x70, 0x29, 0x53, 0xf4, 0x01, 0x00, 0x00,
 }
+
+func (m *Config) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Config) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Config) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if len(m.ServerUrl) > 0 {
+		i -= len(m.ServerUrl)
+		copy(dAtA[i:], m.ServerUrl)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.ServerUrl)))
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.NameUrl) > 0 {
+		i -= len(m.NameUrl)
+		copy(dAtA[i:], m.NameUrl)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.NameUrl)))
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.FireInterval) > 0 {
+		i -= len(m.FireInterval)
+		copy(dAtA[i:], m.FireInterval)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.FireInterval)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.PollingInterval) > 0 {
+		i -= len(m.PollingInterval)
+		copy(dAtA[i:], m.PollingInterval)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.PollingInterval)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Servers) > 0 {
+		for k := range m.Servers {
+			v := m.Servers[k]
+			baseI := i
+			if v != nil {
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintPowermancontrol(dAtA, i, uint64(size))
+				}
+				i--
+				dAtA[i] = 0x12
+			}
+			i -= len(k)
+			copy(dAtA[i:], k)
+			i = encodeVarintPowermancontrol(dAtA, i, uint64(len(k)))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintPowermancontrol(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *Server) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Server) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Server) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.XXX_unrecognized != nil {
+		i -= len(m.XXX_unrecognized)
+		copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	if m.Port != 0 {
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(m.Port))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Ip) > 0 {
+		i -= len(m.Ip)
+		copy(dAtA[i:], m.Ip)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.Ip)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintPowermancontrol(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func encodeVarintPowermancontrol(dAtA []byte, offset int, v uint64) int {
+	offset -= sovPowermancontrol(v)
+	base := offset
+	for v >= 1<<7 {
+		dAtA[offset] = uint8(v&0x7f | 0x80)
+		v >>= 7
+		offset++
+	}
+	dAtA[offset] = uint8(v)
+	return base
+}
+func (m *Config) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Servers) > 0 {
+		for k, v := range m.Servers {
+			_ = k
+			_ = v
+			l = 0
+			if v != nil {
+				l = v.Size()
+				l += 1 + sovPowermancontrol(uint64(l))
+			}
+			mapEntrySize := 1 + len(k) + sovPowermancontrol(uint64(len(k))) + l
+			n += mapEntrySize + 1 + sovPowermancontrol(uint64(mapEntrySize))
+		}
+	}
+	l = len(m.PollingInterval)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	l = len(m.FireInterval)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	l = len(m.NameUrl)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	l = len(m.ServerUrl)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *Server) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Name)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	l = len(m.Ip)
+	if l > 0 {
+		n += 1 + l + sovPowermancontrol(uint64(l))
+	}
+	if m.Port != 0 {
+		n += 1 + sovPowermancontrol(uint64(m.Port))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func sovPowermancontrol(x uint64) (n int) {
+	return (math_bits.Len64(x|1) + 6) / 7
+}
+func sozPowermancontrol(x uint64) (n int) {
+	return sovPowermancontrol(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *Config) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPowermancontrol
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Config: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Config: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Servers", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Servers == nil {
+				m.Servers = make(map[string]*Server)
+			}
+			var mapkey string
+			var mapvalue *Server
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowPowermancontrol
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					wire |= uint64(b&0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					var stringLenmapkey uint64
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowPowermancontrol
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						stringLenmapkey |= uint64(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					intStringLenmapkey := int(stringLenmapkey)
+					if intStringLenmapkey < 0 {
+						return ErrInvalidLengthPowermancontrol
+					}
+					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthPowermancontrol
+					}
+					if postStringIndexmapkey > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
+					iNdEx = postStringIndexmapkey
+				} else if fieldNum == 2 {
+					var mapmsglen int
+					for shift := uint(0); ; shift += 7 {
+						if shift >= 64 {
+							return ErrIntOverflowPowermancontrol
+						}
+						if iNdEx >= l {
+							return io.ErrUnexpectedEOF
+						}
+						b := dAtA[iNdEx]
+						iNdEx++
+						mapmsglen |= int(b&0x7F) << shift
+						if b < 0x80 {
+							break
+						}
+					}
+					if mapmsglen < 0 {
+						return ErrInvalidLengthPowermancontrol
+					}
+					postmsgIndex := iNdEx + mapmsglen
+					if postmsgIndex < 0 {
+						return ErrInvalidLengthPowermancontrol
+					}
+					if postmsgIndex > l {
+						return io.ErrUnexpectedEOF
+					}
+					mapvalue = &Server{}
+					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
+						return err
+					}
+					iNdEx = postmsgIndex
+				} else {
+					iNdEx = entryPreIndex
+					skippy, err := skipPowermancontrol(dAtA[iNdEx:])
+					if err != nil {
+						return err
+					}
+					if (skippy < 0) || (iNdEx+skippy) < 0 {
+						return ErrInvalidLengthPowermancontrol
+					}
+					if (iNdEx + skippy) > postIndex {
+						return io.ErrUnexpectedEOF
+					}
+					iNdEx += skippy
+				}
+			}
+			m.Servers[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PollingInterval", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PollingInterval = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FireInterval", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FireInterval = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NameUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NameUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServerUrl", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ServerUrl = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPowermancontrol(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Server) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPowermancontrol
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Server: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Server: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Name = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ip", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ip = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Port", wireType)
+			}
+			m.Port = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Port |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPowermancontrol(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthPowermancontrol
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func skipPowermancontrol(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
+	iNdEx := 0
+	depth := 0
+	for iNdEx < l {
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return 0, ErrIntOverflowPowermancontrol
+			}
+			if iNdEx >= l {
+				return 0, io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		wireType := int(wire & 0x7)
+		switch wireType {
+		case 0:
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				iNdEx++
+				if dAtA[iNdEx-1] < 0x80 {
+					break
+				}
+			}
+		case 1:
+			iNdEx += 8
+		case 2:
+			var length int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return 0, ErrIntOverflowPowermancontrol
+				}
+				if iNdEx >= l {
+					return 0, io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				length |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if length < 0 {
+				return 0, ErrInvalidLengthPowermancontrol
+			}
+			iNdEx += length
+		case 3:
+			depth++
+		case 4:
+			if depth == 0 {
+				return 0, ErrUnexpectedEndOfGroupPowermancontrol
+			}
+			depth--
+		case 5:
+			iNdEx += 4
+		default:
+			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
+		}
+		if iNdEx < 0 {
+			return 0, ErrInvalidLengthPowermancontrol
+		}
+		if depth == 0 {
+			return iNdEx, nil
+		}
+	}
+	return 0, io.ErrUnexpectedEOF
+}
+
+var (
+	ErrInvalidLengthPowermancontrol        = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowPowermancontrol          = fmt.Errorf("proto: integer overflow")
+	ErrUnexpectedEndOfGroupPowermancontrol = fmt.Errorf("proto: unexpected end of group")
+)
