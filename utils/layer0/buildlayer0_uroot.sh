@@ -153,7 +153,7 @@ done
 echo "Creating BusyBox binary..."
 mkdir -p "$TMPDIR"/base/bbin
 # shellcheck disable=SC2068
-"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} 2>&1 || fatal "makebb: failed to create BusyBox binary"
+"$GOPATH"/bin/makebb -o "$TMPDIR"/base/bbin/bb ${BB_COMMANDS[@]} || fatal "makebb: failed to create BusyBox binary"
 
 # Create symlinks of included programs to BusyBox binary
 echo "Creating links to BusyBox binary..."
