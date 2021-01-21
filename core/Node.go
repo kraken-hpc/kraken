@@ -180,10 +180,6 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 // note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e error) {
 	var r reflect.Value
-	if value.Kind() == reflect.Ptr {
-		// never try to assign pointers
-		value = value.Elem()
-	}
 	root, sub := util.URLShift(url)
 	switch root {
 	case "/type.googleapis.com":
@@ -231,11 +227,18 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 	if !r.IsValid() {
 		panic(url)
 	}
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
 	if r.Type() != value.Type() {
 		e = fmt.Errorf("type mismatch: %s != %s", value.Type(), r.Type())
 		return
 	}
 	// should already be locked from above
+	if !r.CanSet() {
+		e = fmt.Errorf("value %s is not settable", url)
+		return
+	}
 	r.Set(value)
 	v = r
 	return
@@ -565,7 +568,11 @@ func (n *Node) indexServices() {
 				Module: si.Module(),
 			}
 			if mc, ok := Registry.Modules[si.Module()].(types.ModuleWithConfig); ok {
-				any, e := ptypes.MarshalAny(mc.NewConfig())
+				cfg, e := Registry.Resolve(mc.ConfigURL())
+				if e != nil {
+					fmt.Printf("MarshalAny failure for service config: %v\n", e)
+				}
+				any, e := ptypes.MarshalAny(cfg)
 				if e != nil {
 					// this shouldn't happen
 					fmt.Printf("MarshalAny failure for service config: %v\n", e)

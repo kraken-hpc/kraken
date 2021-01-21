@@ -100,10 +100,14 @@ type Kraken struct {
 // NewKraken creates a new Kraken object with proper intialization
 func NewKraken(self types.Node, parents []string, logger types.Logger) *Kraken {
 	// FIXME: we probably shouldn't rely on this
-	ipv, _ := self.GetValue(AddrURL)
+	ipv, e := self.GetValue(AddrURL)
+	if e != nil {
+		logger.Logf(types.LLCRITICAL, "failed to get IP address value from state store: %v", e)
+		os.Exit(1)
+	}
 	// we can't import ipv4, so we do this little hack
 	// really, in the future, it would be better not to require this at all
-	ip := ipv.Interface().(*ipv4t.IP)
+	ip := ipv.Interface().(ipv4t.IP)
 
 	k := &Kraken{
 		Ctx: Context{
@@ -257,6 +261,7 @@ func (k *Kraken) Run() {
 	go k.Sm.Run(ready)
 	<-ready
 	k.Log(types.LLINFO, "ServiceManager reported ready")
+	k.Logf(types.LLDDEBUG, "Initial cfg state for self: %s", string(k.self.JSON()))
 }
 
 ////////////////////////
