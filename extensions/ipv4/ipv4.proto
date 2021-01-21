@@ -14,13 +14,13 @@ option go_package = ".;ipv4";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message IPv4 {
-    bytes ip      = 2 [(gogoproto.customtype) = "IP"];
-    bytes subnet  = 3 [(gogoproto.customtype) = "IP"];
+    bytes ip      = 2 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/ipv4/customtypes.IP"];
+    bytes subnet  = 3 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/ipv4/customtypes.IP"];
 }
 
 message Ethernet {
     string  iface   = 1;
-    bytes   mac     = 2 [(gogoproto.customtype) = "MAC"]; /* mac address of the interface */
+    bytes   mac     = 2 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/ipv4/customtypes.MAC"]; /* mac address of the interface */
     uint32  mtu     = 3;
     bool    control = 4; /* should we assume control (if we can)? */
 }

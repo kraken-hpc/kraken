@@ -7,9 +7,10 @@
  * See LICENSE file for details.
  */
 
-package proto
+package customtypes
 
 import (
+	"strconv"
 	"strings"
 
 	uuid "github.com/satori/go.uuid"
@@ -26,13 +27,8 @@ func (u NodeID) Marshal() ([]byte, error) {
 	return u.MarshalBinary()
 }
 
-func (u NodeID) MarshalJSON() (j []byte, e error) {
-	var t []byte
-	t, e = u.MarshalText()
-	if e != nil {
-		return
-	}
-	return []byte("\"" + string(t) + "\""), nil
+func (u NodeID) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(u.String())), nil
 }
 
 func (u *NodeID) MarshalTo(data []byte) (int, error) {
@@ -83,10 +79,6 @@ func NewNodeIDFromBinary(b []byte) *NodeID {
 func NewNodeIDFromURL(url string) *NodeID {
 	id, _ := NodeURLSplit(url)
 	return NewNodeID(id)
-}
-
-func (n *Node) GetId() *NodeID {
-	return n.Id
 }
 
 // we can't import this from util

@@ -19,6 +19,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 )
@@ -41,7 +42,7 @@ type Node struct {
 func NewNodeWithID(id string) *Node {
 	//n := newNode()
 	n := NewNodeFromJSON([]byte(nodeFixture))
-	n.pb.Id = pb.NewNodeID(id)
+	n.pb.Id = ct.NewNodeID(id)
 	n.indexServices()
 	return n
 }

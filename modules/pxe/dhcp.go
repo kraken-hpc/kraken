@@ -20,7 +20,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/hpc/kraken/core"
-	ipv4e "github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 	"golang.org/x/net/ipv4"
@@ -150,7 +150,7 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 		px.api.Logf(types.LLDEBUG, "ignoring DHCP packet from node with no IP in state: %s", p.ClientHWAddr.String())
 		return
 	}
-	ip := v.Interface().(*ipv4e.IP).IP
+	ip := v.Interface().(*ipv4t.IP).IP
 
 	switch layers.DHCPMsgType(t.Data[0]) {
 	case layers.DHCPMsgTypeDiscover:

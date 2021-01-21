@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 )
@@ -60,7 +61,7 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 		types.Event_STATE_CHANGE,
 		func(v types.Event) bool {
 			node, url := util.NodeURLSplit(v.URL())
-			if !pb.NewNodeID(node).EqualTo(sm.ctx.Self) {
+			if !ct.NewNodeID(node).EqualTo(sm.ctx.Self) {
 				return false
 			}
 			if smurl.MatchString(url) {

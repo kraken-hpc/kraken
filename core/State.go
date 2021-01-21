@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"sync"
 
-	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 )
@@ -214,7 +214,7 @@ func (s *State) QueryDelete(query string) (r []types.Node, e error)             
  */
 func (s *State) resolveNode(url string) (n types.Node, root, sub string, e error) {
 	root, sub = util.NodeURLSplit(url)
-	n, e = s.Read(pb.NewNodeIDFromURL(root))
+	n, e = s.Read(ct.NewNodeIDFromURL(root))
 	if n == nil {
 		e = fmt.Errorf("no such node: %s", root)
 	}

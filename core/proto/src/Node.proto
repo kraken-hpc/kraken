@@ -20,7 +20,7 @@ message NodeList {
 }
 
 message Node {
-    bytes id = 1 [(gogoproto.customtype) = "NodeID"];
+    bytes id = 1 [(gogoproto.customtype) = "github.com/hpc/kraken/core/proto/customtypes.NodeID"];
     string nodename = 2; /* may or may not be the hostname */
     enum RunState {
         UNKNOWN     = 0;
@@ -40,7 +40,7 @@ message Node {
     PhysState phys_state = 4;
     string arch = 5;
     string platform = 6;
-    bytes parent_id = 7 [(gogoproto.customtype) = "NodeID"];
+    bytes parent_id = 7 [(gogoproto.customtype) = "github.com/hpc/kraken/core/proto/customtypes.NodeID"];
     reserved 8 to 13;
     repeated ServiceInstance services = 14;
     repeated google.protobuf.Any extensions = 15;

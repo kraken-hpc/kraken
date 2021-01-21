@@ -10,6 +10,7 @@
 package proto
 
 import (
+	"github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/json"
 )
 
@@ -21,4 +22,8 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON populates a node from JSON
 func (n *Node) UnmarshalJSON(j []byte) error {
 	return json.Unmarshal(j, n)
+}
+
+func (n *Node) GetId() *customtypes.NodeID {
+	return n.Id
 }

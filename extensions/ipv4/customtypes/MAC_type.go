@@ -1,5 +1,3 @@
-package ipv4
-
 /* MAC_type.go: define methods to make a CustomType that stores Hardware addresses
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
@@ -9,9 +7,13 @@ package ipv4
  * See LICENSE file for details.
  */
 
+package customtypes
+
 import (
 	fmt "fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/hpc/kraken/lib/types"
 )
@@ -43,10 +45,11 @@ func (m *MAC) Unmarshal(data []byte) error {
 func (m *MAC) Size() int { return len(m.HardwareAddr) }
 
 func (m MAC) MarshalJSON() ([]byte, error) {
-	return []byte("\"" + m.String() + "\""), nil
+	return []byte(strconv.Quote(m.String())), nil
 }
 
 func (m *MAC) UnmarshalJSON(data []byte) (e error) {
-	m.HardwareAddr, e = net.ParseMAC(string(data))
+	s := strings.Trim(string(data), "\"'")
+	m.HardwareAddr, e = net.ParseMAC(s)
 	return
 }

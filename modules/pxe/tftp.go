@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/pin/tftp"
 )
@@ -73,9 +73,9 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		iface, _ := n.GetValue(px.cfg.SrvIfaceUrl)
 		data.Iface = iface.String()
 		i, _ := n.GetValue(px.cfg.IpUrl)
-		data.IP = i.Interface().(*ipv4.IP).String()
+		data.IP = i.Interface().(*ipv4t.IP).String()
 		i, _ = n.GetValue(px.cfg.NmUrl)
-		subip := i.Interface().(*ipv4.IP)
+		subip := i.Interface().(*ipv4t.IP)
 		cidr, _ := net.IPMask(subip.To4()).Size()
 		data.CIDR = strconv.Itoa(cidr)
 		data.ID = n.ID().String()

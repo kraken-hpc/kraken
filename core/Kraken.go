@@ -19,6 +19,7 @@ import (
 
 	any "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	"github.com/hpc/kraken/lib/types"
 )
 
@@ -102,7 +103,7 @@ func NewKraken(self types.Node, parents []string, logger types.Logger) *Kraken {
 	ipv, _ := self.GetValue(AddrURL)
 	// we can't import ipv4, so we do this little hack
 	// really, in the future, it would be better not to require this at all
-	ip := ipv.FieldByName("IP").Interface().(net.IP)
+	ip := ipv.Interface().(*ipv4t.IP)
 
 	k := &Kraken{
 		Ctx: Context{

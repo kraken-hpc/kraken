@@ -7,11 +7,13 @@
  * See LICENSE file for details.
  */
 
-package ipv4
+package customtypes
 
 import (
 	fmt "fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/hpc/kraken/lib/types"
 )
@@ -42,10 +44,11 @@ func (i *IP) Unmarshal(data []byte) error {
 
 func (i *IP) Size() int { return 4 }
 
-func (i IP) MarshalJSON() ([]byte, error) {
-	return i.MarshalText()
+func (i IP) MarshalJSON() (j []byte, e error) {
+	return []byte(strconv.Quote(i.String())), nil
 }
 
 func (i *IP) UnmarshalJSON(data []byte) error {
-	return i.UnmarshalText(data)
+	s := strings.Trim(string(data), "\"'")
+	return i.UnmarshalText([]byte(s))
 }

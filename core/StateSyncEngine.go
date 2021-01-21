@@ -24,6 +24,7 @@ import (
 	"time"
 
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 
@@ -186,7 +187,7 @@ var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
 // RPCPhoneHome is a gRPC call.  It establishes state sync properties with a child.
 func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRequest) (out *pb.PhoneHomeReply, e error) {
 	// we don't really have any way to make sure this is the right client but timing right now
-	id := pb.NewNodeIDFromBinary(in.GetId())
+	id := ct.NewNodeIDFromBinary(in.GetId())
 	if id.Nil() {
 		e = fmt.Errorf("could not interpet NodeID")
 		return
@@ -366,7 +367,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 		return
 	}
 	// ok! we successfully phoned home, now let's setup our parent neighbor.  Also, register our cfg state
-	nid := pb.NewNodeIDFromBinary(r.GetPid())
+	nid := ct.NewNodeIDFromBinary(r.GetPid())
 	n := sse.addNeighbor(nid.String(), true)
 	n.lock.Lock()
 	n.key = r.Key
@@ -396,7 +397,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 	}
 
 	// we need to create a stub entry for our parent node
-	pn := NewNodeWithID(pb.NewNodeIDFromBinary(r.Pid).String())
+	pn := NewNodeWithID(ct.NewNodeIDFromBinary(r.Pid).String())
 
 	// FIXME: this is a lockin to ipv4; also a hack
 	/* this isn't necessary as long as the extension is loaded
@@ -449,7 +450,7 @@ func (sse *StateSyncEngine) nodeToBinary(to types.NodeID, n types.Node) (msg []b
 }
 
 func (sse *StateSyncEngine) ssmToNode(m *pb.StateSyncMessage) (rp recvPacket, e error) {
-	rp.From = pb.NewNodeIDFromBinary(m.Id)
+	rp.From = ct.NewNodeIDFromBinary(m.Id)
 	if rp.From.Nil() {
 		e = fmt.Errorf("could not unmarshal NodeID")
 		return
@@ -580,7 +581,7 @@ func (sse *StateSyncEngine) wakeForNext() {
 }
 
 func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighbor {
-	nid := pb.NewNodeID(id)
+	nid := ct.NewNodeID(id)
 	n := &stateSyncNeighbor{
 		lock:      sync.Mutex{},
 		parent:    parent,

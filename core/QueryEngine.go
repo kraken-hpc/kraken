@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 )
@@ -94,7 +95,7 @@ func (q *QueryEngine) ReadMutationEdges(url string) (mc pb.MutationEdgeList, e e
 }
 
 func (q *QueryEngine) ReadNodeMutationNodes(url string) (mc pb.MutationNodeList, e error) {
-	n := pb.NewNodeIDFromURL(url)
+	n := ct.NewNodeIDFromURL(url)
 	query, r := NewQuery(types.Query_MUTATIONNODES, types.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
 	v, e := q.blockingQuery(query, r)
 	if len(v) < 1 || !v[0].IsValid() {
@@ -104,7 +105,7 @@ func (q *QueryEngine) ReadNodeMutationNodes(url string) (mc pb.MutationNodeList,
 }
 
 func (q *QueryEngine) ReadNodeMutationEdges(url string) (mc pb.MutationEdgeList, e error) {
-	n := pb.NewNodeIDFromURL(url)
+	n := ct.NewNodeIDFromURL(url)
 	query, r := NewQuery(types.Query_MUTATIONEDGES, types.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
 	v, e := q.blockingQuery(query, r)
 	if len(v) < 1 || !v[0].IsValid() {
@@ -114,7 +115,7 @@ func (q *QueryEngine) ReadNodeMutationEdges(url string) (mc pb.MutationEdgeList,
 }
 
 func (q *QueryEngine) ReadNodeMutationPath(url string) (mc pb.MutationPath, e error) {
-	n := pb.NewNodeIDFromURL(url)
+	n := ct.NewNodeIDFromURL(url)
 	query, r := NewQuery(types.Query_MUTATIONPATH, types.QueryState_BOTH, url, []reflect.Value{reflect.ValueOf(n)})
 	v, e := q.blockingQuery(query, r)
 	if len(v) < 1 || !v[0].IsValid() {

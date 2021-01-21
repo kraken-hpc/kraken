@@ -20,6 +20,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 	"google.golang.org/grpc"
@@ -97,7 +98,7 @@ func (s *ModuleAPIServer) QueryCreate(ctx context.Context, in *pb.Query) (out *p
 func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.Read(pb.NewNodeIDFromURL(in.URL))
+	nout, e = s.query.Read(ct.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
@@ -108,7 +109,7 @@ func (s *ModuleAPIServer) QueryRead(ctx context.Context, in *pb.Query) (out *pb.
 func (s *ModuleAPIServer) QueryReadDsc(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.ReadDsc(pb.NewNodeIDFromURL(in.URL))
+	nout, e = s.query.ReadDsc(ct.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
@@ -153,7 +154,7 @@ func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out
 func (s *ModuleAPIServer) QueryDelete(ctx context.Context, in *pb.Query) (out *pb.Query, e error) {
 	var nout types.Node
 	out = &pb.Query{}
-	nout, e = s.query.Delete(pb.NewNodeIDFromURL(in.URL))
+	nout, e = s.query.Delete(ct.NewNodeIDFromURL(in.URL))
 	out.URL = in.URL
 	if nout != nil {
 		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}

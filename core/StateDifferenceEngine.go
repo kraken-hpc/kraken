@@ -15,6 +15,7 @@ import (
 	"reflect"
 
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 )
@@ -333,10 +334,10 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 				var e error
 				switch q.State() {
 				case types.QueryState_CONFIG:
-					v, e = n.Read(pb.NewNodeIDFromURL(q.URL()))
+					v, e = n.Read(ct.NewNodeIDFromURL(q.URL()))
 					break
 				case types.QueryState_DISCOVER:
-					v, e = n.ReadDsc(pb.NewNodeIDFromURL(q.URL()))
+					v, e = n.ReadDsc(ct.NewNodeIDFromURL(q.URL()))
 					break
 				default:
 					e = fmt.Errorf("unknown state for Query_READ")

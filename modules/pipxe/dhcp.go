@@ -22,7 +22,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/hpc/kraken/core"
-	ipv4l "github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 	"golang.org/x/net/ipv4"
@@ -77,7 +77,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 
 	// We need the raw handle to send unicast packet replies
 	// This is only used for sending initial DHCP offers
-	// Note: 0x0800 is EtherType for ipv4l. See: https://en.wikipedia.org/wiki/EtherType
+	// Note: 0x0800 is EtherType for ipv4e. See: https://en.wikipedia.org/wiki/EtherType
 	px.rawHandle, e = raw.ListenPacket(px.iface, 0x0800, nil)
 	if e != nil {
 		px.api.Logf(types.LLCRITICAL, "%v: %s", e, iface)
@@ -180,8 +180,8 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 			px.api.Logf(types.LLDEBUG, "node does not have an IP in state %s", p.ClientHWAddr.String())
 			return
 		}
-		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ipv4l.BytesToIP(v.Bytes()))
-		ip := v.Interface().(*ipv4l.IP).IP
+		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ipv4e.BytesToIP(v.Bytes()))
+		ip := v.Interface().(*ipv4t.IP).IP
 		px.api.Logf(types.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
 		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
@@ -338,7 +338,7 @@ func (px *PiPXE) wakeNode(n types.Node, stop <-chan bool) {
 		px.api.Logf(types.LLERROR, "Error getting mac address for node: %v", e)
 		return
 	}
-	mac := macValue.Interface().(*ipv4l.MAC).HardwareAddr
+	mac := macValue.Interface().(*ipv4t.MAC).HardwareAddr
 	if mac == nil {
 		px.api.Logf(types.LLERROR, "Error parsing mac address from value: %v", macValue.Bytes())
 		return

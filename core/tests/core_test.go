@@ -7,10 +7,11 @@ import (
 
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 )
 
 func TestNewNodeWithID(t *testing.T) {
-	nid := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	nid := ct.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
 	n := NewNodeWithID("123e4567-e89b-12d3-a456-426655440000")
 	if !n.ID().EqualTo(nid) {
 		t.Errorf("failed to create equal NIDs on new node: %v", n)
@@ -28,8 +29,8 @@ func TestNode_GetValue(t *testing.T) {
 		t.Errorf("invalid value returned: %v", v)
 		return
 	}
-	ref := pb.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
-	if !v.Interface().(*pb.NodeID).EqualTo(ref) {
+	ref := ct.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	if !v.Interface().(*ct.NodeID).EqualTo(ref) {
 		t.Errorf("result mismatch: %v != %v", v.Interface(), ref)
 	}
 }

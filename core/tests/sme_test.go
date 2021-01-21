@@ -7,6 +7,7 @@ import (
 
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	uuid "github.com/satori/go.uuid"
 )
@@ -114,7 +115,7 @@ func fixtureNodes() []struct {
 	node  pb.Node
 	count int
 } {
-	id := &pb.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
+	id := &ct.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
 	pbs := []struct {
 		node  pb.Node
 		count int
@@ -164,7 +165,7 @@ func fixtureNodes() []struct {
 }
 
 func TestStateSpec_NodeMatch(t *testing.T) {
-	id := &pb.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
+	id := &ct.NodeID{uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))}
 
 	nodes := []struct {
 		node  pb.Node

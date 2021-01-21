@@ -27,7 +27,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	thpb "github.com/hpc/kraken/extensions/rfthermal"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
@@ -219,7 +219,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []types.Node)
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(rfd.cfg.GetIpUrl())
-		ip := v.Interface().(*ipv4.IP).String()
+		ip := v.Interface().(*ipv4t.IP).String()
 		ipList = append(ipList, ip)
 		idMap[ip] = n.ID()
 	}
