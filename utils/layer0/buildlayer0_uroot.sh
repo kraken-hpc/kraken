@@ -126,11 +126,12 @@ echo 'replace github.com/u-root/u-root => ../../u-root/u-root' >> "$GOPATH"/src/
 
 # Delete vendor/ directory so that makebb will only see modules and not throw the error:
 # "busybox does not support mixed module/non-module compilation"
+# Also, modify the go.mod to use the local u-root.
 # This is a hack.
 (
  cd "$GOPATH"/src/github.com/bensallen/modscan
  rm -rf vendor/
- go mod tidy
+ sed -i '/replace github.com\/u-root\/u-root/ c replace github.com/u-root/u-root => ../../u-root/u-root' go.mod
 )
 
 # Generate the array of commands to add to BusyBox binary
