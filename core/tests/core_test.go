@@ -74,30 +74,37 @@ func simpleNode() *Node {
 
 func TestNode_Binary(t *testing.T) {
 	n := simpleNode()
-
+	t.Logf("Original node (JSON): %s", n.JSON())
 	out := n.Binary()
-	if len(out) == 0 {
-		t.Error("marshal failed")
+	t.Logf("Proto message (binary): %s\n", hex.Dump(out))
+	nn := NewNodeFromBinary(out)
+	t.Logf("Node from binary (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
 	}
-	t.Logf("Proto message (binary): \n%s\n", hex.Dump(out))
 }
 
 func TestNode_JSON(t *testing.T) {
 	n := simpleNode()
-
+	t.Logf("Original node (JSON): %s", n.JSON())
 	out := n.JSON()
-	if len(out) == 0 {
-		t.Error("zero length output")
-		return
+	nn := NewNodeFromJSON(out)
+	t.Logf("Node from JSON (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
 	}
-	t.Logf("Proto message (JSON): \n%s\n", out)
 }
 
 func TestNode_Message(t *testing.T) {
 	n := simpleNode()
-
-	out := n.Message()
-	t.Logf("Proto message: \n%s\n", out.String())
+	t.Logf("Original node (JSON): %s", n.JSON())
+	m := n.Message()
+	t.Logf("Proto message: %s\n", m.String())
+	nn := NewNodeFromMessage(m.(*pb.Node))
+	t.Logf("Node from message (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
+	}
 }
 
 func TestNewNodeFromJSON(t *testing.T) {

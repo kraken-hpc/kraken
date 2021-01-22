@@ -130,6 +130,9 @@ func (n *Node) Message() proto.Message {
 	// TODO: do this better.
 	bytes := n.Binary()
 	m := NewNodeFromBinary(bytes)
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.exportExtensions()
 	return m.pb
 }
 
