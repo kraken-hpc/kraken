@@ -130,7 +130,7 @@ $ export KRAKEN_VBOXNET="VirtualBox Host-Only Ethernet Adapter #2"
 
 You will need to set this variable any time you create a new shell.  Alternatively, you could place it in your `.bashrc`.
 
-## Relase the Kraken
+## Release the Kraken
 
 Once the dependencies are installed and the host-only network is setup in VirtualBox, you can deploy a virtual cracking cluster with one command:
 
