@@ -2,12 +2,15 @@ package core
 
 import (
 	"encoding/hex"
+	"net"
 	"reflect"
 	"testing"
 
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
 	ct "github.com/hpc/kraken/core/proto/customtypes"
+	_ "github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 )
 
 func TestNewNodeWithID(t *testing.T) {
@@ -64,6 +67,7 @@ func simpleNode() *Node {
 			"/Nodename":  reflect.ValueOf("noname"),
 			"/RunState":  reflect.ValueOf(pb.Node_INIT),
 			"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+			"type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/test/Ip/Ip": reflect.ValueOf(ipv4t.IP{IP: net.IPv4(10, 11, 12, 13)}),
 		})
 	return n
 }
@@ -113,7 +117,7 @@ func TestNewNodeFromJSON(t *testing.T) {
 }
 
 func TestNewNodeFromBinary(t *testing.T) {
-	in := "0a10123e4567e89b12d3a45642665544000012066e6f6e616d6518012001"
+	in := "0a10123e4567e89b12d3a45642665544000012066e6f6e616d65180120027a3f0a29747970652e676f6f676c65617069732e636f6d2f495076342e495076344f76657245746865726e657412120a100a04746573741208120612040a0b0c0d"
 	bin, err := hex.DecodeString(in)
 	t.Logf("in: \n%s", hex.Dump(bin))
 	if err != nil {

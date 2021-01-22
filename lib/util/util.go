@@ -162,13 +162,8 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 
 // ResolveURL turns a state URL (string) into an interface reference
 func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
-	if url == "" {
+	if url == "" && context.Kind() != reflect.Ptr {
 		v = context
-		if v.Kind() == reflect.Ptr {
-			// don't return pointers, they're not assignable
-			// this generally happens with maps
-			v = v.Elem()
-		}
 		return
 	}
 
@@ -219,13 +214,8 @@ func ResolveURL(url string, context reflect.Value) (v reflect.Value, e error) {
 
 // ResolveOrMakeURL is like ResolveURL, except it will create any referenced but non-defined objects
 func ResolveOrMakeURL(url string, context reflect.Value) (v reflect.Value, e error) {
-	if url == "" {
+	if url == "" && context.Kind() != reflect.Ptr {
 		v = context
-		if v.Kind() == reflect.Ptr {
-			// don't return pointers, they're not assignable
-			// this generally happens with maps
-			v = v.Elem()
-		}
 		return
 	}
 
