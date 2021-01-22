@@ -25,6 +25,7 @@ import (
 
 	pb "github.com/hpc/kraken/core/proto"
 	ct "github.com/hpc/kraken/core/proto/customtypes"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
 
@@ -493,7 +494,7 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		return
 	}
 	// FIXME: @important sending assumes udp4
-	ip := net.IPv4(addr.Bytes()[0], addr.Bytes()[1], addr.Bytes()[2], addr.Bytes()[3])
+	ip := addr.Interface().(ipv4t.IP)
 	if n.getParent() {
 		node, e = sse.query.ReadDsc(sse.self)
 		if e != nil {
@@ -502,7 +503,7 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		}
 	}
 	msg, _ := sse.nodeToBinary(n.getID(), node)
-	cnt, e := sse.conn.WriteTo(msg, &net.UDPAddr{IP: ip, Port: sse.cfg.Port})
+	cnt, e := sse.conn.WriteTo(msg, &net.UDPAddr{IP: ip.IP, Port: sse.cfg.Port})
 	if e != nil {
 		sse.Logf(ERROR, "udp write failed: %v", e)
 		return
