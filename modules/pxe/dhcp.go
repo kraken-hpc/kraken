@@ -150,7 +150,7 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 		px.api.Logf(types.LLDEBUG, "ignoring DHCP packet from node with no IP in state: %s", p.ClientHWAddr.String())
 		return
 	}
-	ip := v.Interface().(*ipv4t.IP).IP
+	ip := v.Interface().(ipv4t.IP).IP
 
 	switch layers.DHCPMsgType(t.Data[0]) {
 	case layers.DHCPMsgTypeDiscover:

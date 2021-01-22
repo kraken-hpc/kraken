@@ -131,8 +131,8 @@ func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-ex
 	if e != nil {
 		px.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
-	ip := v[px.cfg.IpUrl].Interface().(*ipv4t.IP).IP
-	mac := v[px.cfg.MacUrl].Interface().(*ipv4t.IP).IP
+	ip := v[px.cfg.IpUrl].Interface().(ipv4t.IP).IP
+	mac := v[px.cfg.MacUrl].Interface().(ipv4t.IP).IP
 	delete(px.nodeBy[queryByIP], ip.String())
 	delete(px.nodeBy[queryByMAC], mac.String())
 	px.mutex.Unlock()
@@ -147,8 +147,8 @@ func (px *PXE) NodeCreate(n types.Node) (e error) {
 	if len(v) != 2 {
 		return fmt.Errorf("missing ip or mac for node, aborting")
 	}
-	ip := v[px.cfg.IpUrl].Interface().(*ipv4t.IP).IP
-	mac := v[px.cfg.MacUrl].Interface().(*ipv4t.MAC).HardwareAddr
+	ip := v[px.cfg.IpUrl].Interface().(ipv4t.IP).IP
+	mac := v[px.cfg.MacUrl].Interface().(ipv4t.MAC).HardwareAddr
 	if ip == nil || mac == nil { // incomplete node
 		return fmt.Errorf("won't add incomplete node: ip: %v, mac: %v", ip, mac)
 	}
@@ -227,9 +227,9 @@ var _ types.ModuleSelfService = (*PXE)(nil)
 func (px *PXE) Entry() {
 	nself, _ := px.api.QueryRead(px.api.Self().String())
 	v, _ := nself.GetValue(px.cfg.SrvIpUrl)
-	px.selfIP = v.Interface().(*ipv4t.IP).IP
+	px.selfIP = v.Interface().(ipv4t.IP).IP
 	v, _ = nself.GetValue(px.cfg.SubnetUrl)
-	px.selfNet = v.Interface().(*ipv4t.IP).IP
+	px.selfNet = v.Interface().(ipv4t.IP).IP
 	v, _ = nself.GetValue(px.cfg.SrvIfaceUrl)
 	go px.StartDHCP(v.String(), px.selfIP)
 	go px.StartTFTP(px.selfIP)
@@ -302,7 +302,7 @@ func (px *PXE) handleMutation(m *core.MutationEvent) {
 		if e != nil || !v.IsValid() {
 			break
 		}
-		ip := v.Interface().(*ipv4t.IP)
+		ip := v.Interface().(ipv4t.IP)
 		px.NodeDelete(queryByIP, ip.String())
 	}
 }

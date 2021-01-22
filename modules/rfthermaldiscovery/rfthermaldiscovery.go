@@ -219,7 +219,7 @@ func (rfd *RFD) aggCPUTempDiscover(aggregatorName string, nodeList []types.Node)
 	var ipList []string
 	for _, n := range nodeList {
 		v, _ := n.GetValue(rfd.cfg.GetIpUrl())
-		ip := v.Interface().(*ipv4t.IP).String()
+		ip := v.Interface().(ipv4t.IP).String()
 		ipList = append(ipList, ip)
 		idMap[ip] = n.ID()
 	}
