@@ -28,7 +28,7 @@ function test_chmod {
 
 echo "==="
 echo "=== Building a kraken vagrant/virtualbox cluster..."
-echo "=="
+echo "==="
 
 # Are we running under WSL?
 # See: https://stackoverflow.com/questions/38086185/how-to-check-if-a-program-is-run-in-bash-on-ubuntu-on-windows-and-not-just-plain
