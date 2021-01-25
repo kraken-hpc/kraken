@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/hpc/kraken/lib/types"
@@ -241,7 +242,9 @@ func ModuleExecute(id, module, sock string) {
 			api.Logf(ERROR, "unmarshal config failure: %v\n", e)
 			return
 		}
-		mc.UpdateConfig(p)
+		defaults := mc.NewConfig()
+		proto.Merge(defaults, p)
+		mc.UpdateConfig(defaults)
 	}
 
 	if config {
