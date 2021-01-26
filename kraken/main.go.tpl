@@ -10,6 +10,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -18,15 +19,16 @@ import (
 	"reflect"
 
 	"github.com/coreos/go-systemd/daemon"
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 
 	_ "net/http/pprof"
 
 	cpb "github.com/hpc/kraken/core/proto"
-	ip4pb "github.com/hpc/kraken/extensions/IPv4/proto"
-	rpb "github.com/hpc/kraken/modules/restapi/proto"
+	"github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	rpb "github.com/hpc/kraken/modules/restapi"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -53,7 +55,7 @@ func main() {
 	log := &core.WriterLogger{}
 	log.RegisterWriter(os.Stderr)
 	log.SetModule("main")
-	log.SetLoggerLevel(lib.LoggerLevel(*llevel))
+	log.SetLoggerLevel(types.LoggerLevel(*llevel))
 	if *noprefix {
 		log.DisablePrefix = true
 	}
@@ -65,19 +67,19 @@ func main() {
 	if id == "" {
 		id = "kraken"
 	}
-	log.Logf(lib.LLNOTICE, "I am: %s", id)
+	log.Logf(types.LLNOTICE, "I am: %s", id)
 
 	if id != "kraken" {
 		module := os.Getenv("KRAKEN_MODULE")
 		sock := os.Getenv("KRAKEN_SOCK")
 		if m, ok := core.Registry.Modules[module]; ok {
-			if _, ok := m.(lib.ModuleSelfService); ok {
-				log.Logf(lib.LLNOTICE, "module entry point: %s", module)
+			if _, ok := m.(types.ModuleSelfService); ok {
+				log.Logf(types.LLNOTICE, "module entry point: %s", module)
 				core.ModuleExecute(id, module, sock)
 				return
 			}
 		}
-		log.Logf(lib.LLCRITICAL, "could not start module: %s", module)
+		log.Logf(types.LLCRITICAL, "could not start module: %s", module)
 		return
 	}
 
@@ -108,16 +110,16 @@ func main() {
 	// Set some defaults if we're a full state node
 	if len(parents) == 0 {
 		// Enable the restapi by default
-		conf := &rpb.RestAPIConfig{
+		conf := &rpb.Config{
 			Addr: *ipapi,
 			Port: 3141,
 		}
 		any, _ := ptypes.MarshalAny(conf)
 		if _, e := self.SetValue("/Services/restapi/Config", reflect.ValueOf(any)); e != nil {
-			log.Logf(lib.LLERROR, "couldn't set value /Services/restapi/Config -> %+v: %v", reflect.ValueOf(any), e)
+			log.Logf(types.LLERROR, "couldn't set value /Services/restapi/Config -> %+v: %v", reflect.ValueOf(any), e)
 		}
 		if _, e := self.SetValue("/Services/restapi/State", reflect.ValueOf(cpb.ServiceInstance_RUN)); e != nil {
-			log.Logf(lib.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
+			log.Logf(types.LLERROR, "couldn't set value /Services/restapi/State -> %+v: %v", reflect.ValueOf(cpb.ServiceInstance_RUN), e)
 		}
 
 		// Set our run/phys states.  If we're full state these are implicit
@@ -127,11 +129,11 @@ func main() {
 		selfDsc.SetValue("/RunState", reflect.ValueOf(cpb.Node_SYNC))
 	}
 
-	nodes := []lib.Node{}
+	nodes := []types.Node{}
 
 	// Parse -cfg file
 	if *cfg != "" {
-		log.Logf(lib.LLINFO, "loading initial configuration state from: %s", *cfg)
+		log.Logf(types.LLINFO, "loading initial configuration state from: %s", *cfg)
 		data, e := ioutil.ReadFile(*cfg)
 		if e != nil {
 			fmt.Printf("failed to read cfg state file: %s, %v", *cfg, e)
@@ -139,16 +141,16 @@ func main() {
 			return
 		}
 		var pbs cpb.NodeList
-		if e = core.UnmarshalJSON(data, &pbs); e != nil {
+		if e = json.Unmarshal(data, &pbs); e != nil {
 			fmt.Printf("could not parse cfg state file: %s, %v", *cfg, e)
 			flag.PrintDefaults()
 			return
 		}
-		log.Logf(lib.LLDEBUG, "found initial state information for %d nodes", len(pbs.Nodes))
+		log.Logf(types.LLDEBUG, "found initial state information for %d nodes", len(pbs.Nodes))
 		for _, m := range pbs.GetNodes() {
 			n := core.NewNodeFromMessage(m)
-			log.Logf(lib.LLDDDEBUG, "got node state for node: %s", n.ID().String())
-			if n.ID().Equal(self.ID()) {
+			log.Logf(types.LLDDDEBUG, "got node state for node: %s", n.ID().String())
+			if n.ID().EqualTo(self.ID()) {
 				// we found ourself
 				self.Merge(n, "")
 			} else {
@@ -162,13 +164,13 @@ func main() {
 	if ok, _ := setFlags["ip"]; *cfg == "" || ok {
 		netIP := net.ParseIP(*ip)
 		if netIP == nil {
-			log.Logf(lib.LLCRITICAL, "could not parse IP address: %s", *ip)
+			log.Logf(types.LLCRITICAL, "could not parse IP address: %s", *ip)
 		}
 		iface := net.Interface{}
 		network := net.IPNet{}
 		ifaces, e := net.Interfaces()
 		if e != nil {
-			log.Logf(lib.LLCRITICAL, "failed to get system interfaces: %s", e.Error())
+			log.Logf(types.LLCRITICAL, "failed to get system interfaces: %s", e.Error())
 			return
 		}
 		for _, i := range ifaces {
@@ -186,22 +188,22 @@ func main() {
 			}
 		}
 		if iface.Name == "" {
-			log.Logf(lib.LLCRITICAL, "could not find interface for ip %s", *ip)
+			log.Logf(types.LLCRITICAL, "could not find interface for ip %s", *ip)
 			return
 		}
-		log.Logf(lib.LLDEBUG, "using interface: %s", iface.Name)
-		pb := &ip4pb.IPv4OverEthernet_ConfiguredInterface{
-			Eth: &ip4pb.Ethernet{
+		log.Logf(types.LLDEBUG, "using interface: %s", iface.Name)
+		pb := &ipv4.IPv4OverEthernet_ConfiguredInterface{
+			Eth: &ipv4.Ethernet{
 				Iface: iface.Name,
-				Mac:   iface.HardwareAddr,
+				Mac:   &ipv4t.MAC{iface.HardwareAddr},
 				Mtu:   uint32(iface.MTU),
 			},
-			Ip: &ip4pb.IPv4{
-				Ip:     netIP.To4(),
-				Subnet: network.Mask,
+			Ip: &ipv4.IPv4{
+				Ip:     &ipv4t.IP{netIP.To4()},
+				Subnet: &ipv4t.IP{net.IP(network.Mask)},
 			},
 		}
-		self.SetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0", reflect.ValueOf(pb))
+		self.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken", reflect.ValueOf(pb))
 	}
 
 	// Launch Kraken
@@ -209,7 +211,7 @@ func main() {
 	if len(nodes) > 0 {
 		k.Ctx.SDE.InitialCfg = append(k.Ctx.SDE.InitialCfg, nodes...)
 	}
-	k.Ctx.SDE.InitialDsc = []lib.Node{selfDsc}
+	k.Ctx.SDE.InitialDsc = []types.Node{selfDsc}
 	k.Release()
 
 	// Thaw if full state and not told to freeze
@@ -221,11 +223,11 @@ func main() {
 	if *sdnotify {
 		sent, err := daemon.SdNotify(false, daemon.SdNotifyReady)
 		if err != nil {
-			log.Logf(lib.LLCRITICAL, "failed to send sd_notify: %v", err)
+			log.Logf(types.LLCRITICAL, "failed to send sd_notify: %v", err)
 		} else if !sent {
-			log.Logf(lib.LLWARNING, "sdnotify was requested, but notification is not supported")
+			log.Logf(types.LLWARNING, "sdnotify was requested, but notification is not supported")
 		} else {
-			log.Logf(lib.LLNOTICE, "successfuly sent sdnotify ready")
+			log.Logf(types.LLNOTICE, "successfuly sent sdnotify ready")
 		}
 	}
 

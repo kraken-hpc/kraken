@@ -6,15 +6,15 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	cpb "github.com/hpc/kraken/core/proto"
-	pbd "github.com/hpc/kraken/modules/dummy/proto"
+	pbd "github.com/hpc/kraken/modules/dummy"
 )
 
 func main() {
 
-	api := core.NewAPIClient(os.Args[1])
+	api := core.NewModuleAPIClient(os.Args[1])
 
 	ns, e := api.QueryReadAll()
 	if e != nil {
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	fmt.Println("changing dummy0 config")
-	dconf := &pbd.DummyConfig{
+	dconf := &pbd.Config{
 		Say:  []string{"one", "more", "test"},
 		Wait: "1s",
 	}

@@ -22,8 +22,9 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/extensions/IPv4"
-	"github.com/hpc/kraken/lib"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 	"golang.org/x/net/ipv4"
 )
 
@@ -59,7 +60,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	// Find our interface
 	px.iface, e = net.InterfaceByName(iface)
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
+		px.api.Logf(types.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
 
@@ -67,7 +68,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 		// We use an ARPResolver
 		d, e := time.ParseDuration(px.cfg.ArpDeadline)
 		if e != nil {
-			px.api.Logf(lib.LLERROR, "invalid arp duration: %v", e)
+			px.api.Logf(types.LLERROR, "invalid arp duration: %v", e)
 			d = time.Millisecond * 500
 		}
 		px.arp = NewARPResolver(px.iface, px.selfIP, d)
@@ -76,10 +77,10 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 
 	// We need the raw handle to send unicast packet replies
 	// This is only used for sending initial DHCP offers
-	// Note: 0x0800 is EtherType for IPv4. See: https://en.wikipedia.org/wiki/EtherType
+	// Note: 0x0800 is EtherType for ipv4e. See: https://en.wikipedia.org/wiki/EtherType
 	px.rawHandle, e = raw.ListenPacket(px.iface, 0x0800, nil)
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
+		px.api.Logf(types.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
 	defer px.rawHandle.Close()
@@ -87,12 +88,12 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 	// We use this packetconn to read from
 	nc, e := net.ListenPacket("udp4", ":67")
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v", e)
+		px.api.Logf(types.LLCRITICAL, "%v", e)
 		return
 	}
 	c := ipv4.NewPacketConn(nc)
 	defer c.Close()
-	px.api.Logf(lib.LLINFO, "started DHCP listener on: %s", iface)
+	px.api.Logf(types.LLINFO, "started DHCP listener on: %s", iface)
 
 	// main read loop
 	for {
@@ -103,7 +104,7 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 
 		n, _, addr, e := c.ReadFrom(buffer)
 		if e != nil {
-			px.api.Logf(lib.LLCRITICAL, "%v", e)
+			px.api.Logf(types.LLCRITICAL, "%v", e)
 			break
 		}
 		/* FIXME: This appears to be broken, we disable for now
@@ -112,18 +113,18 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 			break
 		}
 		*/
-		px.api.Logf(lib.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
+		px.api.Logf(types.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
 		if n < 240 {
-			px.api.Logf(lib.LLDDEBUG, "packet is too short: %d < 240", n)
+			px.api.Logf(types.LLDDEBUG, "packet is too short: %d < 240", n)
 			continue
 		}
 
 		if e = parser.DecodeLayers(buffer[:n], &decoded); e != nil {
-			px.api.Logf(lib.LLERROR, "error decoding packet: %v", e)
+			px.api.Logf(types.LLERROR, "error decoding packet: %v", e)
 			continue
 		}
 		if len(decoded) < 1 || decoded[0] != layers.LayerTypeDHCPv4 {
-			px.api.Logf(lib.LLERROR, "decoded non-DHCP packet")
+			px.api.Logf(types.LLERROR, "decoded non-DHCP packet")
 			continue
 		}
 		// at this point we have a parsed DHCPv4 packet
@@ -133,14 +134,14 @@ func (px *PiPXE) StartDHCP(iface string, ip net.IP) {
 			continue
 		}
 		if req.HardwareLen > 16 {
-			px.api.Logf(lib.LLDDEBUG, "packet HardwareLen too long: %d > 16", req.HardwareLen)
+			px.api.Logf(types.LLDDEBUG, "packet HardwareLen too long: %d > 16", req.HardwareLen)
 			continue
 		}
 
 		go px.handleDHCPRequest(req)
 		// count++
 	}
-	px.api.Log(lib.LLNOTICE, "DHCP stopped.")
+	px.api.Log(types.LLNOTICE, "DHCP stopped.")
 }
 
 // handleDHCPRequest is the main handler for new DHCP packets
@@ -148,7 +149,7 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 
 	// ignore if this doesn't appear to be a Pi
 	if string([]rune(strings.ToLower(p.ClientHWAddr.String())[0:8])) != MACVendor {
-		px.api.Logf(lib.LLDDEBUG, "ignoring packet from non-Pi mac: %s", p.ClientHWAddr.String())
+		px.api.Logf(types.LLDDEBUG, "ignoring packet from non-Pi mac: %s", p.ClientHWAddr.String())
 		return
 	}
 
@@ -166,22 +167,22 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 
 	switch t {
 	case layers.DHCPMsgTypeDiscover:
-		px.api.Logf(lib.LLDEBUG, "got DHCP discover from %s", p.ClientHWAddr.String())
+		px.api.Logf(types.LLDEBUG, "got DHCP discover from %s", p.ClientHWAddr.String())
 		n := px.NodeGet(queryByMAC, p.ClientHWAddr.String())
 		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
 		if n == nil {
-			px.api.Logf(lib.LLDEBUG, "ignoring DHCP discover from unknown %s", p.ClientHWAddr.String())
+			px.api.Logf(types.LLDEBUG, "ignoring DHCP discover from unknown %s", p.ClientHWAddr.String())
 			return
 		}
 		// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
 		v, e := n.GetValue(px.cfg.IpUrl)
 		if e != nil {
-			px.api.Logf(lib.LLDEBUG, "node does not have an IP in state %s", p.ClientHWAddr.String())
+			px.api.Logf(types.LLDEBUG, "node does not have an IP in state %s", p.ClientHWAddr.String())
 			return
 		}
-		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), IPv4.BytesToIP(v.Bytes()))
-		ip := IPv4.BytesToIP(v.Bytes())
-		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
+		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ipv4e.BytesToIP(v.Bytes()))
+		ip := v.Interface().(ipv4t.IP).IP
+		px.api.Logf(types.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
 		// fmt.Printf("%v, %v, %p, %v, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String(), ip)
 		r := px.offerPacket(
@@ -204,7 +205,7 @@ func (px *PiPXE) handleDHCPRequest(p layers.DHCPv4) {
 		px.wakeMutex.Unlock()
 		return
 	default: // Pi's only send Discovers
-		px.api.Log(lib.LLDEBUG, "Unhandled DHCP packet.")
+		px.api.Log(types.LLDEBUG, "Unhandled DHCP packet.")
 	}
 	return
 }
@@ -284,7 +285,7 @@ func (px *PiPXE) offerPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 	return buf.Bytes()
 }
 
-func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
+func (px *PiPXE) transmitDHCPOffer(n types.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
 	//var rmac net.HardwareAddr
 	var e error
 	/*
@@ -294,7 +295,7 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 		}
 	*/
 	for i := 0; i < int(px.cfg.DhcpRetry); i++ {
-		px.api.Logf(lib.LLDEBUG, "transmitting DHCP offer (attempt: %d)", i+1)
+		px.api.Logf(types.LLDEBUG, "transmitting DHCP offer (attempt: %d)", i+1)
 
 		_, e = px.rawHandle.WriteTo(rawp, &raw.Addr{HardwareAddr: mac})
 		if e != nil {
@@ -303,18 +304,18 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 
 		//_, e = px.arp.Resolve(ip)
 		if e == nil {
-			url1 := lib.NodeURLJoin(n.ID().String(), PxeURL)
+			url1 := util.NodeURLJoin(n.ID().String(), PxeURL)
 			ev1 := core.NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url1,
 				&core.DiscoveryEvent{
 					URL:     url1,
 					ValueID: "INIT",
 				},
 			)
-			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+			url2 := util.NodeURLJoin(n.ID().String(), "/RunState")
 			ev2 := core.NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url2,
 				&core.DiscoveryEvent{
 					URL:     url2,
@@ -331,15 +332,15 @@ func (px *PiPXE) transmitDHCPOffer(n lib.Node, ip net.IP, mac net.HardwareAddr, 
 
 // wakeNodes sends a wake packet every second until something is passed into the stop channel.
 // will also stop after 30 seconds of spamming
-func (px *PiPXE) wakeNode(n lib.Node, stop <-chan bool) {
+func (px *PiPXE) wakeNode(n types.Node, stop <-chan bool) {
 	macValue, e := n.GetValue(px.cfg.GetMacUrl())
 	if e != nil {
-		px.api.Logf(lib.LLERROR, "Error getting mac address for node: %v", e)
+		px.api.Logf(types.LLERROR, "Error getting mac address for node: %v", e)
 		return
 	}
-	mac := IPv4.BytesToMAC(macValue.Bytes())
+	mac := macValue.Interface().(ipv4t.MAC).HardwareAddr
 	if mac == nil {
-		px.api.Logf(lib.LLERROR, "Error parsing mac address from value: %v", macValue.Bytes())
+		px.api.Logf(types.LLERROR, "Error parsing mac address from value: %v", macValue.Bytes())
 		return
 	}
 
@@ -350,19 +351,19 @@ func (px *PiPXE) wakeNode(n lib.Node, stop <-chan bool) {
 	for {
 		select {
 		case <-timer.C:
-			px.api.Logf(lib.LLDDDEBUG, "30 second wake packet timer for: %v %v", n.ID().String(), mac.String())
+			px.api.Logf(types.LLDDDEBUG, "30 second wake packet timer for: %v %v", n.ID().String(), mac.String())
 			px.wakeMutex.Lock()
 			delete(px.nodeWake, n.ID().String())
 			px.wakeMutex.Unlock()
 			return
 		case <-stop:
 			// assumes the handling function deleted the channel from the px.nodeWake map
-			px.api.Logf(lib.LLDDDEBUG, "Stopping wake packets for: %v %v", n.ID().String(), mac.String())
+			px.api.Logf(types.LLDDDEBUG, "Stopping wake packets for: %v %v", n.ID().String(), mac.String())
 			return
 		case <-ticker.C:
 			e = px.sendWakePacket(mac)
 			if e != nil {
-				px.api.Logf(lib.LLERROR, "Error sending wake packet: %v", e)
+				px.api.Logf(types.LLERROR, "Error sending wake packet: %v", e)
 				px.wakeMutex.Lock()
 				delete(px.nodeWake, n.ID().String())
 				px.wakeMutex.Unlock()
@@ -395,6 +396,6 @@ func (px *PiPXE) sendWakePacket(mac net.HardwareAddr) (e error) {
 		return e
 	}
 
-	px.api.Logf(lib.LLDDDEBUG, "Sent wake packet to %v", mac.String())
+	px.api.Logf(types.LLDDDEBUG, "Sent wake packet to %v", mac.String())
 	return nil
 }

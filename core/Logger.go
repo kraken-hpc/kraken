@@ -3,7 +3,7 @@
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
- * Copyright (c) 2018, Triad National Security, LLC
+ * Copyright (c) 2018-2021, Triad National Security, LLC
  * See LICENSE file for details.
  */
 
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 ///////////////////////
@@ -24,28 +24,28 @@ import (
 
 // create shortcut aliases for log levels
 const (
-	DDDEBUG  = lib.LLDDDEBUG
-	DDEBUG   = lib.LLDDEBUG
-	DEBUG    = lib.LLDEBUG
-	INFO     = lib.LLINFO
-	NOTICE   = lib.LLNOTICE
-	WARNING  = lib.LLWARNING
-	ERROR    = lib.LLERROR
-	CRITICAL = lib.LLCRITICAL
-	FATAL    = lib.LLFATAL
-	PANIC    = lib.LLPANIC
+	DDDEBUG  = types.LLDDDEBUG
+	DDEBUG   = types.LLDDEBUG
+	DEBUG    = types.LLDEBUG
+	INFO     = types.LLINFO
+	NOTICE   = types.LLNOTICE
+	WARNING  = types.LLWARNING
+	ERROR    = types.LLERROR
+	CRITICAL = types.LLCRITICAL
+	FATAL    = types.LLFATAL
+	PANIC    = types.LLPANIC
 )
 
 // LoggerEvent is used by ServiceLogger to send log events over channels
 type LoggerEvent struct {
-	Level   lib.LoggerLevel
+	Level   types.LoggerLevel
 	Module  string
 	Message string
 }
 
 // ServiceLoggerListener receives log events through a channel and passes them to a secondary logger interface
 // This can be run as a goroutine
-func ServiceLoggerListener(l lib.Logger, c <-chan LoggerEvent) {
+func ServiceLoggerListener(l types.Logger, c <-chan LoggerEvent) {
 	for {
 		le := <-c
 		l.Log(le.Level, le.Module+":"+le.Message)
@@ -56,23 +56,23 @@ func ServiceLoggerListener(l lib.Logger, c <-chan LoggerEvent) {
 // WriterLogger Object /
 ///////////////////////
 
-var _ lib.Logger = (*WriterLogger)(nil)
+var _ types.Logger = (*WriterLogger)(nil)
 
 // A WriterLogger writes to any io.Writer interface, e.g. stdout, stderr, or an open file
 // NOTE: Does not close the interface
 type WriterLogger struct {
 	w             io.Writer
 	m             string
-	lv            lib.LoggerLevel
+	lv            types.LoggerLevel
 	DisablePrefix bool
 }
 
 // Log submits a Log message with a LoggerLevel
-func (l *WriterLogger) Log(lv lib.LoggerLevel, m string) {
+func (l *WriterLogger) Log(lv types.LoggerLevel, m string) {
 	if l.IsEnabledFor(lv) {
 		plv := string(lv)
-		if int(lv) <= len(lib.LoggerLevels)+1 {
-			plv = lib.LoggerLevels[lv]
+		if int(lv) <= len(types.LoggerLevels)+1 {
+			plv = types.LoggerLevels[lv]
 		}
 		var s []string
 		if !l.DisablePrefix {
@@ -94,7 +94,7 @@ func (l *WriterLogger) Log(lv lib.LoggerLevel, m string) {
 }
 
 // Logf is the same as Log but with sprintf formatting
-func (l *WriterLogger) Logf(lv lib.LoggerLevel, f string, v ...interface{}) {
+func (l *WriterLogger) Logf(lv types.LoggerLevel, f string, v ...interface{}) {
 	if l.IsEnabledFor(lv) {
 		l.Log(lv, fmt.Sprintf(f, v...))
 	}
@@ -107,13 +107,13 @@ func (l *WriterLogger) SetModule(m string) { l.m = m }
 func (l *WriterLogger) GetModule() string { return l.m }
 
 // SetLoggerLevel sets the log filtering level
-func (l *WriterLogger) SetLoggerLevel(lv lib.LoggerLevel) { l.lv = lv }
+func (l *WriterLogger) SetLoggerLevel(lv types.LoggerLevel) { l.lv = lv }
 
 // GetLoggerLevel gets the log filtering level
-func (l *WriterLogger) GetLoggerLevel() lib.LoggerLevel { return l.lv }
+func (l *WriterLogger) GetLoggerLevel() types.LoggerLevel { return l.lv }
 
 // IsEnabledFor determines if this Logger would send a message at a particular level
-func (l *WriterLogger) IsEnabledFor(lv lib.LoggerLevel) (r bool) {
+func (l *WriterLogger) IsEnabledFor(lv types.LoggerLevel) (r bool) {
 	if lv <= l.lv {
 		return true
 	}
@@ -129,16 +129,16 @@ func (l *WriterLogger) RegisterWriter(w io.Writer) {
 // ServiceLogger Object /
 ////////////////////////
 
-var _ lib.Logger = (*ServiceLogger)(nil)
+var _ types.Logger = (*ServiceLogger)(nil)
 
 // A ServiceLogger is a channel interface for aggregating logs from services running as separate goroutines
 type ServiceLogger struct {
 	c  chan<- LoggerEvent
 	m  string
-	lv lib.LoggerLevel
+	lv types.LoggerLevel
 }
 
-func (l *ServiceLogger) Log(lv lib.LoggerLevel, m string) {
+func (l *ServiceLogger) Log(lv types.LoggerLevel, m string) {
 	if l.IsEnabledFor(lv) {
 		l.c <- LoggerEvent{
 			Level:   lv,
@@ -147,16 +147,16 @@ func (l *ServiceLogger) Log(lv lib.LoggerLevel, m string) {
 		}
 	}
 }
-func (l *ServiceLogger) Logf(lv lib.LoggerLevel, f string, v ...interface{}) {
+func (l *ServiceLogger) Logf(lv types.LoggerLevel, f string, v ...interface{}) {
 	if l.IsEnabledFor(lv) {
 		l.Log(lv, fmt.Sprintf(f, v...))
 	}
 }
-func (l *ServiceLogger) SetModule(m string)                { l.m = m }
-func (l *ServiceLogger) GetModule() string                 { return l.m }
-func (l *ServiceLogger) SetLoggerLevel(lv lib.LoggerLevel) { l.lv = lv }
-func (l *ServiceLogger) GetLoggerLevel() lib.LoggerLevel   { return l.lv }
-func (l *ServiceLogger) IsEnabledFor(lv lib.LoggerLevel) (r bool) {
+func (l *ServiceLogger) SetModule(m string)                  { l.m = m }
+func (l *ServiceLogger) GetModule() string                   { return l.m }
+func (l *ServiceLogger) SetLoggerLevel(lv types.LoggerLevel) { l.lv = lv }
+func (l *ServiceLogger) GetLoggerLevel() types.LoggerLevel   { return l.lv }
+func (l *ServiceLogger) IsEnabledFor(lv types.LoggerLevel) (r bool) {
 	if lv <= l.lv {
 		return true
 	}

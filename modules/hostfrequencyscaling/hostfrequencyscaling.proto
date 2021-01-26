@@ -1,0 +1,42 @@
+/* hostfrequencyscaling.proto: describes the hostfrequencyscaling object
+ *
+ * Authors: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2019, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package HostFrequencyScaling;
+option go_package = ".;hostfrequencyscaling";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+ 
+message Config {
+    map<string, Policy> freq_scal_policies = 1;
+    string freq_sensor_url = 2;
+    string scaling_freq_policy = 3;
+    string low_to_high_scaler = 4;
+    string high_to_low_scaler = 5;
+    int32 time_bound_throttle_retention_duration = 6;
+    bool  throttle_retention = 7;
+    string thermal_sensor_url = 8;
+    bool time_bound_throttle_retention = 9;
+    bool thermal_bound_throttle_retention = 10;
+    int32 thermal_bound_throttle_retention_threshold = 11;    
+
+}
+ 
+message Policy {
+   string scaling_governor = 1;
+   string scaling_min_freq = 2;
+   string scaling_max_freq = 3;
+   string node_arch = 4;
+   string node_platform = 5;
+}

@@ -1,0 +1,47 @@
+/* rfthermaldiscovery.proto: describes the rfdiscovery object
+ *
+ * Author: Ghazanfar Ali <ghazanfar.ali@ttu.edu>,Kevin Pelzel <kevinpelzel22@gmail.com>; J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package RFThermalDiscovery;
+option go_package = ".;rfthermaldiscovery";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Config {
+    map<string, Server> servers = 1;
+    string ip_url = 2;
+    string agg_url = 3;
+    string polling_interval = 4;
+    map<string, Thresholds> rf_thermal_thresholds = 5;
+    
+}
+
+message Server {
+    string name = 1;
+    string ip    = 2;
+    string port = 3;
+    int32 req_timeout = 4;
+}
+
+message Thresholds {
+    int32 lower_normal = 1;
+    int32 upper_normal = 2;
+
+    int32 lower_high = 3;
+    int32 upper_high = 4;
+
+    int32 lower_critical = 5;
+    int32 upper_critical = 6;
+
+}

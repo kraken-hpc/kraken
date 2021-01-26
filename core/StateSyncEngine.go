@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/include -I proto --go_out=plugins=grpc:proto proto/StateSyncMessage.proto
+//go:generate protoc -I proto/src -I proto --gogo_out=plugins=grpc:proto proto/src/StateSyncMessage.proto
 
 package core
 
@@ -24,9 +24,12 @@ import (
 	"time"
 
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -41,8 +44,8 @@ import (
 /////////////////////
 
 type recvPacket struct {
-	From lib.NodeID
-	Node lib.Node
+	From types.NodeID
+	Node types.Node
 }
 
 /*
@@ -53,7 +56,7 @@ type stateSyncNeighbor struct {
 	lock   sync.Mutex
 	parent bool // sync up? (or down)
 	key    []byte
-	id     lib.NodeID
+	id     types.NodeID
 	// this allows us to have this configurable per-node in the future
 	helloTime time.Duration
 	deadTime  time.Duration
@@ -114,7 +117,7 @@ func (ssn *stateSyncNeighbor) getParent() bool {
 	return ssn.parent
 }
 
-func (ssn *stateSyncNeighbor) getID() lib.NodeID {
+func (ssn *stateSyncNeighbor) getID() types.NodeID {
 	ssn.lock.Lock()
 	defer ssn.lock.Unlock()
 	return ssn.id
@@ -124,7 +127,7 @@ func (ssn *stateSyncNeighbor) getID() lib.NodeID {
 // StateSyncEngine Object /
 //////////////////////////
 
-var _ lib.StateSyncEngine = (*StateSyncEngine)(nil)
+var _ types.StateSyncEngine = (*StateSyncEngine)(nil)
 
 // StateSyncEngine manages tree-style, eventual consistency state synchronization
 type StateSyncEngine struct {
@@ -135,11 +138,11 @@ type StateSyncEngine struct {
 	queue []*stateSyncNeighbor          // but we need a timing queue too
 
 	query   *QueryEngine
-	schan   chan<- lib.EventListener
+	schan   chan<- types.EventListener
 	tchan   chan interface{} // channel tells us when to wake up and do work
 	em      *EventEmitter
-	log     lib.Logger
-	self    lib.NodeID
+	log     types.Logger
+	self    types.NodeID
 	parents []string
 	conn    net.PacketConn
 	rpc     ContextRPC
@@ -152,7 +155,7 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 		lock:    sync.RWMutex{},
 		pool:    make(map[string]*stateSyncNeighbor),
 		queue:   []*stateSyncNeighbor{},
-		em:      NewEventEmitter(lib.Event_STATE_SYNC),
+		em:      NewEventEmitter(types.Event_STATE_SYNC),
 		query:   &ctx.Query,
 		schan:   ctx.SubChan,
 		tchan:   make(chan interface{}),
@@ -165,19 +168,19 @@ func NewStateSyncEngine(ctx Context) *StateSyncEngine {
 	return sse
 }
 
-// implement lib.ServiceInstance
+// implement types.ServiceInstance
 // this is a bit of a hack
-func (sse *StateSyncEngine) ID() string                             { return sse.Name() }
-func (sse *StateSyncEngine) Module() string                         { return sse.Name() }
-func (sse *StateSyncEngine) Start()                                 {} //NOP
-func (sse *StateSyncEngine) Stop()                                  {} //NOP
-func (sse *StateSyncEngine) GetState() lib.ServiceState             { return lib.Service_RUN }
-func (sse *StateSyncEngine) UpdateConfig()                          {} //NOP
-func (sse *StateSyncEngine) Watch(chan<- lib.ServiceInstanceUpdate) {} //NOP
-func (sse *StateSyncEngine) SetCtl(chan<- lib.ServiceControl)       {} //NOP
-func (sse *StateSyncEngine) SetSock(string)                         {} //NOP
+func (sse *StateSyncEngine) ID() string                               { return sse.Name() }
+func (sse *StateSyncEngine) Module() string                           { return sse.Name() }
+func (sse *StateSyncEngine) Start()                                   {} //NOP
+func (sse *StateSyncEngine) Stop()                                    {} //NOP
+func (sse *StateSyncEngine) GetState() types.ServiceState             { return types.Service_RUN }
+func (sse *StateSyncEngine) UpdateConfig()                            {} //NOP
+func (sse *StateSyncEngine) Watch(chan<- types.ServiceInstanceUpdate) {} //NOP
+func (sse *StateSyncEngine) SetCtl(chan<- types.ServiceControl)       {} //NOP
+func (sse *StateSyncEngine) SetSock(string)                           {} //NOP
 
-// implement lib.Module
+// implement types.Module
 func (*StateSyncEngine) Name() string { return "sse" }
 
 var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
@@ -185,7 +188,7 @@ var _ pb.StateSyncServer = (*StateSyncEngine)(nil)
 // RPCPhoneHome is a gRPC call.  It establishes state sync properties with a child.
 func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRequest) (out *pb.PhoneHomeReply, e error) {
 	// we don't really have any way to make sure this is the right client but timing right now
-	id := NewNodeIDFromBinary(in.GetId())
+	id := ct.NewNodeIDFromBinary(in.GetId())
 	if id.Nil() {
 		e = fmt.Errorf("could not interpet NodeID")
 		return
@@ -197,7 +200,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	// our one glimmer of security: are we in the correct state?
-	v, e := sse.query.GetValueDsc(lib.NodeURLJoin(id.String(), "/RunState"))
+	v, e := sse.query.GetValueDsc(util.NodeURLJoin(id.String(), "/RunState"))
 	if e != nil {
 		return
 	}
@@ -207,12 +210,12 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	// ok, proceed
-	//_, e = sse.query.SetValue(lib.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
+	//_, e = sse.query.SetValue(util.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
 	// Node_SYNC should probably be propagated up?  But something needs to keep other nodes from interjecting themselves perhaps.
 	// We do this as a discovery instead...
-	url := lib.NodeURLJoin(id.String(), "/RunState")
+	url := util.NodeURLJoin(id.String(), "/RunState")
 	ev := NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&DiscoveryEvent{
 			ID:      "sse",
@@ -233,7 +236,7 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 	}
 	// This is redundant with the discovery above, but we need to make sure it's set before we send it
 	// But we also want to be a good citizen and send a discovery
-	_, e = sse.query.SetValueDsc(lib.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
+	_, e = sse.query.SetValueDsc(util.NodeURLJoin(id.String(), "/RunState"), reflect.ValueOf(pb.Node_SYNC))
 
 	nd, _ := sse.query.ReadDsc(id)
 
@@ -248,20 +251,20 @@ func (sse *StateSyncEngine) RPCPhoneHome(ctx context.Context, in *pb.PhoneHomeRe
 		return
 	}
 	sse.Logf(DEBUG, "successful phone home for: %s", id.String())
-	return &pb.PhoneHomeReply{Pid: sse.self.Binary(), Key: ssn.getKey(), Cfg: cfg, Dsc: dsc}, nil
+	return &pb.PhoneHomeReply{Pid: sse.self.Bytes(), Key: ssn.getKey(), Cfg: cfg, Dsc: dsc}, nil
 }
 
 // Run is a goroutine that makes StateSyncEngine active
 func (sse *StateSyncEngine) Run(ready chan<- interface{}) {
-	rchan := make(chan recvPacket) // receive chan
-	echan := make(chan lib.Event)  // event chan
+	rchan := make(chan recvPacket)  // receive chan
+	echan := make(chan types.Event) // event chan
 	sse.Log(INFO, "starting StateSyncEngine")
 
 	elist := NewEventListener(
 		"StateSyncEngine",
-		lib.Event_STATE_CHANGE,
+		types.Event_STATE_CHANGE,
 		eventFilter,
-		func(v lib.Event) error {
+		func(v types.Event) error {
 			return ChanSender(v, echan)
 		})
 
@@ -358,14 +361,14 @@ func (sse *StateSyncEngine) callParent(p string) {
 	c := pb.NewStateSyncClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: sse.self.Binary()})
+	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: sse.self.Bytes()})
 	if e != nil {
 		sse.Logf(CRITICAL, "could not phone home: %v", e)
 		go retryCall()
 		return
 	}
 	// ok! we successfully phoned home, now let's setup our parent neighbor.  Also, register our cfg state
-	nid := NewNodeIDFromBinary(r.GetPid())
+	nid := ct.NewNodeIDFromBinary(r.GetPid())
 	n := sse.addNeighbor(nid.String(), true)
 	n.lock.Lock()
 	n.key = r.Key
@@ -380,7 +383,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 		sse.Logf(ERROR, "malformed response from phone home: %v", e)
 		return
 	}
-	if !rp.Node.ID().Equal(sse.self) {
+	if !rp.Node.ID().EqualTo(sse.self) {
 		sse.Logf(CRITICAL, "we phoned home and got info about someone else: %s", rp.Node.ID().String())
 		sse.delNeighbor(nid)
 		return
@@ -395,14 +398,14 @@ func (sse *StateSyncEngine) callParent(p string) {
 	}
 
 	// we need to create a stub entry for our parent node
-	pn := NewNodeWithID(NewNodeIDFromBinary(r.Pid).String())
+	pn := NewNodeWithID(ct.NewNodeIDFromBinary(r.Pid).String())
 
 	// FIXME: this is a lockin to ipv4; also a hack
 	/* this isn't necessary as long as the extension is loaded
 	ip := &pb.IPv4OverEthernet{}
 	pn.AddExtension(ip)
 	*/
-	pn.SetValue(sse.cfg.AddrURL, reflect.ValueOf([]byte(net.ParseIP(p).To4())))
+	pn.SetValue(sse.cfg.AddrURL, reflect.ValueOf(ipv4t.IP{IP: net.ParseIP(p)}))
 	sse.query.Create(pn)
 
 	n.recv()
@@ -412,7 +415,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 	}
 }
 
-func (sse *StateSyncEngine) nodeGetKey(id lib.NodeID) (key []byte, e error) {
+func (sse *StateSyncEngine) nodeGetKey(id types.NodeID) (key []byte, e error) {
 	n, ok := sse.getNeighbor(id)
 	if !ok {
 		e = fmt.Errorf("key not found for %s", id.String())
@@ -422,13 +425,13 @@ func (sse *StateSyncEngine) nodeGetKey(id lib.NodeID) (key []byte, e error) {
 	return
 }
 
-func (sse *StateSyncEngine) nodeToMessage(to lib.NodeID, n lib.Node) (msg *pb.StateSyncMessage, e error) {
+func (sse *StateSyncEngine) nodeToMessage(to types.NodeID, n types.Node) (msg *pb.StateSyncMessage, e error) {
 	key, e := sse.nodeGetKey(to)
 	if e != nil {
 		return
 	}
 	m := &pb.StateSyncMessage{}
-	m.Id = sse.self.Binary()
+	m.Id = sse.self.Bytes()
 	m.Message = n.Binary()
 	if e != nil {
 		return
@@ -439,7 +442,7 @@ func (sse *StateSyncEngine) nodeToMessage(to lib.NodeID, n lib.Node) (msg *pb.St
 	return m, nil
 }
 
-func (sse *StateSyncEngine) nodeToBinary(to lib.NodeID, n lib.Node) (msg []byte, e error) {
+func (sse *StateSyncEngine) nodeToBinary(to types.NodeID, n types.Node) (msg []byte, e error) {
 	m, e := sse.nodeToMessage(to, n)
 	if e != nil {
 		return
@@ -448,7 +451,7 @@ func (sse *StateSyncEngine) nodeToBinary(to lib.NodeID, n lib.Node) (msg []byte,
 }
 
 func (sse *StateSyncEngine) ssmToNode(m *pb.StateSyncMessage) (rp recvPacket, e error) {
-	rp.From = NewNodeIDFromBinary(m.Id)
+	rp.From = ct.NewNodeIDFromBinary(m.Id)
 	if rp.From.Nil() {
 		e = fmt.Errorf("could not unmarshal NodeID")
 		return
@@ -491,7 +494,7 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		return
 	}
 	// FIXME: @important sending assumes udp4
-	ip := net.IPv4(addr.Bytes()[0], addr.Bytes()[1], addr.Bytes()[2], addr.Bytes()[3])
+	ip := addr.Interface().(ipv4t.IP)
 	if n.getParent() {
 		node, e = sse.query.ReadDsc(sse.self)
 		if e != nil {
@@ -500,7 +503,7 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 		}
 	}
 	msg, _ := sse.nodeToBinary(n.getID(), node)
-	cnt, e := sse.conn.WriteTo(msg, &net.UDPAddr{IP: ip, Port: sse.cfg.Port})
+	cnt, e := sse.conn.WriteTo(msg, &net.UDPAddr{IP: ip.IP, Port: sse.cfg.Port})
 	if e != nil {
 		sse.Logf(ERROR, "udp write failed: %v", e)
 		return
@@ -512,8 +515,8 @@ func (sse *StateSyncEngine) send(n *stateSyncNeighbor) {
 	n.sent()
 }
 
-func (sse *StateSyncEngine) sendDiscoverable(id lib.NodeID)  {}
-func (sse *StateSyncEngine) sendConfiguration(id lib.NodeID) {}
+func (sse *StateSyncEngine) sendDiscoverable(id types.NodeID)  {}
+func (sse *StateSyncEngine) sendConfiguration(id types.NodeID) {}
 
 func (sse *StateSyncEngine) listen(c chan<- recvPacket, conn net.PacketConn) {
 	buffer := make([]byte, 9000)
@@ -579,7 +582,7 @@ func (sse *StateSyncEngine) wakeForNext() {
 }
 
 func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighbor {
-	nid := NewNodeID(id)
+	nid := ct.NewNodeID(id)
 	n := &stateSyncNeighbor{
 		lock:      sync.Mutex{},
 		parent:    parent,
@@ -599,7 +602,7 @@ func (sse *StateSyncEngine) addNeighbor(id string, parent bool) *stateSyncNeighb
 	return n
 }
 
-func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
+func (sse *StateSyncEngine) delNeighbor(id types.NodeID) {
 	sse.lock.Lock()
 	defer sse.lock.Unlock()
 	n := sse.pool[id.String()]
@@ -607,7 +610,7 @@ func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
 	defer n.lock.Unlock()
 	delete(sse.pool, string(id.String()))
 	for i, n := range sse.queue {
-		if n.id.Equal(id) {
+		if n.id.EqualTo(id) {
 			sse.queue = append(sse.queue[:i], sse.queue[i+1:]...)
 			// no sort; shouldn't disrupt queue order
 			return
@@ -616,14 +619,14 @@ func (sse *StateSyncEngine) delNeighbor(id lib.NodeID) {
 }
 
 // just a map query, but with locking
-func (sse *StateSyncEngine) getNeighbor(id lib.NodeID) (n *stateSyncNeighbor, ok bool) {
+func (sse *StateSyncEngine) getNeighbor(id types.NodeID) (n *stateSyncNeighbor, ok bool) {
 	sse.lock.RLock()
 	defer sse.lock.RUnlock()
 	n, ok = sse.pool[id.String()]
 	return
 }
 
-func (sse *StateSyncEngine) getNeighborMust(id lib.NodeID) (n *stateSyncNeighbor) {
+func (sse *StateSyncEngine) getNeighborMust(id types.NodeID) (n *stateSyncNeighbor) {
 	var ok bool
 	n, ok = sse.getNeighbor(id)
 	if ok {
@@ -638,10 +641,10 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 			// this is pretty bad; lost sync with a parent
 			sse.Logf(CRITICAL, "lost sync with parent: %s", n.getID().String())
 			// drop back to INIT status
-			//sse.query.SetValueDsc(lib.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
-			url := lib.NodeURLJoin(sse.self.String(), "/RunState")
+			//sse.query.SetValueDsc(util.NodeURLJoin(sse.self.String(), "/RunState"), reflect.ValueOf(pb.Node_ERROR))
+			url := util.NodeURLJoin(sse.self.String(), "/RunState")
 			ev := NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url,
 				&DiscoveryEvent{
 					ID:      "sse",
@@ -655,7 +658,7 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 
 			// before we assume this node went to error, make sure it's actually in SYNC
 			// this can happen if, e.g. we got an unexpected event and devolved but SSE didn't notice
-			cur, e := sse.query.GetValueDsc(lib.NodeURLJoin(n.getID().String(), "/RunState"))
+			cur, e := sse.query.GetValueDsc(util.NodeURLJoin(n.getID().String(), "/RunState"))
 			if e != nil {
 				sse.Logf(INFO, "lost sync on a non-existent node?: %s, %v", n.getID().String(), e)
 			}
@@ -664,9 +667,9 @@ func (sse *StateSyncEngine) sync(n *stateSyncNeighbor) {
 				// ok, we thought we were in sync; a neighbor died
 				// declare this node to be dead
 				// we make the declaration, and delete it from our records
-				url := lib.NodeURLJoin(n.getID().String(), "/RunState")
+				url := util.NodeURLJoin(n.getID().String(), "/RunState")
 				ev := NewEvent(
-					lib.Event_DISCOVERY,
+					types.Event_DISCOVERY,
 					url,
 					&DiscoveryEvent{
 						ID:      "sse",
@@ -723,23 +726,23 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	if n.getParent() {
 		_, e := sse.query.Update(rp.Node)
 		if e != nil {
-			sse.log.Logf(lib.LLERROR, "Received Error while updating cfg: %v", e)
+			sse.log.Logf(types.LLERROR, "Received Error while updating cfg: %v", e)
 		}
 	} else {
 		_, e := sse.query.UpdateDsc(rp.Node)
 		if e != nil {
-			sse.log.Logf(lib.LLERROR, "Received Error while updating dsc for %s: %v", rp.From.String(), e)
+			sse.log.Logf(types.LLERROR, "Received Error while updating dsc for %s: %v", rp.From.String(), e)
 		}
 	}
 }
 
-func eventFilter(v lib.Event) bool {
+func eventFilter(v types.Event) bool {
 	sce := v.Data().(*StateChangeEvent)
 	switch sce.Type {
 	case StateChange_DELETE:
 		return true
 	case StateChange_UPDATE:
-		_, url := lib.NodeURLSplit(sce.URL)
+		_, url := util.NodeURLSplit(sce.URL)
 		// we only care about RunState, really
 		if url == "/RunState" {
 			return true
@@ -754,19 +757,19 @@ func eventFilter(v lib.Event) bool {
 	return false
 }
 
-func (sse *StateSyncEngine) eventHandler(v lib.Event) {
+func (sse *StateSyncEngine) eventHandler(v types.Event) {
 	sce := v.Data().(*StateChangeEvent)
 	switch sce.Type {
 	case StateChange_DELETE:
 		// node was deleted; we should delete it if we know about it
-		sse.delNeighbor(sce.Value.Interface().(lib.Node).ID())
+		sse.delNeighbor(sce.Value.Interface().(types.Node).ID())
 		break
 		/*
 			case StateChange_UPDATE:
 				// we know this means /RunState updated
 				// we'll get the value directly though
-				node, _ := lib.NodeURLSplit(sce.URL)
-				v, e := sse.query.GetValueDsc(lib.NodeURLJoin(node, "/RunState"))
+				node, _ := util.NodeURLSplit(sce.URL)
+				v, e := sse.query.GetValueDsc(util.NodeURLJoin(node, "/RunState"))
 				if e != nil {
 					return // ???
 				}
@@ -794,32 +797,32 @@ func (sse *StateSyncEngine) generateKey() (key []byte) {
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*StateSyncEngine)(nil)
+var _ types.Logger = (*StateSyncEngine)(nil)
 
-func (sse *StateSyncEngine) Log(level lib.LoggerLevel, m string) { sse.log.Log(level, m) }
-func (sse *StateSyncEngine) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (sse *StateSyncEngine) Log(level types.LoggerLevel, m string) { sse.log.Log(level, m) }
+func (sse *StateSyncEngine) Logf(level types.LoggerLevel, fmt string, v ...interface{}) {
 	sse.log.Logf(level, fmt, v...)
 }
-func (sse *StateSyncEngine) SetModule(name string)                { sse.log.SetModule(name) }
-func (sse *StateSyncEngine) GetModule() string                    { return sse.log.GetModule() }
-func (sse *StateSyncEngine) SetLoggerLevel(level lib.LoggerLevel) { sse.log.SetLoggerLevel(level) }
-func (sse *StateSyncEngine) GetLoggerLevel() lib.LoggerLevel      { return sse.log.GetLoggerLevel() }
-func (sse *StateSyncEngine) IsEnabledFor(level lib.LoggerLevel) bool {
+func (sse *StateSyncEngine) SetModule(name string)                  { sse.log.SetModule(name) }
+func (sse *StateSyncEngine) GetModule() string                      { return sse.log.GetModule() }
+func (sse *StateSyncEngine) SetLoggerLevel(level types.LoggerLevel) { sse.log.SetLoggerLevel(level) }
+func (sse *StateSyncEngine) GetLoggerLevel() types.LoggerLevel      { return sse.log.GetLoggerLevel() }
+func (sse *StateSyncEngine) IsEnabledFor(level types.LoggerLevel) bool {
 	return sse.log.IsEnabledFor(level)
 }
 
 /*
  * Consume an emitter, so we implement EventEmitter directly
  */
-var _ lib.EventEmitter = (*StateSyncEngine)(nil)
+var _ types.EventEmitter = (*StateSyncEngine)(nil)
 
-func (sse *StateSyncEngine) Subscribe(id string, c chan<- []lib.Event) error {
+func (sse *StateSyncEngine) Subscribe(id string, c chan<- []types.Event) error {
 	return sse.em.Subscribe(id, c)
 }
 func (sse *StateSyncEngine) Unsubscribe(id string) error { return sse.em.Unsubscribe(id) }
-func (sse *StateSyncEngine) Emit(v []lib.Event)          { sse.em.Emit(v) }
-func (sse *StateSyncEngine) EmitOne(v lib.Event)         { sse.em.EmitOne(v) }
-func (sse *StateSyncEngine) EventType() lib.EventType    { return sse.em.EventType() }
+func (sse *StateSyncEngine) Emit(v []types.Event)        { sse.em.Emit(v) }
+func (sse *StateSyncEngine) EmitOne(v types.Event)       { sse.em.EmitOne(v) }
+func (sse *StateSyncEngine) EventType() types.EventType  { return sse.em.EventType() }
 
 //////////
 // Init /
@@ -837,7 +840,7 @@ func init() {
 			"HANG": reflect.ValueOf(pb.Node_PHYS_HANG),
 		},
 	}
-	mutations := map[string]lib.StateMutation{
+	mutations := map[string]types.StateMutation{
 		"INITtoSYNC": NewStateMutation(
 			map[string][2]reflect.Value{
 				"/RunState": {
@@ -849,7 +852,7 @@ func init() {
 				"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_CHILD,
+			types.StateMutationContext_CHILD,
 			time.Second*90, // FIXME: don't hardcode values
 			[3]string{"sse", "/PhysState", "HANG"},
 		),

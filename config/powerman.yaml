@@ -9,8 +9,8 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/IPv4
-  - github.com/hpc/kraken/extensions/Powerman
+  - github.com/hpc/kraken/extensions/ipv4
+  - github.com/hpc/kraken/extensions/powerman
 
 # included modules
 modules:

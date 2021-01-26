@@ -2,17 +2,21 @@ package core
 
 import (
 	"encoding/hex"
+	"net"
 	"reflect"
 	"testing"
 
 	. "github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
+	_ "github.com/hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
 )
 
 func TestNewNodeWithID(t *testing.T) {
-	nid := NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	nid := ct.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
 	n := NewNodeWithID("123e4567-e89b-12d3-a456-426655440000")
-	if !n.ID().Equal(nid) {
+	if !n.ID().EqualTo(nid) {
 		t.Errorf("failed to create equal NIDs on new node: %v", n)
 	}
 }
@@ -28,9 +32,9 @@ func TestNode_GetValue(t *testing.T) {
 		t.Errorf("invalid value returned: %v", v)
 		return
 	}
-	bid := NewNodeID("123e4567-e89b-12d3-a456-426655440000")
-	if !NewNodeIDFromBinary(v.Interface().([]byte)).Equal(bid) {
-		t.Errorf("result mismatch: %v != %v", v, bid)
+	ref := ct.NewNodeID("123e4567-e89b-12d3-a456-426655440000")
+	if !v.Interface().(ct.NodeID).Equal(*ref) {
+		t.Errorf("result mismatch: %v != %v", v.Interface(), ref)
 	}
 }
 
@@ -63,33 +67,48 @@ func simpleNode() *Node {
 			"/Nodename":  reflect.ValueOf("noname"),
 			"/RunState":  reflect.ValueOf(pb.Node_INIT),
 			"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+			"type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/test/Ip/Ip": reflect.ValueOf(ipv4t.IP{IP: net.IPv4(10, 11, 12, 13)}),
 		})
 	return n
 }
 
 func TestNode_Binary(t *testing.T) {
 	n := simpleNode()
-
+	t.Logf("Original node (JSON): %s", n.JSON())
 	out := n.Binary()
-	if len(out) == 0 {
-		t.Error("marshal failed")
+	t.Logf("Proto message (binary): %s\n", hex.Dump(out))
+	nn := NewNodeFromBinary(out)
+	t.Logf("Node from binary (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
 	}
-	t.Logf("Proto message (binary): \n%s\n", hex.Dump(out))
 }
 
 func TestNode_JSON(t *testing.T) {
 	n := simpleNode()
-
+	t.Logf("Original node (JSON): %s", n.JSON())
 	out := n.JSON()
-	if len(out) == 0 {
-		t.Error("zero length output")
-		return
+	nn := NewNodeFromJSON(out)
+	t.Logf("Node from JSON (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
 	}
-	t.Logf("Proto message (JSON): \n%s\n", out)
+}
+
+func TestNode_Message(t *testing.T) {
+	n := simpleNode()
+	t.Logf("Original node (JSON): %s", n.JSON())
+	m := n.Message()
+	t.Logf("Proto message: %s\n", m.String())
+	nn := NewNodeFromMessage(m.(*pb.Node))
+	t.Logf("Node from message (JSON): %s\n", nn.JSON())
+	if !reflect.DeepEqual(n, nn) {
+		t.Error("nodes do not match after conversion to/from proto.Message")
+	}
 }
 
 func TestNewNodeFromJSON(t *testing.T) {
-	jin := []byte("{\"id\":\"Ej5FZ+ibEtOkVkJmVUQAAA==\",\"nodename\":\"noname\",\"run_state\":\"INIT\",\"phys_state\":1}")
+	jin := []byte("{\"id\":\"123e4567-e89b-12d3-a456-426655440000\",\"nodename\":\"noname\",\"run_state\":\"INIT\",\"phys_state\":1}")
 	t.Logf("in: %s", jin)
 
 	n := NewNodeFromJSON(jin)
@@ -105,7 +124,7 @@ func TestNewNodeFromJSON(t *testing.T) {
 }
 
 func TestNewNodeFromBinary(t *testing.T) {
-	in := "0a10123e4567e89b12d3a45642665544000012066e6f6e616d6518012001"
+	in := "0a10123e4567e89b12d3a45642665544000012066e6f6e616d65180120027a3f0a29747970652e676f6f676c65617069732e636f6d2f495076342e495076344f76657245746865726e657412120a100a04746573741208120612040a0b0c0d"
 	bin, err := hex.DecodeString(in)
 	t.Logf("in: \n%s", hex.Dump(bin))
 	if err != nil {
@@ -218,7 +237,7 @@ func TestNodeGetExtension(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	pm := n.GetExtension("type.googleapis.com/proto.IPv4OverEthernet")
+	pm := n.GetExtension("type.googleapis.com/IPv4.IPv4OverEthernet")
 	if pm == nil {
 		t.Errorf("failed to get extionsion that should have been there")
 	}
@@ -245,7 +264,7 @@ func TestNodeDelExtension(t *testing.T) {
 	j, _ = n.MarshalJSON()
 	t.Logf("bad-delete: %s", j)
 
-	n.DelExtension("type.googleapis.com/proto.IPv4OverEthernet")
+	n.DelExtension("type.googleapis.com/IPv4.IPv4OverEthernet")
 
 	j, _ = n.MarshalJSON()
 	t.Logf("post-delete: %s", j)
@@ -311,12 +330,12 @@ func TestResolveURL(t *testing.T) {
 			err: nil,
 		},
 		{
-			url: "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mtu",
+			url: "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Mtu",
 			res: reflect.ValueOf(im.Ifaces[0].Eth.Mtu),
 			err: nil,
 		},
 		{
-			url: "/type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth",
+			url: "/type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth",
 			res: reflect.ValueOf(im.Ifaces[0].Eth),
 			err: nil,
 		},
@@ -358,7 +377,7 @@ func TestNodeMerge(t *testing.T) {
 		t.Errorf("merged %d changes, should have merged 2", len(c))
 	}
 	m := n1.GetMessage().(*pb.Node)
-	i := n1.GetExtension("type.googleapis.com/proto.IPv4OverEthernet").GetMessage().(*pb.IPv4OverEthernet)
+	i := n1.GetExtension("type.googleapis.com/IPv4.IPv4OverEthernet").GetMessage().(*pb.IPv4OverEthernet)
 	if m.Nodename != "node2" {
 		t.Errorf("nodename should be node2, is %s", m.Nodename)
 	}
@@ -392,7 +411,7 @@ func TestSetValue(t *testing.T) {
 
 	var mtu uint32
 	mtu = 9000
-	v, e := n.SetValue("type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Eth/Mtu", reflect.ValueOf(mtu))
+	v, e := n.SetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Eth/Mtu", reflect.ValueOf(mtu))
 	if e != nil {
 		t.Error(e)
 	}

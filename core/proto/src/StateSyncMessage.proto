@@ -1,0 +1,41 @@
+/* StateSyncMessage.proto: describes the state sync protocol packets & PhoneHome
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018-2021, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+option go_package = ".;proto";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+/* StateSyncMessage are messages sent by StateSync */
+message StateSyncMessage {
+    bytes id = 1;
+    bytes hmac = 2;
+    bytes message = 3;
+}
+
+message PhoneHomeRequest {
+    bytes id = 1;
+}
+
+message PhoneHomeReply {
+    bytes pid = 1;
+    bytes key = 2;
+    StateSyncMessage cfg = 3;
+    StateSyncMessage dsc = 4;
+}
+
+service StateSync {
+    rpc RPCPhoneHome (PhoneHomeRequest) returns (PhoneHomeReply) {}
+}

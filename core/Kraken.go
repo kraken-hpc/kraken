@@ -3,7 +3,7 @@
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
  * This software is open source software available under the BSD-3 license.
- * Copyright (c) 2018, Triad National Security, LLC
+ * Copyright (c) 2018-2021, Triad National Security, LLC
  * See LICENSE file for details.
  */
 
@@ -17,32 +17,33 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/any"
+	any "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/hpc/kraken/lib/types"
 )
 
 ////////////////////////
 // Auxilliary objects /
 //////////////////////
 
-const AddrURL = "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip"
+const AddrURL = "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip"
 
 // Context contains information about the current running context
 // such as who we are, and to whom we belong.
 type Context struct {
 	Logger  ServiceLogger
 	Query   QueryEngine
-	SubChan chan<- lib.EventListener
-	Self    lib.NodeID
+	SubChan chan<- types.EventListener
+	Self    types.NodeID
 	Parents []string
 	SDE     ContextSDE
 	SSE     ContextSSE
 	SME     ContextSME
 	RPC     ContextRPC
-	Sm      lib.ServiceManager // API needs this
-	sdqChan chan lib.Query
-	smqChan chan lib.Query
+	Sm      types.ServiceManager // API needs this
+	sdqChan chan types.Query
+	smqChan chan types.Query
 }
 
 type ContextSSE struct {
@@ -55,7 +56,7 @@ type ContextSSE struct {
 }
 
 type ContextSME struct {
-	RootSpec lib.StateSpec
+	RootSpec types.StateSpec
 }
 
 type ContextRPC struct {
@@ -68,17 +69,17 @@ type ContextRPC struct {
 }
 
 type ContextSDE struct {
-	InitialCfg []lib.Node
-	InitialDsc []lib.Node
+	InitialCfg []types.Node
+	InitialDsc []types.Node
 }
 
 ///////////////////
 // Kraken Object /
 /////////////////
 
-var _ lib.Module = (*Kraken)(nil)
+var _ types.Module = (*Kraken)(nil)
 
-//var _ lib.ServiceInstance = (*Kraken)(nil)
+//var _ types.ServiceInstance = (*Kraken)(nil)
 
 // A Kraken is a mythical giant squid-beast.
 type Kraken struct {
@@ -87,20 +88,26 @@ type Kraken struct {
 	Sde *StateDifferenceEngine
 	Sse *StateSyncEngine
 	Sme *StateMutationEngine
-	Api *APIServer
+	Api *ModuleAPIServer
 	Sm  *ServiceManager
 
 	// Un-exported
 	em   *EventEmitter
-	log  lib.Logger
-	self lib.Node
+	log  types.Logger
+	self types.Node
 }
 
 // NewKraken creates a new Kraken object with proper intialization
-func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
+func NewKraken(self types.Node, parents []string, logger types.Logger) *Kraken {
 	// FIXME: we probably shouldn't rely on this
-	ipv, _ := self.GetValue(AddrURL)
-	ip := net.IP(ipv.Bytes())
+	ipv, e := self.GetValue(AddrURL)
+	if e != nil {
+		logger.Logf(types.LLCRITICAL, "failed to get IP address value from state store: %v", e)
+		os.Exit(1)
+	}
+	// we can't import ipv4, so we do this little hack
+	// really, in the future, it would be better not to require this at all
+	ip := ipv.Interface().(ipv4t.IP)
 
 	k := &Kraken{
 		Ctx: Context{
@@ -108,7 +115,7 @@ func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
 			Parents: parents,
 			Logger:  ServiceLogger{},
 		},
-		em:   NewEventEmitter(lib.Event_CONTROL),
+		em:   NewEventEmitter(types.Event_CONTROL),
 		log:  logger,
 		self: self,
 	}
@@ -117,7 +124,7 @@ func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
 		Network:   "udp4",
 		Addr:      ip.String(),
 		Port:      31415,
-		AddrURL:   "type.googleapis.com/proto.IPv4OverEthernet/Ifaces/0/Ip/Ip",
+		AddrURL:   "type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip",
 		HelloTime: 10 * time.Second,
 		DeadTime:  40 * time.Second,
 	}
@@ -131,30 +138,30 @@ func NewKraken(self lib.Node, parents []string, logger lib.Logger) *Kraken {
 		Path:    "/tmp/kraken.sock",
 	}
 	k.Ctx.SDE = ContextSDE{
-		InitialCfg: []lib.Node{self},
-		InitialDsc: []lib.Node{},
+		InitialCfg: []types.Node{self},
+		InitialDsc: []types.Node{},
 	}
 	k.SetModule("kraken")
 	return k
 }
 
-// implement lib.ServiceInstance
+// implement types.ServiceInstance
 // this is a little artificial, but it's a special case
 // many of these would never becaused because it's not actually managed
 // by ServiceManager
-func (sse *Kraken) ID() string                   { return sse.Name() }
-func (*Kraken) State() lib.ServiceState          { return lib.Service_RUN }
-func (*Kraken) SetState(lib.ServiceState)        {}
-func (*Kraken) GetState() lib.ServiceState       { return lib.Service_RUN }
-func (sse *Kraken) Module() string               { return sse.Name() }
-func (*Kraken) Exe() string                      { return "" }
-func (*Kraken) Cmd() *exec.Cmd                   { return nil }
-func (*Kraken) SetCmd(*exec.Cmd)                 {}
-func (*Kraken) Stop()                            {}
-func (*Kraken) SetCtl(chan<- lib.ServiceControl) {}
-func (*Kraken) Config() *any.Any                 { return nil }
-func (*Kraken) UpdateConfig(*any.Any)            {}
-func (*Kraken) Message() *pb.ServiceInstance     { return nil }
+func (sse *Kraken) ID() string                     { return sse.Name() }
+func (*Kraken) State() types.ServiceState          { return types.Service_RUN }
+func (*Kraken) SetState(types.ServiceState)        {}
+func (*Kraken) GetState() types.ServiceState       { return types.Service_RUN }
+func (sse *Kraken) Module() string                 { return sse.Name() }
+func (*Kraken) Exe() string                        { return "" }
+func (*Kraken) Cmd() *exec.Cmd                     { return nil }
+func (*Kraken) SetCmd(*exec.Cmd)                   {}
+func (*Kraken) Stop()                              {}
+func (*Kraken) SetCtl(chan<- types.ServiceControl) {}
+func (*Kraken) Config() *any.Any                   { return nil }
+func (*Kraken) UpdateConfig(*any.Any)              {}
+func (*Kraken) Message() *pb.ServiceInstance       { return nil }
 
 func (k *Kraken) Name() string { return "kraken" }
 
@@ -209,8 +216,8 @@ func (k *Kraken) Bootstrap() {
 	k.Logf(INFO, "RPC is listening on %s:%s:%d", k.Ctx.RPC.Network, k.Ctx.RPC.Addr, k.Ctx.RPC.Port)
 	k.Logf(INFO, "RPC is listening on socket %s", k.Ctx.RPC.Path)
 
-	k.Ctx.sdqChan = make(chan lib.Query)
-	k.Ctx.smqChan = make(chan lib.Query)
+	k.Ctx.sdqChan = make(chan types.Query)
+	k.Ctx.smqChan = make(chan types.Query)
 
 	k.Ede = NewEventDispatchEngine(k.Ctx)
 	k.Ctx.SubChan = k.Ede.SubscriptionChan()
@@ -221,7 +228,7 @@ func (k *Kraken) Bootstrap() {
 
 	k.Sse = NewStateSyncEngine(k.Ctx)
 	k.Sme = NewStateMutationEngine(k.Ctx, k.Ctx.smqChan)
-	k.Api = NewAPIServer(k.Ctx)
+	k.Api = NewModuleAPIServer(k.Ctx)
 
 	k.Sde.Subscribe("SDE", k.Ede.EventChan())
 	k.Sme.Subscribe("SME", k.Ede.EventChan())
@@ -238,22 +245,23 @@ func (k *Kraken) Run() {
 
 	go k.Ede.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "EventDispatchEngine reported ready")
+	k.Log(types.LLINFO, "EventDispatchEngine reported ready")
 	go k.Sme.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "StateMutationEngine reported ready")
+	k.Log(types.LLINFO, "StateMutationEngine reported ready")
 	go k.Sde.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "StateDifferenceEngine reported ready")
+	k.Log(types.LLINFO, "StateDifferenceEngine reported ready")
 	go k.Sse.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "StateSyncEngine reported ready")
+	k.Log(types.LLINFO, "StateSyncEngine reported ready")
 	go k.Api.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "API reported ready")
+	k.Log(types.LLINFO, "API reported ready")
 	go k.Sm.Run(ready)
 	<-ready
-	k.Log(lib.LLINFO, "ServiceManager reported ready")
+	k.Log(types.LLINFO, "ServiceManager reported ready")
+	k.Logf(types.LLDDEBUG, "Initial cfg state for self: %s", string(k.self.JSON()))
 }
 
 ////////////////////////
@@ -281,27 +289,27 @@ func setupRPCListener(cfg *ContextRPC) (e error) {
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*Kraken)(nil)
+var _ types.Logger = (*Kraken)(nil)
 
-func (k *Kraken) Log(level lib.LoggerLevel, m string) { k.log.Log(level, m) }
-func (k *Kraken) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (k *Kraken) Log(level types.LoggerLevel, m string) { k.log.Log(level, m) }
+func (k *Kraken) Logf(level types.LoggerLevel, fmt string, v ...interface{}) {
 	k.log.Logf(level, fmt, v...)
 }
-func (k *Kraken) SetModule(name string)                   { k.log.SetModule(name) }
-func (k *Kraken) GetModule() string                       { return k.log.GetModule() }
-func (k *Kraken) SetLoggerLevel(level lib.LoggerLevel)    { k.log.SetLoggerLevel(level) }
-func (k *Kraken) GetLoggerLevel() lib.LoggerLevel         { return k.log.GetLoggerLevel() }
-func (k *Kraken) IsEnabledFor(level lib.LoggerLevel) bool { return k.log.IsEnabledFor(level) }
+func (k *Kraken) SetModule(name string)                     { k.log.SetModule(name) }
+func (k *Kraken) GetModule() string                         { return k.log.GetModule() }
+func (k *Kraken) SetLoggerLevel(level types.LoggerLevel)    { k.log.SetLoggerLevel(level) }
+func (k *Kraken) GetLoggerLevel() types.LoggerLevel         { return k.log.GetLoggerLevel() }
+func (k *Kraken) IsEnabledFor(level types.LoggerLevel) bool { return k.log.IsEnabledFor(level) }
 
 /*
  * Consume EventEmitter
  */
-var _ lib.EventEmitter = (*Kraken)(nil)
+var _ types.EventEmitter = (*Kraken)(nil)
 
-func (k *Kraken) Subscribe(id string, c chan<- []lib.Event) error {
+func (k *Kraken) Subscribe(id string, c chan<- []types.Event) error {
 	return k.em.Subscribe(id, c)
 }
 func (k *Kraken) Unsubscribe(id string) error { return k.em.Unsubscribe(id) }
-func (k *Kraken) Emit(v []lib.Event)          { k.em.Emit(v) }
-func (k *Kraken) EmitOne(v lib.Event)         { k.em.EmitOne(v) }
-func (k *Kraken) EventType() lib.EventType    { return k.em.EventType() }
+func (k *Kraken) Emit(v []types.Event)        { k.em.Emit(v) }
+func (k *Kraken) EmitOne(v types.Event)       { k.em.EmitOne(v) }
+func (k *Kraken) EventType() types.EventType  { return k.em.EventType() }

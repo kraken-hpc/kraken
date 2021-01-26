@@ -12,11 +12,11 @@ package core
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/gogo/protobuf/jsonpb"
+	"github.com/gogo/protobuf/proto"
+	"github.com/hpc/kraken/lib/json"
+	"github.com/hpc/kraken/lib/types"
 )
 
 //////////////////////
@@ -25,32 +25,13 @@ import (
 
 // Registry is where we register modules & extensions
 // It provides various internal functions
+// We need this prior to init(), so it must be a global
 var Registry = NewKrakenRegistry()
 
-/*
- * Marshaling routines live here because they rely on Registry as an Any resolver
- */
-
-// MarshalJSON is a helper for default JSON marshaling
-func MarshalJSON(m proto.Message) ([]byte, error) {
-	jm := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
-		Indent:       "  ",
-		OrigName:     false,
-		AnyResolver:  Registry,
-	}
-	j, err := jm.MarshalToString(m)
-	return []byte(j), err
-}
-
-// UnmarshalJSON is a helper for default JSON unmarshaling
-func UnmarshalJSON(in []byte, p proto.Message) error {
-	um := &jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
-		AnyResolver:        Registry,
-	}
-	return um.Unmarshal(strings.NewReader(string(in)), p)
+// Set our registry to be our json resolver
+func init() {
+	json.Marshaler.AnyResolver = Registry
+	json.Unmarshaler.AnyResolver = Registry
 }
 
 ///////////////////////////
@@ -60,27 +41,27 @@ func UnmarshalJSON(in []byte, p proto.Message) error {
 var _ jsonpb.AnyResolver = (*KrakenRegistry)(nil)
 
 type KrakenRegistry struct {
-	Modules          map[string]lib.Module
-	Extensions       map[string]lib.Extension
+	Modules          map[string]types.Module
+	Extensions       map[string]types.Extension
 	Discoverables    map[string]map[string]map[string]reflect.Value // d["instance_id"]["property_url"]["value_id"]
-	Mutations        map[string]map[string]lib.StateMutation        // m["instance_id"]["mutation_id"]
-	ServiceInstances map[string]map[string]lib.ServiceInstance      // s["module"]["instance_id"]
+	Mutations        map[string]map[string]types.StateMutation      // m["instance_id"]["mutation_id"]
+	ServiceInstances map[string]map[string]types.ServiceInstance    // s["module"]["instance_id"]
 }
 
 func NewKrakenRegistry() *KrakenRegistry {
 	r := &KrakenRegistry{
-		Modules:          make(map[string]lib.Module),
-		Extensions:       make(map[string]lib.Extension),
+		Modules:          make(map[string]types.Module),
+		Extensions:       make(map[string]types.Extension),
 		Discoverables:    make(map[string]map[string]map[string]reflect.Value),
-		Mutations:        make(map[string]map[string]lib.StateMutation),
-		ServiceInstances: make(map[string]map[string]lib.ServiceInstance),
+		Mutations:        make(map[string]map[string]types.StateMutation),
+		ServiceInstances: make(map[string]map[string]types.ServiceInstance),
 	}
 	return r
 }
 
 // RegisterModule adds an module to the map if it hasn't been already
 // It's probably a good idea for this to be done in init()
-func (r *KrakenRegistry) RegisterModule(m lib.Module) {
+func (r *KrakenRegistry) RegisterModule(m types.Module) {
 	if _, ok := r.Modules[m.Name()]; !ok {
 		r.Modules[m.Name()] = m
 	}
@@ -88,26 +69,26 @@ func (r *KrakenRegistry) RegisterModule(m lib.Module) {
 
 // RegisterExtension adds an extension to the map if it hasn't been already
 // It's probably a good idea for this to be done in init()
-func (r *KrakenRegistry) RegisterExtension(e lib.Extension) {
+func (r *KrakenRegistry) RegisterExtension(e types.Extension) {
 	if _, ok := r.Extensions[e.Name()]; !ok {
 		r.Extensions[e.Name()] = e
 	}
 }
 
 // RegisterDiscoverable adds a map of discoverables the module can emit
-func (r *KrakenRegistry) RegisterDiscoverable(si lib.ServiceInstance, d map[string]map[string]reflect.Value) {
+func (r *KrakenRegistry) RegisterDiscoverable(si types.ServiceInstance, d map[string]map[string]reflect.Value) {
 	r.Discoverables[si.ID()] = d
 }
 
 // RegisterMutations declares mutations a module can perform
-func (r *KrakenRegistry) RegisterMutations(si lib.ServiceInstance, d map[string]lib.StateMutation) {
+func (r *KrakenRegistry) RegisterMutations(si types.ServiceInstance, d map[string]types.StateMutation) {
 	r.Mutations[si.ID()] = d
 }
 
 // RegisterServiceInstance creates a service instance with a particular module.RegisterServiceInstance
 // Note: This can be done after the fact, but serviceinstances that are added after runtime cannot
 // (currently) be used as part of mutation chains.
-func (r *KrakenRegistry) RegisterServiceInstance(m lib.Module, d map[string]lib.ServiceInstance) {
+func (r *KrakenRegistry) RegisterServiceInstance(m types.Module, d map[string]types.ServiceInstance) {
 	r.ServiceInstances[m.Name()] = d
 }
 
@@ -116,7 +97,7 @@ func (r *KrakenRegistry) Resolve(url string) (proto.Message, error) {
 		return e.New(), nil
 	}
 	for _, m := range r.Modules {
-		if m, ok := m.(lib.ModuleWithConfig); ok {
+		if m, ok := m.(types.ModuleWithConfig); ok {
 			if m.ConfigURL() == url {
 				return m.NewConfig(), nil
 			}

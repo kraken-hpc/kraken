@@ -6,9 +6,9 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/IPv4
-  - github.com/hpc/kraken/extensions/VBox
-  - github.com/hpc/kraken/extensions/PXE
+  - github.com/hpc/kraken/extensions/ipv4
+  - github.com/hpc/kraken/extensions/vbox
+  - github.com/hpc/kraken/extensions/pxe
 
 # included modules
 modules:

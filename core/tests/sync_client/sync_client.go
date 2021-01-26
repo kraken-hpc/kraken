@@ -7,7 +7,7 @@ import (
 
 	"github.com/hpc/kraken/core"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 
 	"google.golang.org/grpc"
 )
@@ -20,7 +20,7 @@ const simpleNode1 string = `
 "physState": "PHYS_UNKNOWN",
 "extensions": [
   {
-	"@type": "type.googleapis.com/proto.IPv4OverEthernet",
+	"@type": "type.googleapis.com/IPv4.IPv4OverEthernet",
 	"ifaces": [
 	  {
 		"ip": {
@@ -54,7 +54,7 @@ const simpleNode3 string = `
 "physState": "PHYS_UNKNOWN",
 "extensions": [
   {
-	"@type": "type.googleapis.com/proto.IPv4OverEthernet",
+	"@type": "type.googleapis.com/IPv4.IPv4OverEthernet",
 	"ifaces": [
 	  {
 		"ip": {
@@ -67,7 +67,7 @@ const simpleNode3 string = `
 }
 `
 
-func send(n lib.Node) {
+func send(n types.Node) {
 	conn, e := grpc.Dial("127.0.0.1:31415", grpc.WithInsecure())
 	if e != nil {
 		log.Printf("did not connect: %v", e)
@@ -76,7 +76,7 @@ func send(n lib.Node) {
 	c := pb.NewStateSyncClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: n.ID().Binary()})
+	r, e := c.RPCPhoneHome(ctx, &pb.PhoneHomeRequest{Id: n.ID().Bytes()})
 	if e != nil {
 		log.Printf("could not phone home: %v", e)
 	}

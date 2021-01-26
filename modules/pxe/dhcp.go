@@ -20,8 +20,9 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/extensions/IPv4"
-	"github.com/hpc/kraken/lib"
+	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 	"golang.org/x/net/ipv4"
 )
 
@@ -56,16 +57,16 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 	// Find our interface
 	px.iface, e = net.InterfaceByName(iface)
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
+		px.api.Logf(types.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
 
 	// We need the raw handle to send unicast packet replies
 	// This is only used for sending initial DHCP offers
-	// Note: 0x0800 is EtherType for IPv4. See: https://en.wikipedia.org/wiki/EtherType
+	// Note: 0x0800 is EtherType for ipv4. See: https://en.wikipedia.org/wiki/EtherType
 	px.rawHandle, e = raw.ListenPacket(px.iface, 0x0800, nil)
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v: %s", e, iface)
+		px.api.Logf(types.LLCRITICAL, "%v: %s", e, iface)
 		return
 	}
 	defer px.rawHandle.Close()
@@ -73,12 +74,12 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 	// We use this packetconn to read from
 	nc, e := net.ListenPacket("udp4", ":67")
 	if e != nil {
-		px.api.Logf(lib.LLCRITICAL, "%v", e)
+		px.api.Logf(types.LLCRITICAL, "%v", e)
 		return
 	}
 	c := ipv4.NewPacketConn(nc)
 	defer c.Close()
-	px.api.Logf(lib.LLINFO, "started DHCP listener on: %s", iface)
+	px.api.Logf(types.LLINFO, "started DHCP listener on: %s", iface)
 
 	// main read loop
 	for {
@@ -89,21 +90,21 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 
 		n, _, addr, e := c.ReadFrom(buffer)
 		if e != nil {
-			px.api.Logf(lib.LLCRITICAL, "%v", e)
+			px.api.Logf(types.LLCRITICAL, "%v", e)
 			break
 		}
-		px.api.Logf(lib.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
+		px.api.Logf(types.LLDDEBUG, "got a dhcp packet from: %s", addr.String())
 		if n < 240 {
-			px.api.Logf(lib.LLDDEBUG, "packet is too short: %d < 240", n)
+			px.api.Logf(types.LLDDEBUG, "packet is too short: %d < 240", n)
 			continue
 		}
 
 		if e = parser.DecodeLayers(buffer[:n], &decoded); e != nil {
-			px.api.Logf(lib.LLERROR, "error decoding packet: %v", e)
+			px.api.Logf(types.LLERROR, "error decoding packet: %v", e)
 			continue
 		}
 		if len(decoded) < 1 || decoded[0] != layers.LayerTypeDHCPv4 {
-			px.api.Logf(lib.LLERROR, "decoded non-DHCP packet")
+			px.api.Logf(types.LLERROR, "decoded non-DHCP packet")
 			continue
 		}
 		// at this point we have a parsed DHCPv4 packet
@@ -113,13 +114,13 @@ func (px *PXE) StartDHCP(iface string, ip net.IP) {
 			continue
 		}
 		if req.HardwareLen > 16 {
-			px.api.Logf(lib.LLDDEBUG, "packet HardwareLen too long: %d > 16", req.HardwareLen)
+			px.api.Logf(types.LLDDEBUG, "packet HardwareLen too long: %d > 16", req.HardwareLen)
 			continue
 		}
 
 		go px.handleDHCPRequest(req)
 	}
-	px.api.Log(lib.LLNOTICE, "DHCP stopped.")
+	px.api.Log(types.LLNOTICE, "DHCP stopped.")
 }
 
 // handleDHCPRequest is the main handler for new DHCP packets
@@ -133,27 +134,27 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 
 	t, ok := opts[layers.DHCPOptMessageType]
 	if !ok {
-		px.api.Log(lib.LLDEBUG, "got DHCP packet with no message type")
+		px.api.Log(types.LLDEBUG, "got DHCP packet with no message type")
 		return
 	}
 
 	n := px.NodeGet(queryByMAC, p.ClientHWAddr.String())
 	// fmt.Printf("%v, %v, %p, %v\n", count, n.ID().String(), &n, p.ClientHWAddr.String())
 	if n == nil {
-		px.api.Logf(lib.LLDEBUG, "ignoring DHCP packet from unknown %s", p.ClientHWAddr.String())
+		px.api.Logf(types.LLDEBUG, "ignoring DHCP packet from unknown %s", p.ClientHWAddr.String())
 		return
 	}
 
 	v, e := n.GetValue(px.cfg.IpUrl)
 	if e != nil {
-		px.api.Logf(lib.LLDEBUG, "ignoring DHCP packet from node with no IP in state: %s", p.ClientHWAddr.String())
+		px.api.Logf(types.LLDEBUG, "ignoring DHCP packet from node with no IP in state: %s", p.ClientHWAddr.String())
 		return
 	}
-	ip := IPv4.BytesToIP(v.Bytes())
+	ip := v.Interface().(ipv4t.IP).IP
 
 	switch layers.DHCPMsgType(t.Data[0]) {
 	case layers.DHCPMsgTypeDiscover:
-		px.api.Logf(lib.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
+		px.api.Logf(types.LLDEBUG, "sending DHCP offer of %s to %s", ip.String(), p.ClientHWAddr.String())
 
 		r := px.newDHCPPacket(
 			p,
@@ -169,11 +170,11 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 	case layers.DHCPMsgTypeRequest:
 		req, ok := opts[layers.DHCPOptRequestIP]
 		if !ok {
-			px.api.Log(lib.LLDEBUG, "got a DHCP request, but no request IP")
+			px.api.Log(types.LLDEBUG, "got a DHCP request, but no request IP")
 			return
 		}
 		if req.Length != 4 {
-			px.api.Logf(lib.LLDEBUG, "got a DHCP request with invalid length request IP, len = %d", req.Length)
+			px.api.Logf(types.LLDEBUG, "got a DHCP request with invalid length request IP, len = %d", req.Length)
 			return
 		}
 		reqIP := net.IP(req.Data)
@@ -187,20 +188,20 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 				layers.DHCPOptions{},
 			)
 			px.transmitDHCPPacket(n, ip, p.ClientHWAddr, r)
-			px.api.Logf(lib.LLDEBUG, "acknowledging DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
+			px.api.Logf(types.LLDEBUG, "acknowledging DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
 			// discover that we've progressed
-			url1 := lib.NodeURLJoin(n.ID().String(), PXEStateURL)
+			url1 := util.NodeURLJoin(n.ID().String(), PXEStateURL)
 			ev1 := core.NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url1,
 				&core.DiscoveryEvent{
 					URL:     url1,
 					ValueID: "INIT",
 				},
 			)
-			url2 := lib.NodeURLJoin(n.ID().String(), "/RunState")
+			url2 := util.NodeURLJoin(n.ID().String(), "/RunState")
 			ev2 := core.NewEvent(
-				lib.Event_DISCOVERY,
+				types.Event_DISCOVERY,
 				url2,
 				&core.DiscoveryEvent{
 					URL:     url2,
@@ -210,7 +211,7 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 			px.dchan <- ev1
 			px.dchan <- ev2
 		} else {
-			px.api.Logf(lib.LLDEBUG, "NAKing DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
+			px.api.Logf(types.LLDEBUG, "NAKing DHCP request by %s for %s", p.ClientHWAddr.String(), reqIP.String())
 			r := px.newDHCPPacket(
 				p,
 				layers.DHCPMsgTypeNak,
@@ -231,7 +232,7 @@ func (px *PXE) handleDHCPRequest(p layers.DHCPv4) {
 	case layers.DHCPMsgTypeUnspecified:
 		fallthrough
 	default: // Pi's only send Discovers
-		px.api.Log(lib.LLDEBUG, "Unhandled DHCP packet.")
+		px.api.Log(types.LLDEBUG, "Unhandled DHCP packet.")
 	}
 	return
 }
@@ -339,9 +340,9 @@ func (px *PXE) newDHCPPacket(p layers.DHCPv4, msgType layers.DHCPMsgType, selfIP
 	return buf.Bytes()
 }
 
-func (px *PXE) transmitDHCPPacket(n lib.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
+func (px *PXE) transmitDHCPPacket(n types.Node, ip net.IP, mac net.HardwareAddr, rawp []byte) error {
 	var e error
-	px.api.Logf(lib.LLDDEBUG, "transmitting DHCP packet")
+	px.api.Logf(types.LLDDEBUG, "transmitting DHCP packet")
 
 	_, e = px.rawHandle.WriteTo(rawp, &raw.Addr{HardwareAddr: mac})
 	if e != nil {

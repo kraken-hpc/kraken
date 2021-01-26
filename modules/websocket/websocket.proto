@@ -1,0 +1,27 @@
+/* restapi.proto: describes the RestAPIConfig object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package WebSocket;
+option go_package = ".;websocket";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Config {
+    int32 port = 2;
+    string writeWait = 3;       // Time allowed to write a message to the peer.
+    string pongWait = 4;        // Time allowed to read the next pong message from the peer.
+    string pingPeriod = 5;      // Send pings to peer with this period. Must be less than pongWait.
+    int64 maxMessageSize = 6;   // Maximum message size allowed from peer.
+}

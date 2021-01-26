@@ -15,34 +15,36 @@ import (
 	"sync"
 
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 ///////////////////////////
 // ServiceManager Object /
 /////////////////////////
 
-var _ lib.ServiceManager = (*ServiceManager)(nil)
+var _ types.ServiceManager = (*ServiceManager)(nil)
 
 type ServiceManager struct {
-	srv    map[string]lib.ServiceInstance // map of si IDs to ServiceInstances
+	srv    map[string]types.ServiceInstance // map of si IDs to ServiceInstances
 	mutex  *sync.Mutex
 	sock   string // socket that we use for API comms
-	sclist lib.EventListener
-	echan  chan lib.Event
-	wchan  chan lib.ServiceInstanceUpdate
+	sclist types.EventListener
+	echan  chan types.Event
+	wchan  chan types.ServiceInstanceUpdate
 	ctx    Context
 	query  *QueryEngine
-	log    lib.Logger
+	log    types.Logger
 }
 
 func NewServiceManager(ctx Context, sock string) *ServiceManager {
 	sm := &ServiceManager{
-		srv:   make(map[string]lib.ServiceInstance),
+		srv:   make(map[string]types.ServiceInstance),
 		mutex: &sync.Mutex{},
 		sock:  sock,
-		echan: make(chan lib.Event),
-		wchan: make(chan lib.ServiceInstanceUpdate),
+		echan: make(chan types.Event),
+		wchan: make(chan types.ServiceInstanceUpdate),
 		ctx:   ctx,
 		log:   &ctx.Logger,
 		query: &ctx.Query,
@@ -56,10 +58,10 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 	smurl := regexp.MustCompile(`^\/?Services\/`)
 	sm.sclist = NewEventListener(
 		"ServiceManager",
-		lib.Event_STATE_CHANGE,
-		func(v lib.Event) bool {
-			node, url := lib.NodeURLSplit(v.URL())
-			if !NewNodeID(node).Equal(sm.ctx.Self) {
+		types.Event_STATE_CHANGE,
+		func(v types.Event) bool {
+			node, url := util.NodeURLSplit(v.URL())
+			if !ct.NewNodeID(node).EqualTo(sm.ctx.Self) {
 				return false
 			}
 			if smurl.MatchString(url) {
@@ -67,22 +69,22 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 			}
 			return false
 		},
-		func(v lib.Event) error { return ChanSender(v, sm.echan) },
+		func(v types.Event) error { return ChanSender(v, sm.echan) },
 	)
 	sm.ctx.SubChan <- sm.sclist
 
 	// initialize service instances
 	for m := range Registry.ServiceInstances {
 		for _, si := range Registry.ServiceInstances[m] {
-			sm.log.Logf(lib.LLINFO, "adding service: %s", si.ID())
+			sm.log.Logf(types.LLINFO, "adding service: %s", si.ID())
 			sm.AddService(si)
 		}
 	}
 
 	go func() {
-		sm.log.Logf(lib.LLDEBUG, "starting initial service sync")
+		sm.log.Logf(types.LLDEBUG, "starting initial service sync")
 		for _, si := range sm.srv {
-			sm.log.Logf(lib.LLDDEBUG, "starting initial service sync: %s", si.ID())
+			sm.log.Logf(types.LLDDEBUG, "starting initial service sync: %s", si.ID())
 			sm.syncService(si.ID())
 		}
 	}()
@@ -95,21 +97,21 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 		select {
 		case v := <-sm.echan:
 			// state change for services
-			sm.log.Logf(lib.LLDDEBUG, "processing state change event: %s", v.URL())
+			sm.log.Logf(types.LLDDEBUG, "processing state change event: %s", v.URL())
 			go sm.processStateChange(v.Data().(*StateChangeEvent))
 		case su := <-sm.wchan:
 			// si changed process state
-			sm.log.Logf(lib.LLDDEBUG, "processing SI state update: %s -> %+v", su.ID, su.State)
+			sm.log.Logf(types.LLDDEBUG, "processing SI state update: %s -> %s", su.ID, su.State)
 			go sm.processUpdate(su)
 		}
 	}
 }
 
-func (sm *ServiceManager) AddService(si lib.ServiceInstance) {
+func (sm *ServiceManager) AddService(si types.ServiceInstance) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 	if _, ok := sm.srv[si.ID()]; ok {
-		sm.log.Logf(lib.LLERROR, "tried to add service that already exists: %s", si.ID())
+		sm.log.Logf(types.LLERROR, "tried to add service that already exists: %s", si.ID())
 	}
 	sm.srv[si.ID()] = si
 	si.Watch(sm.wchan)
@@ -126,7 +128,7 @@ func (sm *ServiceManager) DelService(si string) {
 	}
 }
 
-func (sm *ServiceManager) GetService(si string) lib.ServiceInstance {
+func (sm *ServiceManager) GetService(si string) types.ServiceInstance {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 	if si, ok := sm.srv[si]; ok {
@@ -137,8 +139,8 @@ func (sm *ServiceManager) GetService(si string) lib.ServiceInstance {
 
 func (sm *ServiceManager) processStateChange(v *StateChangeEvent) {
 	// extract SI
-	_, url := lib.NodeURLSplit(v.URL)
-	us := lib.URLToSlice(url)
+	_, url := util.NodeURLSplit(v.URL)
+	us := util.URLToSlice(url)
 	si := ""
 	// this makes sure we don't get tripped up by leading slashes
 	for i := range us {
@@ -147,38 +149,38 @@ func (sm *ServiceManager) processStateChange(v *StateChangeEvent) {
 		}
 	}
 	if si == "" {
-		sm.log.Logf(lib.LLDEBUG, "failed to parse URL for /Services state change: %s", v.URL)
+		sm.log.Logf(types.LLDEBUG, "failed to parse URL for /Services state change: %s", v.URL)
 		return
 	}
 	sm.syncService(si)
 }
 
-func (sm *ServiceManager) processUpdate(su lib.ServiceInstanceUpdate) {
+func (sm *ServiceManager) processUpdate(su types.ServiceInstanceUpdate) {
 	// set the state in the SDE
 	switch su.State {
-	case lib.Service_STOP:
+	case types.Service_STOP:
 		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_STOP)
-	case lib.Service_RUN:
+	case types.Service_RUN:
 		// this is actually pb state INIT; it's up to
 		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_INIT)
-	case lib.Service_ERROR:
+	case types.Service_ERROR:
 		sm.setServiceStateDsc(su.ID, pb.ServiceInstance_ERROR)
 	}
 }
 
 // syncService is what actually does most of the work.  It compares cfg to dsc and decides what to do
 func (sm *ServiceManager) syncService(si string) {
-	sm.log.Logf(lib.LLDDEBUG, "syncing service: %s", si)
+	sm.log.Logf(types.LLDDEBUG, "syncing service: %s", si)
 	srv := sm.GetService(si)
 	if srv == nil {
-		sm.log.Logf(lib.LLERROR, "tried to sync non-existent service: %s", si)
+		sm.log.Logf(types.LLERROR, "tried to sync non-existent service: %s", si)
 		return
 	}
 	c := sm.getServiceStateCfg(si)
 	d := sm.getServiceStateDsc(si)
 
 	if c == d { // nothing to do
-		sm.log.Logf(lib.LLDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
+		sm.log.Logf(types.LLDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
 		return
 	}
 	if d == pb.ServiceInstance_ERROR { // don't clear errors
@@ -187,11 +189,11 @@ func (sm *ServiceManager) syncService(si string) {
 	switch c {
 	case pb.ServiceInstance_RUN: // we're supposed to be running
 		if d != pb.ServiceInstance_INIT { // did we already try to start?
-			sm.log.Logf(lib.LLDDEBUG, "starting service: %s", si)
+			sm.log.Logf(types.LLDDEBUG, "starting service: %s", si)
 			srv.Start() // startup
 		}
 	case pb.ServiceInstance_STOP: // we're supposed to be stopped
-		sm.log.Logf(lib.LLDDEBUG, "stopping service: %s", si)
+		sm.log.Logf(types.LLDDEBUG, "stopping service: %s", si)
 		srv.Stop() // stop
 	}
 }
@@ -202,7 +204,7 @@ func (sm *ServiceManager) getServiceStateCfg(si string) pb.ServiceInstance_Servi
 	n, _ := sm.query.Read(sm.ctx.Self)
 	v, e := n.GetValue(sm.stateURL(si))
 	if e != nil {
-		sm.log.Logf(lib.LLERROR, "failed to get cfg state value (%s): %s", sm.stateURL(si), e.Error())
+		sm.log.Logf(types.LLERROR, "failed to get cfg state value (%s): %s", sm.stateURL(si), e.Error())
 		return pb.ServiceInstance_UNKNOWN
 	}
 	return pb.ServiceInstance_ServiceState(v.Int())
@@ -212,7 +214,7 @@ func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_Servi
 	n, _ := sm.query.ReadDsc(sm.ctx.Self)
 	v, e := n.GetValue(sm.stateURL(si))
 	if e != nil {
-		sm.log.Logf(lib.LLERROR, "failed to get dsc state value (%s): %s", sm.stateURL(si), e.Error())
+		sm.log.Logf(types.LLERROR, "failed to get dsc state value (%s): %s", sm.stateURL(si), e.Error())
 		return pb.ServiceInstance_UNKNOWN
 	}
 	return pb.ServiceInstance_ServiceState(v.Int())
@@ -222,12 +224,12 @@ func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance
 	n, _ := sm.query.ReadDsc(sm.ctx.Self)
 	_, e := n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
 	if e != nil {
-		sm.log.Logf(lib.LLERROR, "failed to set dsc state value (%s): %s", sm.stateURL(si), e.Error())
+		sm.log.Logf(types.LLERROR, "failed to set dsc state value (%s): %s", sm.stateURL(si), e.Error())
 		return
 	}
 	sm.query.UpdateDsc(n)
 }
 
 func (sm *ServiceManager) stateURL(si string) string {
-	return lib.URLPush(lib.URLPush("/Services", si), "State")
+	return util.URLPush(util.URLPush("/Services", si), "State")
 }

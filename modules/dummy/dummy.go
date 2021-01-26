@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I ../../core/proto/include -I proto --go_out=plugins=grpc:proto proto/dummy.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. dummy.proto
 
 package dummy
 
@@ -17,21 +17,21 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"github.com/gogo/protobuf/proto"
+	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	corepb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
-	pb "github.com/hpc/kraken/modules/dummy/proto"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 // This is a simple module example
 
-var _ lib.Module = (*Dummy)(nil)
-var _ lib.ModuleSelfService = (*Dummy)(nil)
-var _ lib.ModuleWithConfig = (*Dummy)(nil)
-var _ lib.ModuleWithDiscovery = (*Dummy)(nil)
-var _ lib.ModuleWithMutations = (*Dummy)(nil)
+var _ types.Module = (*Dummy)(nil)
+var _ types.ModuleSelfService = (*Dummy)(nil)
+var _ types.ModuleWithConfig = (*Dummy)(nil)
+var _ types.ModuleWithDiscovery = (*Dummy)(nil)
+var _ types.ModuleWithMutations = (*Dummy)(nil)
 
 var muts = map[string][2]string{
 	"dumFail":   {"", "fail"},     // we need some in arrow to our failure mode or it won't get built into the graph
@@ -59,12 +59,12 @@ var timeouts = map[string]int{
 
 // A Dummy says strings from its cfg.say every cfg.duration
 type Dummy struct {
-	//api *core.APIClient
-	cfg    *pb.DummyConfig
+	//api *core.ModuleAPIClient
+	cfg    *Config
 	i      int
-	api    lib.APIClient
-	dchan  chan<- lib.Event
-	mchan  <-chan lib.Event
+	api    types.ModuleAPIClient
+	dchan  chan<- types.Event
+	mchan  <-chan types.Event
 	timers map[string]*time.Timer
 }
 
@@ -78,7 +78,7 @@ type Dummy struct {
 func (d *Dummy) Entry() {
 	d.timers = make(map[string]*time.Timer)
 	if d.cfg == nil {
-		d.cfg = d.NewConfig().(*pb.DummyConfig)
+		d.cfg = d.NewConfig().(*Config)
 	}
 	go func() {
 		dur, e := time.ParseDuration(d.cfg.Wait)
@@ -97,17 +97,17 @@ func (d *Dummy) Entry() {
 		d.i++
 	}()
 
-	dtimer := make(chan lib.Event)
+	dtimer := make(chan types.Event)
 	/*
-		discover := func(v lib.Event) {
+		discover := func(v types.Event) {
 			time.Sleep(3 * time.Second)
 			dtimer <- v
 		}
 	*/
-	url := lib.NodeURLJoin(d.api.Self().String(),
-		lib.URLPush(lib.URLPush("/Services", "dummy"), "State"))
+	url := util.NodeURLJoin(d.api.Self().String(),
+		util.URLPush(util.URLPush("/Services", "dummy"), "State"))
 	d.dchan <- core.NewEvent(
-		lib.Event_DISCOVERY,
+		types.Event_DISCOVERY,
 		url,
 		&core.DiscoveryEvent{
 			URL:     url,
@@ -136,10 +136,10 @@ func (d *Dummy) Entry() {
 					fmt.Printf("got an unknown requested mutation: %s\n", data.Mutation[1])
 					continue
 				}
-				url := lib.NodeURLJoin(data.NodeCfg.ID().String(), "/Platform")
+				url := util.NodeURLJoin(data.NodeCfg.ID().String(), "/Platform")
 				fmt.Printf("initiating mutation: %s : %s -> %s\n", url, val[0], val[1])
 				v := core.NewEvent(
-					lib.Event_DISCOVERY,
+					types.Event_DISCOVERY,
 					url,
 					&core.DiscoveryEvent{
 						URL:     url,
@@ -179,7 +179,7 @@ func (d *Dummy) Name() string {
 // If it is defined, updates will occur when they are changed in the state.
 func (d *Dummy) UpdateConfig(cfg proto.Message) (e error) {
 	fmt.Printf("(dummy) updating config to: %v\n", cfg)
-	if dc, ok := cfg.(*pb.DummyConfig); ok {
+	if dc, ok := cfg.(*Config); ok {
 		d.cfg = dc
 		d.Init(d.api)
 		return
@@ -187,24 +187,24 @@ func (d *Dummy) UpdateConfig(cfg proto.Message) (e error) {
 	return fmt.Errorf("wrong config type")
 }
 
-func (d *Dummy) SetDiscoveryChan(c chan<- lib.Event) {
+func (d *Dummy) SetDiscoveryChan(c chan<- types.Event) {
 	d.dchan = c
 }
 
-func (d *Dummy) SetMutationChan(c <-chan lib.Event) {
+func (d *Dummy) SetMutationChan(c <-chan types.Event) {
 	d.mchan = c
 }
 
 // Init initializes the module.
 // If this exists, it will be called when the module is instantiated.
 // It will be called before the API is initialized or the config is in place.
-func (d *Dummy) Init(api lib.APIClient) {
+func (d *Dummy) Init(api types.ModuleAPIClient) {
 	d.api = api
 	d.i = 0
 }
 
 func (d *Dummy) NewConfig() proto.Message {
-	return &pb.DummyConfig{
+	return &Config{
 		Say:  []string{"what"},
 		Wait: "3s",
 	}
@@ -215,7 +215,7 @@ func (d *Dummy) ConfigURL() string {
 	return a.GetTypeUrl()
 }
 
-var mutations = make(map[string]lib.StateMutation)
+var mutations = make(map[string]types.StateMutation)
 var discovers = make(map[string]map[string]reflect.Value)
 
 // Module needs to get registered here
@@ -239,7 +239,7 @@ func init() {
 				"/Services/dummy/State": reflect.ValueOf(corepb.ServiceInstance_RUN),
 			},
 			map[string]reflect.Value{},
-			lib.StateMutationContext_SELF,
+			types.StateMutationContext_SELF,
 			time.Second*time.Duration(timeouts[k]),
 			[3]string{si.ID(), "/Platform", "fail"},
 		)
@@ -249,5 +249,5 @@ func init() {
 		"Run": reflect.ValueOf(corepb.ServiceInstance_RUN)}
 	core.Registry.RegisterDiscoverable(si, discovers)
 	core.Registry.RegisterMutations(si, mutations)
-	core.Registry.RegisterServiceInstance(module, map[string]lib.ServiceInstance{si.ID(): si})
+	core.Registry.RegisterServiceInstance(module, map[string]types.ServiceInstance{si.ID(): si})
 }

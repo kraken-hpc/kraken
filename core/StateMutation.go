@@ -13,28 +13,28 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 //////////////////////////
 // StateMutation Object /
 ////////////////////////
 
-var _ lib.StateMutation = (*StateMutation)(nil)
+var _ types.StateMutation = (*StateMutation)(nil)
 
 // A StateMutation describes a possible mutation of state
 // These are declared by modules
 // These are used to construct the state evolution graph
 type StateMutation struct {
 	mut     map[string][2]reflect.Value
-	context lib.StateMutationContext
+	context types.StateMutationContext
 	base    *StateSpec // this is the spec, less the mutation value
 	timeout time.Duration
 	failto  [3]string
 }
 
 // NewStateMutation creates an initialized, specified StateMutation object
-func NewStateMutation(mut map[string][2]reflect.Value, req map[string]reflect.Value, exc map[string]reflect.Value, context lib.StateMutationContext, timeout time.Duration, failto [3]string) *StateMutation {
+func NewStateMutation(mut map[string][2]reflect.Value, req map[string]reflect.Value, exc map[string]reflect.Value, context types.StateMutationContext, timeout time.Duration, failto [3]string) *StateMutation {
 	for u := range mut {
 		if _, ok := req[u]; ok {
 			// FIXME: this should probably error out, but we just fix the problem
@@ -65,10 +65,10 @@ func (s *StateMutation) Excludes() map[string]reflect.Value { return s.base.Excl
 
 // Context specifies in which context (Self/Child/All) this mutation applies to
 // Note: this doesn't affect the graph; just who does the work.
-func (s *StateMutation) Context() lib.StateMutationContext { return s.context }
+func (s *StateMutation) Context() types.StateMutationContext { return s.context }
 
 // Before returns a StatSpec representing the state of of a matching Node before the mutation
-func (s *StateMutation) Before() lib.StateSpec {
+func (s *StateMutation) Before() types.StateSpec {
 	r := make(map[string]reflect.Value)
 	for u, v := range s.mut {
 		r[u] = v[0]
@@ -78,7 +78,7 @@ func (s *StateMutation) Before() lib.StateSpec {
 }
 
 // After returns a StatSpec representing the state of of a matching Node after the mutation
-func (s *StateMutation) After() lib.StateSpec {
+func (s *StateMutation) After() types.StateSpec {
 	r := make(map[string]reflect.Value)
 	for u, v := range s.mut {
 		r[u] = v[1]
@@ -89,7 +89,7 @@ func (s *StateMutation) After() lib.StateSpec {
 
 // SpecCompatIn decides if this mutation can form an in arrow in the graph
 // This is used for graph building.
-func (s *StateMutation) SpecCompatIn(sp lib.StateSpec, muts map[string]uint32) bool {
+func (s *StateMutation) SpecCompatIn(sp types.StateSpec, muts map[string]uint32) bool {
 	// Philosphy: assume true, fail fast
 
 	// 1. If the specs aren't compatible, we're done
@@ -140,7 +140,7 @@ func (s *StateMutation) SpecCompatIn(sp lib.StateSpec, muts map[string]uint32) b
 
 // SpecCompatOut decides if this mutaiton can form an out arrow in the graph
 // This is used for graph building.
-func (s *StateMutation) SpecCompatOut(sp lib.StateSpec, muts map[string]uint32) bool {
+func (s *StateMutation) SpecCompatOut(sp types.StateSpec, muts map[string]uint32) bool {
 	// Philosphy: assume true, fail fast
 
 	// 1. If the specs aren't compatible, we're done

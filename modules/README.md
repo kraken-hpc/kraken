@@ -32,7 +32,7 @@ For ease of documentation, it will be assumed that the module being worked on is
 - `func (p *Ipmipower) Entry()`
   - `Entry()` is the start point of the module
   - `Entry()` is where the main portion of the module code will reside
-- `func (p *Ipmipower) Init(api lib.APIClient)`
+- `func (p *Ipmipower) Init(api lib.ModuleAPIClient)`
   - `Init()` runs before `Entry()` is called
   - Initializes the member variables of the module struct
 - `func (p *Ipmipower) Stop()`

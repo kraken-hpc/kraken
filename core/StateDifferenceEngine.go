@@ -15,7 +15,9 @@ import (
 	"reflect"
 
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 ///////////////////////
@@ -48,27 +50,27 @@ type StateChangeEvent struct {
 }
 
 func (sce *StateChangeEvent) String() string {
-	return fmt.Sprintf("(%s) %s = %s", StateChangeTypeString[sce.Type], sce.URL, lib.ValueToString(sce.Value))
+	return fmt.Sprintf("(%s) %s = %s", StateChangeTypeString[sce.Type], sce.URL, util.ValueToString(sce.Value))
 }
 
 // NewStateChangeEvent creates a new event of this time, fully specified
-func NewStateChangeEvent(t pb.StateChangeControl_Type, u string, v reflect.Value) lib.Event {
+func NewStateChangeEvent(t pb.StateChangeControl_Type, u string, v reflect.Value) types.Event {
 	sce := &StateChangeEvent{
 		Type:  t,
 		URL:   u,
 		Value: v,
 	}
-	return NewEvent(lib.Event_STATE_CHANGE, sce.URL, sce)
+	return NewEvent(types.Event_STATE_CHANGE, sce.URL, sce)
 }
 
 ///////////////////
 // StateDifferenceEngine Object /
 /////////////////
 
-var _ lib.CRUD = (*StateDifferenceEngine)(nil)
-var _ lib.Resolver = (*StateDifferenceEngine)(nil)
-var _ lib.BulkCRUD = (*StateDifferenceEngine)(nil)
-var _ lib.StateDifferenceEngine = (*StateDifferenceEngine)(nil)
+var _ types.CRUD = (*StateDifferenceEngine)(nil)
+var _ types.Resolver = (*StateDifferenceEngine)(nil)
+var _ types.BulkCRUD = (*StateDifferenceEngine)(nil)
+var _ types.StateDifferenceEngine = (*StateDifferenceEngine)(nil)
 
 // An StateDifferenceEngine maintains two kinds of state:
 // - "Discoverable" (Dsc) is the discovered state of the system
@@ -76,21 +78,21 @@ var _ lib.StateDifferenceEngine = (*StateDifferenceEngine)(nil)
 // An StateDifferenceEngine provides a simple Query langage for accessing/updating state.
 // An StateDifferenceEngine emits Events on state change
 type StateDifferenceEngine struct {
-	log   lib.Logger
+	log   types.Logger
 	em    *EventEmitter
 	dsc   *State
 	cfg   *State
-	qc    chan lib.Query
-	schan chan<- lib.EventListener
+	qc    chan types.Query
+	schan chan<- types.EventListener
 }
 
 // NewStateDifferenceEngine initializes a new StateDifferenceEngine object given a Context
-func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEngine {
+func NewStateDifferenceEngine(ctx Context, qc chan types.Query) *StateDifferenceEngine {
 	n := &StateDifferenceEngine{}
 	n.dsc = NewState()
 	n.cfg = NewState()
 	n.qc = qc
-	n.em = NewEventEmitter(lib.Event_STATE_CHANGE)
+	n.em = NewEventEmitter(types.Event_STATE_CHANGE)
 	n.schan = ctx.SubChan
 	n.log = &ctx.Logger
 	n.log.SetModule("StateDifferenceEngine")
@@ -98,13 +100,13 @@ func NewStateDifferenceEngine(ctx Context, qc chan lib.Query) *StateDifferenceEn
 	n.BulkCreate(ctx.SDE.InitialCfg)
 	n.BulkUpdateDsc(ctx.SDE.InitialDsc)
 	// we're done with this now, so no need to keep them around
-	ctx.SDE.InitialCfg = []lib.Node{}
-	ctx.SDE.InitialDsc = []lib.Node{}
+	ctx.SDE.InitialCfg = []types.Node{}
+	ctx.SDE.InitialDsc = []types.Node{}
 	return n
 }
 
 // Create a node in the state engine
-func (n *StateDifferenceEngine) Create(m lib.Node) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) Create(m types.Node) (r types.Node, e error) {
 	r, e = n.cfg.Create(m)
 	if e != nil {
 		return
@@ -115,41 +117,41 @@ func (n *StateDifferenceEngine) Create(m lib.Node) (r lib.Node, e error) {
 		r = nil
 		return
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_CREATE, lib.NodeURLJoin(m.ID().String(), ""), reflect.ValueOf(r)))
+	go n.EmitOne(NewStateChangeEvent(StateChange_CREATE, util.NodeURLJoin(m.ID().String(), ""), reflect.ValueOf(r)))
 	return
 }
 
 // Read reads a node from Cfg
-func (n *StateDifferenceEngine) Read(nid lib.NodeID) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) Read(nid types.NodeID) (r types.Node, e error) {
 	// we don't emit read events
 	return n.cfg.Read(nid)
 }
 
 // ReadDsc reads a node from Dsc
-func (n *StateDifferenceEngine) ReadDsc(nid lib.NodeID) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) ReadDsc(nid types.NodeID) (r types.Node, e error) {
 	return n.dsc.Read(nid)
 }
 
 // Update updates a node in Cfg
-func (n *StateDifferenceEngine) Update(m lib.Node) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) Update(m types.Node) (r types.Node, e error) {
 	return n.updateByType(false, m)
 }
 
 // UpdateDsc updates a node in Dsc
-func (n *StateDifferenceEngine) UpdateDsc(m lib.Node) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) UpdateDsc(m types.Node) (r types.Node, e error) {
 	return n.updateByType(true, m)
 }
 
 // Delete deletes a node
-func (n *StateDifferenceEngine) Delete(m lib.Node) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) Delete(m types.Node) (r types.Node, e error) {
 	return n.DeleteByID(m.ID())
 }
 
 // DeleteByID deletes a node by its NodeID
-func (n *StateDifferenceEngine) DeleteByID(nid lib.NodeID) (r lib.Node, e error) {
+func (n *StateDifferenceEngine) DeleteByID(nid types.NodeID) (r types.Node, e error) {
 	n.dsc.DeleteByID(nid)
 	r, e = n.cfg.DeleteByID(nid)
-	go n.EmitOne(NewStateChangeEvent(StateChange_DELETE, lib.NodeURLJoin(nid.String(), ""), reflect.ValueOf(r)))
+	go n.EmitOne(NewStateChangeEvent(StateChange_DELETE, util.NodeURLJoin(nid.String(), ""), reflect.ValueOf(r)))
 	return
 }
 
@@ -198,21 +200,21 @@ func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r refl
 }
 
 // BulkCreate creates multiple nodes
-func (n *StateDifferenceEngine) BulkCreate(ms []lib.Node) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkCreate(ms []types.Node) (r []types.Node, e error) {
 	r, e = n.cfg.BulkCreate(ms)
-	var dms []lib.Node
-	var evs []lib.Event
+	var dms []types.Node
+	var evs []types.Event
 	// we should just do this for `r`, since it may be a subset of `ms`
 	for _, v := range r {
 		dms = append(dms, n.makeDscNode(v.(*Node)))
-		evs = append(evs, NewStateChangeEvent(StateChange_CREATE, lib.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
+		evs = append(evs, NewStateChangeEvent(StateChange_CREATE, util.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
 	}
 	dr, de := n.dsc.BulkCreate(dms)
 	if len(dr) != len(r) {
 		// We got unequal adds to dsc & cfg.  Only safe thing is to back out
 		n.cfg.BulkDelete(r)
 		n.dsc.BulkDelete(dr)
-		r = []lib.Node{}
+		r = []types.Node{}
 		e = fmt.Errorf("failed to add nodes to both dsc & cfg, rolling back: %s, %s", e.Error(), de.Error())
 		return
 	}
@@ -221,32 +223,32 @@ func (n *StateDifferenceEngine) BulkCreate(ms []lib.Node) (r []lib.Node, e error
 }
 
 // BulkRead reads multiple nodes from Cfg
-func (n *StateDifferenceEngine) BulkRead(nids []lib.NodeID) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkRead(nids []types.NodeID) (r []types.Node, e error) {
 	return n.cfg.BulkRead(nids)
 }
 
 // BulkReadDsc reads multiple nodes from Dsc
-func (n *StateDifferenceEngine) BulkReadDsc(nids []lib.NodeID) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkReadDsc(nids []types.NodeID) (r []types.Node, e error) {
 	return n.dsc.BulkRead(nids)
 }
 
 // BulkUpdate updates multiple nodes in Cfg
-func (n *StateDifferenceEngine) BulkUpdate(ms []lib.Node) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkUpdate(ms []types.Node) (r []types.Node, e error) {
 	return n.bulkUpdateByType(false, ms)
 }
 
 // BulkUpdateDsc updates multiple nodes in Dsc
-func (n *StateDifferenceEngine) BulkUpdateDsc(ms []lib.Node) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkUpdateDsc(ms []types.Node) (r []types.Node, e error) {
 	return n.bulkUpdateByType(true, ms)
 }
 
 //BulkDelete deletes multiple nodes
-func (n *StateDifferenceEngine) BulkDelete(ms []lib.Node) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkDelete(ms []types.Node) (r []types.Node, e error) {
 	r, e = n.cfg.BulkDelete(ms)
 	_, de := n.dsc.BulkDelete(ms)
-	var evs []lib.Event
+	var evs []types.Event
 	for _, v := range r {
-		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, lib.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
+		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, util.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
 	}
 	go n.Emit(evs)
 	if de != nil && e == nil {
@@ -256,12 +258,12 @@ func (n *StateDifferenceEngine) BulkDelete(ms []lib.Node) (r []lib.Node, e error
 }
 
 // BulkDeleteByID deletes multiple nodes, keyed by their NodeID
-func (n *StateDifferenceEngine) BulkDeleteByID(nids []lib.NodeID) (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) BulkDeleteByID(nids []types.NodeID) (r []types.Node, e error) {
 	r, e = n.cfg.BulkDeleteByID(nids)
 	_, de := n.dsc.BulkDeleteByID(nids)
-	var evs []lib.Event
+	var evs []types.Event
 	for _, v := range r {
-		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, lib.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
+		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, util.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
 	}
 	go n.Emit(evs)
 	if de != nil && e == nil { // if dr errors, but e does not, pass the error on
@@ -271,22 +273,22 @@ func (n *StateDifferenceEngine) BulkDeleteByID(nids []lib.NodeID) (r []lib.Node,
 }
 
 // ReadAll returns a slice of all nodes in Cfg
-func (n *StateDifferenceEngine) ReadAll() (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) ReadAll() (r []types.Node, e error) {
 	return n.cfg.ReadAll()
 }
 
 // ReadAllDsc returns a slice of all nodes in Dsc
-func (n *StateDifferenceEngine) ReadAllDsc() (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) ReadAllDsc() (r []types.Node, e error) {
 	return n.dsc.ReadAll()
 }
 
 // DeleteAll deletes all nodes in the engine, careful!
-func (n *StateDifferenceEngine) DeleteAll() (r []lib.Node, e error) {
+func (n *StateDifferenceEngine) DeleteAll() (r []types.Node, e error) {
 	r, e = n.cfg.DeleteAll()
 	_, de := n.cfg.DeleteAll()
-	var evs []lib.Event
+	var evs []types.Event
 	for _, v := range r {
-		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, lib.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
+		evs = append(evs, NewStateChangeEvent(StateChange_DELETE, util.NodeURLJoin(v.ID().String(), ""), reflect.ValueOf(v)))
 	}
 	go n.Emit(evs)
 	if de != nil && e == nil { // if dr errors, but e does not, pass the error on
@@ -296,7 +298,7 @@ func (n *StateDifferenceEngine) DeleteAll() (r []lib.Node, e error) {
 }
 
 // QueryChan returns a chanel that Queries can be sent on
-func (n *StateDifferenceEngine) QueryChan() chan<- lib.Query {
+func (n *StateDifferenceEngine) QueryChan() chan<- types.Query {
 	return n.qc
 }
 
@@ -304,12 +306,12 @@ func (n *StateDifferenceEngine) QueryChan() chan<- lib.Query {
 func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 	n.Log(INFO, "starting StateDifferenceEngine")
 	// we listen for queries as well as discovery events
-	dchan := make(chan lib.Event)
+	dchan := make(chan types.Event)
 	list := NewEventListener(
 		"SDEDiscovery",
-		lib.Event_DISCOVERY,
-		func(v lib.Event) bool { return true },
-		func(v lib.Event) error { return ChanSender(v, dchan) },
+		types.Event_DISCOVERY,
+		func(v types.Event) bool { return true },
+		func(v types.Event) error { return ChanSender(v, dchan) },
 	)
 	// subscribe our discovery listener
 	n.schan <- list
@@ -318,24 +320,24 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 		select {
 		case q := <-n.qc:
 			switch q.Type() {
-			case lib.Query_CREATE:
+			case types.Query_CREATE:
 				if len(q.Value()) < 1 || !q.Value()[0].IsValid() {
 					go n.sendQueryResponse(NewQueryResponse([]reflect.Value{}, fmt.Errorf("malformed node in create query")), q.ResponseChan())
 					break
 				}
-				v, e := n.Create(q.Value()[0].Interface().(lib.Node))
+				v, e := n.Create(q.Value()[0].Interface().(types.Node))
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
-			case lib.Query_READ:
-				var v lib.Node
+			case types.Query_READ:
+				var v types.Node
 				var e error
 				switch q.State() {
-				case lib.QueryState_CONFIG:
-					v, e = n.Read(NewNodeIDFromURL(q.URL()))
+				case types.QueryState_CONFIG:
+					v, e = n.Read(ct.NewNodeIDFromURL(q.URL()))
 					break
-				case lib.QueryState_DISCOVER:
-					v, e = n.ReadDsc(NewNodeIDFromURL(q.URL()))
+				case types.QueryState_DISCOVER:
+					v, e = n.ReadDsc(ct.NewNodeIDFromURL(q.URL()))
 					break
 				default:
 					e = fmt.Errorf("unknown state for Query_READ")
@@ -343,15 +345,15 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
-			case lib.Query_UPDATE:
-				var v lib.Node
+			case types.Query_UPDATE:
+				var v types.Node
 				var e error
 				switch q.State() {
-				case lib.QueryState_CONFIG:
-					v, e = n.Update(q.Value()[0].Interface().(lib.Node))
+				case types.QueryState_CONFIG:
+					v, e = n.Update(q.Value()[0].Interface().(types.Node))
 					break
-				case lib.QueryState_DISCOVER:
-					v, e = n.UpdateDsc(q.Value()[0].Interface().(lib.Node))
+				case types.QueryState_DISCOVER:
+					v, e = n.UpdateDsc(q.Value()[0].Interface().(types.Node))
 					break
 				default:
 					e = fmt.Errorf("unknown state for Query_UPDATE")
@@ -359,47 +361,47 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
-			case lib.Query_DELETE:
-				v, e := n.Delete(q.Value()[0].Interface().(lib.Node))
+			case types.Query_DELETE:
+				v, e := n.Delete(q.Value()[0].Interface().(types.Node))
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{reflect.ValueOf(v)}, e), q.ResponseChan())
 				break
-			case lib.Query_GETVALUE:
+			case types.Query_GETVALUE:
 				var v reflect.Value
 				var e error
 				switch q.State() {
-				case lib.QueryState_CONFIG:
+				case types.QueryState_CONFIG:
 					v, e = n.GetValue(q.URL())
 					break
-				case lib.QueryState_DISCOVER:
+				case types.QueryState_DISCOVER:
 					v, e = n.GetValueDsc(q.URL())
 					break
 				}
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{v}, e), q.ResponseChan())
 				break
-			case lib.Query_SETVALUE:
+			case types.Query_SETVALUE:
 				var v reflect.Value
 				var e error
 				switch q.State() {
-				case lib.QueryState_CONFIG:
+				case types.QueryState_CONFIG:
 					v, e = n.SetValue(q.URL(), q.Value()[0])
 					break
-				case lib.QueryState_DISCOVER:
+				case types.QueryState_DISCOVER:
 					v, e = n.SetValueDsc(q.URL(), q.Value()[0])
 					break
 				}
 				go n.sendQueryResponse(NewQueryResponse(
 					[]reflect.Value{v}, e), q.ResponseChan())
 				break
-			case lib.Query_READALL:
-				var v []lib.Node
+			case types.Query_READALL:
+				var v []types.Node
 				var e error
 				switch q.State() {
-				case lib.QueryState_CONFIG:
+				case types.QueryState_CONFIG:
 					v, e = n.ReadAll()
 					break
-				case lib.QueryState_DISCOVER:
+				case types.QueryState_DISCOVER:
 					v, e = n.ReadAllDsc()
 					break
 				default:
@@ -411,7 +413,7 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 				}
 				go n.sendQueryResponse(NewQueryResponse(vs, e), q.ResponseChan())
 				break
-			case lib.Query_DELETEALL:
+			case types.Query_DELETEALL:
 				v, e := n.DeleteAll()
 				var vs []reflect.Value
 				for _, i := range v {
@@ -425,7 +427,7 @@ func (n *StateDifferenceEngine) Run(ready chan<- interface{}) {
 			break
 		case v := <-dchan: // got a discovery
 			data := v.Data().(*DiscoveryEvent)
-			_, url := lib.NodeURLSplit(data.URL)
+			_, url := util.NodeURLSplit(data.URL)
 			val, ok := Registry.Discoverables[data.ID][url][data.ValueID]
 			n.Logf(DDEBUG, "processing discovery: si (%s) url (%s) id(%s)", data.ID, url, data.ValueID)
 			if !ok {
@@ -451,8 +453,8 @@ func (n *StateDifferenceEngine) makeDscNode(m *Node) (r *Node) {
 	return r
 }
 
-func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, e error) {
-	var old lib.Node
+func (n *StateDifferenceEngine) updateByType(dsc bool, m types.Node) (r types.Node, e error) {
+	var old types.Node
 	var diff []string
 	if dsc {
 		old, e = n.dsc.Read(m.ID())
@@ -462,7 +464,7 @@ func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, 
 	if e != nil {
 		return
 	}
-	if diff, e = old.(*Node).Diff(m.(*Node), lib.NodeURLJoin(m.ID().String(), "")); e != nil {
+	if diff, e = old.(*Node).Diff(m.(*Node), util.NodeURLJoin(m.ID().String(), "")); e != nil {
 		return
 	}
 	if dsc {
@@ -471,13 +473,13 @@ func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, 
 		r, e = n.cfg.Update(m)
 	}
 	if e == nil && len(diff) > 0 {
-		var evs []lib.Event
+		var evs []types.Event
 		utype := StateChange_UPDATE
 		if !dsc {
 			utype = StateChange_CFG_UPDATE
 		}
 		for _, u := range diff {
-			_, url := lib.NodeURLSplit(u)
+			_, url := util.NodeURLSplit(u)
 			v, _ := r.GetValue(url)
 			evs = append(evs, NewStateChangeEvent(utype, u, reflect.ValueOf(v)))
 		}
@@ -486,10 +488,10 @@ func (n *StateDifferenceEngine) updateByType(dsc bool, m lib.Node) (r lib.Node, 
 	return
 }
 
-func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []lib.Node, e error) {
-	var old []lib.Node
+func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []types.Node) (r []types.Node, e error) {
+	var old []types.Node
 	var diff []string
-	var nids []lib.NodeID
+	var nids []types.NodeID
 	for _, v := range ms {
 		nids = append(nids, v.ID())
 	}
@@ -503,7 +505,7 @@ func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []l
 	}
 	for i := range ms {
 		var d []string
-		if d, e = old[i].(*Node).Diff(ms[i].(*Node), lib.NodeURLJoin(ms[i].ID().String(), "")); e != nil {
+		if d, e = old[i].(*Node).Diff(ms[i].(*Node), util.NodeURLJoin(ms[i].ID().String(), "")); e != nil {
 			return
 		}
 		diff = append(diff, d...)
@@ -519,7 +521,7 @@ func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []l
 		/// but we still get an error
 		return
 	}
-	var evs []lib.Event
+	var evs []types.Event
 	utype := StateChange_UPDATE
 	if !dsc {
 		utype = StateChange_CFG_UPDATE
@@ -532,7 +534,7 @@ func (n *StateDifferenceEngine) bulkUpdateByType(dsc bool, ms []lib.Node) (r []l
 }
 
 // goroutine
-func (n *StateDifferenceEngine) sendQueryResponse(qr lib.QueryResponse, r chan<- lib.QueryResponse) {
+func (n *StateDifferenceEngine) sendQueryResponse(qr types.QueryResponse, r chan<- types.QueryResponse) {
 	r <- qr
 }
 
@@ -543,29 +545,29 @@ func (n *StateDifferenceEngine) sendQueryResponse(qr lib.QueryResponse, r chan<-
 /*
  * Consume Logger
  */
-var _ lib.Logger = (*StateDifferenceEngine)(nil)
+var _ types.Logger = (*StateDifferenceEngine)(nil)
 
-func (n *StateDifferenceEngine) Log(level lib.LoggerLevel, m string) { n.log.Log(level, m) }
-func (n *StateDifferenceEngine) Logf(level lib.LoggerLevel, fmt string, v ...interface{}) {
+func (n *StateDifferenceEngine) Log(level types.LoggerLevel, m string) { n.log.Log(level, m) }
+func (n *StateDifferenceEngine) Logf(level types.LoggerLevel, fmt string, v ...interface{}) {
 	n.log.Logf(level, fmt, v...)
 }
-func (n *StateDifferenceEngine) SetModule(name string)                { n.log.SetModule(name) }
-func (n *StateDifferenceEngine) GetModule() string                    { return n.log.GetModule() }
-func (n *StateDifferenceEngine) SetLoggerLevel(level lib.LoggerLevel) { n.log.SetLoggerLevel(level) }
-func (n *StateDifferenceEngine) GetLoggerLevel() lib.LoggerLevel      { return n.log.GetLoggerLevel() }
-func (n *StateDifferenceEngine) IsEnabledFor(level lib.LoggerLevel) bool {
+func (n *StateDifferenceEngine) SetModule(name string)                  { n.log.SetModule(name) }
+func (n *StateDifferenceEngine) GetModule() string                      { return n.log.GetModule() }
+func (n *StateDifferenceEngine) SetLoggerLevel(level types.LoggerLevel) { n.log.SetLoggerLevel(level) }
+func (n *StateDifferenceEngine) GetLoggerLevel() types.LoggerLevel      { return n.log.GetLoggerLevel() }
+func (n *StateDifferenceEngine) IsEnabledFor(level types.LoggerLevel) bool {
 	return n.log.IsEnabledFor(level)
 }
 
 /*
  * Consume EventEmitter
  */
-var _ lib.EventEmitter = (*StateDifferenceEngine)(nil)
+var _ types.EventEmitter = (*StateDifferenceEngine)(nil)
 
-func (n *StateDifferenceEngine) Subscribe(id string, c chan<- []lib.Event) error {
+func (n *StateDifferenceEngine) Subscribe(id string, c chan<- []types.Event) error {
 	return n.em.Subscribe(id, c)
 }
 func (n *StateDifferenceEngine) Unsubscribe(id string) error { return n.em.Unsubscribe(id) }
-func (n *StateDifferenceEngine) Emit(v []lib.Event)          { n.em.Emit(v) }
-func (n *StateDifferenceEngine) EmitOne(v lib.Event)         { n.em.EmitOne(v) }
-func (n *StateDifferenceEngine) EventType() lib.EventType    { return n.em.EventType() }
+func (n *StateDifferenceEngine) Emit(v []types.Event)        { n.em.Emit(v) }
+func (n *StateDifferenceEngine) EmitOne(v types.Event)       { n.em.EmitOne(v) }
+func (n *StateDifferenceEngine) EventType() types.EventType  { return n.em.EventType() }

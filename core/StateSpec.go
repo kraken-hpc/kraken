@@ -13,14 +13,14 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/hpc/kraken/lib"
+	"github.com/hpc/kraken/lib/types"
 )
 
 //////////////////////
 // StateSpec Object /
 ////////////////////
 
-var _ lib.StateSpec = (*StateSpec)(nil)
+var _ types.StateSpec = (*StateSpec)(nil)
 
 // A StateSpec is essentially a filter that determines if a given state
 // falls within the spec or not.  It currently systems of required and excluded
@@ -46,7 +46,7 @@ func (s *StateSpec) Requires() map[string]reflect.Value { return s.req }
 func (s *StateSpec) Excludes() map[string]reflect.Value { return s.exc }
 
 // NodeMatch determines of a Node matches a spec
-func (s *StateSpec) NodeMatch(n lib.Node) (r bool) {
+func (s *StateSpec) NodeMatch(n types.Node) (r bool) {
 	r = true
 	// Are required values correct?
 	for u, v := range s.req {
@@ -69,7 +69,7 @@ func (s *StateSpec) NodeMatch(n lib.Node) (r bool) {
 // 1) For each mutator that is in the node, the spec must be equal
 // 2) For each requires in the spec that is not a mutator, node must be equal
 // 3) For each excludes in the spec that is not a mutator, node must not be equal
-func (s *StateSpec) NodeCompatWithMutators(n lib.Node, muts map[string]uint32) (r bool) {
+func (s *StateSpec) NodeCompatWithMutators(n types.Node, muts map[string]uint32) (r bool) {
 	r = true
 	// 1) For each mutator that is in the node, the spec must be equal
 	for m := range muts {
@@ -107,7 +107,7 @@ func (s *StateSpec) NodeCompatWithMutators(n lib.Node, muts map[string]uint32) (
 
 // NodeMatchWithMutators is like NodeMatch, but requires any mutators be present and match
 // if they are non-zero in the node
-func (s *StateSpec) NodeMatchWithMutators(n lib.Node, muts map[string]uint32) bool {
+func (s *StateSpec) NodeMatchWithMutators(n types.Node, muts map[string]uint32) bool {
 	for m := range muts {
 		val, e := n.GetValue(m)
 		if e == nil && val.IsValid() && val.Interface() != reflect.Zero(val.Type()).Interface() {
@@ -126,7 +126,7 @@ func (s *StateSpec) NodeMatchWithMutators(n lib.Node, muts map[string]uint32) bo
 // SpecCompat determines if two specs are compatible.
 // Note: this doesn't mean that a Node that matches one will match
 //  the other; it's just possible that they would.
-func (a *StateSpec) SpecCompat(b lib.StateSpec) (r bool) {
+func (a *StateSpec) SpecCompat(b types.StateSpec) (r bool) {
 	r = true
 	req := b.Requires()
 	exc := b.Excludes()
@@ -162,7 +162,7 @@ func (a *StateSpec) SpecCompat(b lib.StateSpec) (r bool) {
 }
 
 // SpecMergeMust makes the most specified version of two compbined StateSpecs
-func (s *StateSpec) SpecMergeMust(b lib.StateSpec) (ns lib.StateSpec) {
+func (s *StateSpec) SpecMergeMust(b types.StateSpec) (ns types.StateSpec) {
 	creq := make(map[string]reflect.Value)
 	cexc := make(map[string]reflect.Value)
 
@@ -184,7 +184,7 @@ func (s *StateSpec) SpecMergeMust(b lib.StateSpec) (ns lib.StateSpec) {
 }
 
 // SpecMerge is the same as SpecMergeMust, but don't assume compat, and return an error if not
-func (s *StateSpec) SpecMerge(b lib.StateSpec) (ns lib.StateSpec, e error) {
+func (s *StateSpec) SpecMerge(b types.StateSpec) (ns types.StateSpec, e error) {
 	if !s.SpecCompat(b) {
 		e = fmt.Errorf("cannot merge incompatible StateSpecs")
 		return
@@ -194,7 +194,7 @@ func (s *StateSpec) SpecMerge(b lib.StateSpec) (ns lib.StateSpec, e error) {
 }
 
 // LeastCommon keeps only the values that are also in the supplied spec
-func (s *StateSpec) LeastCommon(b lib.StateSpec) {
+func (s *StateSpec) LeastCommon(b types.StateSpec) {
 	for u, v := range b.Requires() {
 		if sv, ok := s.req[u]; ok {
 			if v.Interface() != sv.Interface() {
@@ -214,7 +214,7 @@ func (s *StateSpec) LeastCommon(b lib.StateSpec) {
 }
 
 // Equal tests if two specs are identical.  Note: DeepEqual doesn't work because it doesn't turn vals into interfaces.
-func (s *StateSpec) Equal(b lib.StateSpec) bool {
+func (s *StateSpec) Equal(b types.StateSpec) bool {
 	if len(s.Requires()) != len(b.Requires()) {
 		return false
 	}

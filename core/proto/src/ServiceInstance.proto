@@ -1,0 +1,36 @@
+/* ServiceInstance.proto: describes a Service Instance of a module
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018-2021, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package proto;
+option go_package = ".;proto";
+
+import "google/protobuf/any.proto";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message ServiceInstance {
+    string id = 1;   // this needs to be unique
+    string module = 2; // this is potentially non-unique
+    enum ServiceState {
+        UNKNOWN = 0;
+        INIT    = 1;
+        STOP    = 2;
+        RUN     = 3;
+        ERROR   = 4;
+    }
+    ServiceState state = 3;
+    google.protobuf.Any config = 4;
+    string error_msg = 5;
+}

@@ -7,8 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate protoc -I proto/include -I proto --go_out=plugins=grpc:proto proto/ServiceInstance.proto
-//go:generate protoc -I proto/include -I proto --go_out=plugins=grpc:proto proto/Node.proto
+//go:generate protoc -I proto/src -I proto --gogo_out=Mgoogle/protobuf/any.proto=github.com/gogo/protobuf/types,plugins=grpc:proto proto/src/Node.proto
 
 package core
 
@@ -17,18 +16,19 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
+	"github.com/gogo/protobuf/proto"
+	ptypes "github.com/gogo/protobuf/types"
 	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib"
+	ct "github.com/hpc/kraken/core/proto/customtypes"
+	"github.com/hpc/kraken/lib/types"
+	"github.com/hpc/kraken/lib/util"
 )
 
 /////////////////
 // Node Object /
 ///////////////
 
-var _ lib.Node = (*Node)(nil)
+var _ types.Node = (*Node)(nil)
 
 // A Node object is the basic data store of the state engine. It is also a wrapper for a protobuf object.
 type Node struct {
@@ -42,7 +42,7 @@ type Node struct {
 func NewNodeWithID(id string) *Node {
 	//n := newNode()
 	n := NewNodeFromJSON([]byte(nodeFixture))
-	n.pb.Id = NewNodeID(id).Binary()
+	n.pb.Id = ct.NewNodeID(id)
 	n.indexServices()
 	return n
 }
@@ -50,7 +50,7 @@ func NewNodeWithID(id string) *Node {
 // NewNodeFromJSON creates a new node from JSON bytes
 func NewNodeFromJSON(j []byte) *Node {
 	n := newNode()
-	e := UnmarshalJSON(j, n.pb)
+	e := n.pb.UnmarshalJSON(j)
 	if e != nil {
 		fmt.Printf("UnmarshJSON failed: %v\n", e)
 		return nil
@@ -84,14 +84,14 @@ func NewNodeFromMessage(m *pb.Node) *Node {
 
 // ID returns the NodeID object for the node
 // Note: we don't lock on this under the assumption that ID's don't typically change
-func (n *Node) ID() lib.NodeID {
-	return NewNodeIDFromBinary(n.pb.Id)
+func (n *Node) ID() types.NodeID {
+	return n.pb.Id
 }
 
 // ParentID returns the NodeID of the parent of this node
-func (n *Node) ParentID() (pid lib.NodeID) {
+func (n *Node) ParentID() (pid types.NodeID) {
 	n.mutex.RLock()
-	pid = NewNodeIDFromBinary(n.pb.ParentId)
+	pid = n.pb.ParentId
 	n.mutex.RUnlock()
 	return
 }
@@ -107,7 +107,7 @@ func (n *Node) JSON() []byte {
 	defer n.mutex.Unlock()
 
 	n.exportExtensions()
-	b, _ := MarshalJSON(n.pb)
+	b, _ := n.pb.MarshalJSON()
 	n.importExtensions()
 	return b
 }
@@ -126,36 +126,37 @@ func (n *Node) Binary() []byte {
 
 // Message returns the proto.Message interface for the node
 func (n *Node) Message() proto.Message {
-	n.mutex.Lock()
-	defer n.mutex.Unlock()
-
-	n.exportExtensions()
-	m := proto.Clone(n.pb)
-	n.importExtensions()
-	return m
+	// This is a strange way to do things, but proto.Clone doesn't work with custom types
+	// TODO: do this better.
+	bytes := n.Binary()
+	m := NewNodeFromBinary(bytes)
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.exportExtensions()
+	return m.pb
 }
 
 // GetValue returns a specific value (reflect.Value) by URL
 // note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) GetValue(url string) (v reflect.Value, e error) {
-	root, sub := lib.URLShift(url)
+	root, sub := util.URLShift(url)
 	switch root {
 	case "type.googleapis.com":
 		fallthrough
 	case "/type.googleapis.com": // resolve extension
-		p, sub := lib.URLShift(sub)
+		p, sub := util.URLShift(sub)
 		n.mutex.RLock()
-		ext, ok := n.exts[lib.URLPush(root, p)]
+		ext, ok := n.exts[util.URLPush(root, p)]
 		if !ok {
-			e = fmt.Errorf("node does not have extension: %s", lib.URLPush(root, p))
+			e = fmt.Errorf("node does not have extension: %s", util.URLPush(root, p))
 			return
 		}
 		defer n.mutex.RUnlock()
-		return lib.ResolveURL(sub, reflect.ValueOf(ext))
+		return util.ResolveURL(sub, reflect.ValueOf(ext))
 	case "Services":
 		fallthrough
 	case "/Services": // resolve service
-		p, sub := lib.URLShift(sub)
+		p, sub := util.URLShift(sub)
 		srv := n.GetService(p)
 		if srv == nil {
 			e = fmt.Errorf("nodes does not have service instance: %s", p)
@@ -163,11 +164,11 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 		}
 		n.mutex.RLock()
 		defer n.mutex.RUnlock()
-		return lib.ResolveURL(sub, reflect.ValueOf(srv))
+		return util.ResolveURL(sub, reflect.ValueOf(srv))
 	default: // everything else
 		n.mutex.RLock()
 		defer n.mutex.RUnlock()
-		return lib.ResolveURL(url, reflect.ValueOf(n.pb))
+		return util.ResolveURL(url, reflect.ValueOf(n.pb))
 	}
 }
 
@@ -176,16 +177,16 @@ func (n *Node) GetValue(url string) (v reflect.Value, e error) {
 // note: we can't just wrap everything in a lock because n.GetService will lock too
 func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e error) {
 	var r reflect.Value
-	root, sub := lib.URLShift(url)
+	root, sub := util.URLShift(url)
 	switch root {
 	case "/type.googleapis.com":
 		fallthrough
 	case "type.googleapis.com":
-		p, sub := lib.URLShift(sub)
-		ext, ok := n.exts[lib.URLPush(root, p)]
+		p, sub := util.URLShift(sub)
+		ext, ok := n.exts[util.URLPush(root, p)]
 		if !ok {
 			// ok, if this is a type we know, we'll add it
-			extension, ok := Registry.Extensions[lib.URLPush(root, p)]
+			extension, ok := Registry.Extensions[util.URLPush(root, p)]
 			if !ok {
 				e = fmt.Errorf("unknown extension: %s", ext)
 				return
@@ -198,11 +199,11 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 		}
 		n.mutex.Lock()
 		defer n.mutex.Unlock()
-		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(ext))
+		r, e = util.ResolveOrMakeURL(sub, reflect.ValueOf(ext))
 	case "/Services":
 		fallthrough
 	case "Services":
-		p, sub := lib.URLShift(sub)
+		p, sub := util.URLShift(sub)
 		srv := n.GetService(p)
 		if srv == nil {
 			// we don't create services on the fly like this right now
@@ -211,20 +212,30 @@ func (n *Node) SetValue(url string, value reflect.Value) (v reflect.Value, e err
 		}
 		n.mutex.Lock()
 		defer n.mutex.Unlock()
-		r, e = lib.ResolveOrMakeURL(sub, reflect.ValueOf(srv))
+		r, e = util.ResolveOrMakeURL(sub, reflect.ValueOf(srv))
 	default:
 		n.mutex.Lock()
 		defer n.mutex.Unlock()
-		r, e = lib.ResolveOrMakeURL(url, reflect.ValueOf(n.pb))
+		r, e = util.ResolveOrMakeURL(url, reflect.ValueOf(n.pb))
 	}
 	if e != nil {
 		return
+	}
+	if !r.IsValid() {
+		panic(url)
+	}
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
 	}
 	if r.Type() != value.Type() {
 		e = fmt.Errorf("type mismatch: %s != %s", value.Type(), r.Type())
 		return
 	}
 	// should already be locked from above
+	if !r.CanSet() {
+		e = fmt.Errorf("value %s is not settable", url)
+		return
+	}
 	r.Set(value)
 	v = r
 	return
@@ -380,7 +391,7 @@ func (n *Node) HasService(id string) bool {
 // Diff finds URLs that are different between this Node and another
 // prefix allows a string prefix to be prepended to diffs
 // note: we have to be especially careful about locking in this function
-func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
+func (n *Node) Diff(node types.Node, prefix string) (r []string, e error) {
 	if reflect.TypeOf(n) != reflect.TypeOf(node) {
 		e = fmt.Errorf("cannot diff nodes of different types")
 		return
@@ -399,7 +410,7 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 	defer m.mutex.RUnlock()
 	// !!!IMPORTANT!!! we can't call any functions that lock after this, or we risk a deadlock
 
-	r, e = lib.MessageDiff(n.pb, m.pb, prefix)
+	r, e = util.MessageDiff(n.pb, m.pb, prefix)
 
 	// handle extensions
 	for _, u := range eright {
@@ -408,7 +419,7 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 			r = append(r, fmt.Sprintf("%s%s", prefix, u))
 			continue
 		}
-		d, _ := lib.MessageDiff(n.exts[u], nodeExt, fmt.Sprintf("%s%s", prefix, u))
+		d, _ := util.MessageDiff(n.exts[u], nodeExt, fmt.Sprintf("%s%s", prefix, u))
 		r = append(r, d...)
 		for i := range eleft {
 			if eleft[i] == u {
@@ -422,14 +433,14 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 	}
 
 	// handle services
-	prefix = lib.URLPush(prefix, "Services")
+	prefix = util.URLPush(prefix, "Services")
 	for _, u := range sright {
 		nodeSrv, ok := m.srvs[u]
 		if !ok { // new one doesn't have this
-			r = append(r, lib.URLPush(prefix, u))
+			r = append(r, util.URLPush(prefix, u))
 			continue
 		}
-		d, _ := lib.MessageDiff(n.srvs[u], nodeSrv, lib.URLPush(prefix, u))
+		d, _ := util.MessageDiff(n.srvs[u], nodeSrv, util.URLPush(prefix, u))
 		r = append(r, d...)
 		for i := range sleft {
 			if sleft[i] == u {
@@ -439,14 +450,14 @@ func (n *Node) Diff(node lib.Node, prefix string) (r []string, e error) {
 		}
 	}
 	for _, u := range sleft { // these are new services in m
-		r = append(r, lib.URLPush(prefix, u))
+		r = append(r, util.URLPush(prefix, u))
 	}
 	return
 }
 
 // MergeDiff does a merge if of what is in diff (URLs) only
 // it returns a slice of changes made
-func (n *Node) MergeDiff(node lib.Node, diff []string) (changes []string, e error) {
+func (n *Node) MergeDiff(node types.Node, diff []string) (changes []string, e error) {
 	if reflect.TypeOf(n) != reflect.TypeOf(node) {
 		e = fmt.Errorf("cannot diff nodes of different types")
 		return
@@ -480,7 +491,7 @@ func (n *Node) MergeDiff(node lib.Node, diff []string) (changes []string, e erro
 // Merge takes any non-nil values in m into n
 // We don't use protobuf's merge because we generally want to know what values changed!
 // It returns a slice of URLs to changes made
-func (n *Node) Merge(node lib.Node, pre string) (changes []string, e error) {
+func (n *Node) Merge(node types.Node, pre string) (changes []string, e error) {
 	d, e := n.Diff(node, pre)
 	if e != nil {
 		return
@@ -522,12 +533,12 @@ func (n *Node) importExtensions() {
 		}
 	}
 	// now we clear the field
-	n.pb.Extensions = []*any.Any{}
+	n.pb.Extensions = []*ptypes.Any{}
 }
 
 // Assume n.mutex is locked
 func (n *Node) exportExtensions() {
-	n.pb.Extensions = []*any.Any{}
+	n.pb.Extensions = []*ptypes.Any{}
 	for _, ext := range n.exts {
 		if any, e := ptypes.MarshalAny(ext); e == nil {
 			n.pb.Extensions = append(n.pb.Extensions, any)
@@ -553,8 +564,18 @@ func (n *Node) indexServices() {
 				Id:     si.ID(),
 				Module: si.Module(),
 			}
-			if mc, ok := Registry.Modules[si.Module()].(lib.ModuleWithConfig); ok {
-				any, _ := ptypes.MarshalAny(reflect.Zero(reflect.TypeOf(mc.NewConfig())).Interface().(proto.Message))
+			if mc, ok := Registry.Modules[si.Module()].(types.ModuleWithConfig); ok {
+				cfg, e := Registry.Resolve(mc.ConfigURL())
+				if e != nil {
+					fmt.Printf("MarshalAny failure for service config: %v\n", e)
+				}
+				cfgType := reflect.ValueOf(cfg).Elem().Type()
+				any, e := ptypes.MarshalAny(reflect.New(cfgType).Interface().(proto.Message))
+				if e != nil {
+					// this shouldn't happen
+					fmt.Printf("MarshalAny failure for service config: %v\n", e)
+					continue
+				}
 				srv.Config = any
 			}
 			n.AddService(srv)
@@ -566,7 +587,7 @@ func (n *Node) indexServices() {
 
 const nodeFixture string = `
 {
-	"id": "Ej5FZ+ibEtOkVkJmVUQAAA==",
+	"id": "123e4567-e89b-12d3-a456-426655440000",
 	"nodename": "",
 	"runState": "UNKNOWN",
 	"physState": "PHYS_UNKNOWN",
