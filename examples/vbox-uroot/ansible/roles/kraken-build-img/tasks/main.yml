@@ -1,0 +1,54 @@
+---
+- name: Create module base directory
+  file:
+    path: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}"
+    state: directory
+
+# needed for modscan
+- name: Copy module descriptor files
+  copy:
+    src: "/lib/modules/{{ kern_out.stdout }}/{{ item }}"
+    dest: "{{ kr_img_base }}/lib/modules/{{ kern_out.stdout }}/{{ item }}"
+    mode: 0644
+    remote_src: true
+  loop:
+    - "modules.alias"
+    - "modules.dep"
+
+# some way to use synchronize instead?
+- name: Copy module files into image
+  shell: |
+    mod_path=$(find "/lib/modules/{{ kern_out.stdout }}" -name "{{ item }}.ko*" | head -n1 )
+    mod_base=$(dirname $mod_path)
+    mkdir -p "{{ kr_img_base }}$mod_base"
+    cp -v "$mod_path" "{{ kr_img_base }}$mod_base"
+  args:
+    chdir: "{{ kr_img_base }}"
+  loop: "{{ kr_img_modules }}"
+
+- name: Create image SSH keys
+  shell: ssh-keygen -N "" -f id_rsa
+  args:
+    chdir: "{{ kr_img_base }}"
+    creates: id_rsa
+
+- name: Create authorized_keys
+  copy:
+    src: "{{ kr_img_base }}/id_rsa.pub"
+    dest: "{{ kr_img_base }}/authorized_keys"
+    remote_src: yes
+    mode: 0600
+
+- name: Create entropy.dat for child VMs
+  command: "dd if=/dev/urandom of={{ kr_img_base }}/entropy.dat bs=1k count=4"
+  args:
+    creates: "{{ kr_img_base }}/random_seed.dat"
+
+- name: go get u-root
+  shell: "go get {{ uroot_url }}"
+
+- name: Create boot image
+  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0_uroot.sh -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64"
+  args:
+    chdir: "{{ kr_tftp_dir }}"
+    creates: initramfs.cpio.gz

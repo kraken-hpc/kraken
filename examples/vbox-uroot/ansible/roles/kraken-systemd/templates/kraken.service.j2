@@ -1,0 +1,13 @@
+[Unit]
+Description=Kraken distributed state engine
+After=network.target network-online.target
+Requires=network.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/kraken
+Type=notify
+WorkingDirectory={{ ansible_env.HOME }}
+ExecStart={{ kr_build_dir ~ '/' ~ kr_target }} -cfg "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+kr_img_base: /home/vagrant/support/base
+uroot_url: github.com/u-root/u-root
+# this is the module set for vbox vms
+kr_img_modules:
+- ac97_bus
+- acpi-cpufreq
+- e1000
+- i2c-piix4
+- intel_pmc_core
+- serio_raw
+- snd
+- snd-ac97-codec
+- snd-intel8x0
+- snd-pcm
+- snd-pcsp
+- snd-timer
+- soundcore
+- video

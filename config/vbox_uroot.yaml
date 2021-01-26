@@ -1,0 +1,19 @@
+# kraken-build.go: describes a build for a Virtualbox testbed
+targets:
+  'u-root':
+  'linux-amd64':
+    os: 'linux'
+    arch: 'amd64'
+
+# included extensions
+extensions:
+  - github.com/hpc/kraken/extensions/IPv4
+  - github.com/hpc/kraken/extensions/VBox
+  - github.com/hpc/kraken/extensions/PXE
+
+# included modules
+modules:
+  - github.com/hpc/kraken/modules/restapi
+  - github.com/hpc/kraken/modules/websocket
+  - github.com/hpc/kraken/modules/vboxmanage
+  - github.com/hpc/kraken/modules/pxe
