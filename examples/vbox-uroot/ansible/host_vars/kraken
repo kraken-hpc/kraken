@@ -16,7 +16,8 @@ kraken_nodes:
         "name": "kr1"
       'IPv4OverEthernet':
         'ifaces':
-          - 'name': "eth0"
+          'kraken':
+            'name': "eth0"
             'ip': '10.11.12.11'
             'subnet': '255.255.255.0'
             'mac': "aa:bb:cc:00:11:01"
@@ -32,7 +33,8 @@ kraken_nodes:
         "name": "kr2"
       'IPv4OverEthernet':
         'ifaces':
-          - 'name': "eth0"
+          'kraken':
+            'name': "eth0"
             'ip': '10.11.12.12'
             'subnet': '255.255.255.0'
             'mac': "aa:bb:cc:00:11:02"
@@ -48,7 +50,8 @@ kraken_nodes:
         "name": "kr3"
       'IPv4OverEthernet':
         'ifaces':
-          - 'name': "eth0"
+          'kraken':
+            'name': "eth0"
             'ip': '10.11.12.13'
             'subnet': '255.255.255.0'
             'mac': "aa:bb:cc:00:11:03"
@@ -64,7 +67,8 @@ kraken_nodes:
         "name": "kr4"
       'IPv4OverEthernet':
         'ifaces':
-          - 'name': "eth0"
+          'kraken':
+            'name': "eth0"
             'ip': '10.11.12.14'
             'subnet': '255.255.255.0'
             'mac': "aa:bb:cc:00:11:04"
