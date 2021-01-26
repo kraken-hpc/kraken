@@ -9,11 +9,11 @@
 
 #}
 {
-    "id": "{{ node.id | uuid_to_b64 }}",
+    "id": "{{ node.id  }}",
 {{ '    "nodename": "' ~ node.nodename ~ '",\n' if node.nodename is defined else "" -}}
 {{- '    "arch": "' ~ node.arch ~ '",\n' if node.arch is defined else "" -}}
 {{- '    "platform": "' ~ node.platform ~ '",\n' if node.platform is defined else "" -}}
-{{- '    "parentId": "' ~ node.parentid | uuid_to_b64 ~ '",\n' if node.parentid is defined else "" -}}
+{{- '    "parentId": "' ~ node.parentid ~ '",\n' if node.parentid is defined else "" -}}
 {{- '    "runState": "' ~ node.runstate ~ '",\n' if node.runstate is defined else "" -}}
 {{- '    "physState": "' ~ node.physstate ~ '",\n' if node.physstate is defined else "" -}}
     "services": [
