@@ -6,4 +6,3 @@
       copy:
         content: "{{ lookup('template', 'roles/kraken-state/templates/nodes.json.j2') | to_nice_json }}"
         dest: "kraken-state.json"
-      
