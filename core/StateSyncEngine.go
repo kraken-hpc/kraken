@@ -405,7 +405,7 @@ func (sse *StateSyncEngine) callParent(p string) {
 	ip := &pb.IPv4OverEthernet{}
 	pn.AddExtension(ip)
 	*/
-	pn.SetValue(sse.cfg.AddrURL, reflect.ValueOf([]byte(net.ParseIP(p).To4())))
+	pn.SetValue(sse.cfg.AddrURL, reflect.ValueOf(ipv4t.IP{IP: net.ParseIP(p)}))
 	sse.query.Create(pn)
 
 	n.recv()
