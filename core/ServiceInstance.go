@@ -14,13 +14,13 @@ package core
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/hpc/kraken/lib/types"
+	fork "github.com/jlowellwofford/go-fork"
 )
 
 ////////////////////////////
@@ -37,7 +37,7 @@ type ServiceInstance struct {
 	exe    string // gets set automatically
 	entry  func() // needs to run as a goroutine
 	sock   string
-	cmd    *exec.Cmd
+	fork   *fork.Function
 	ctl    chan<- types.ServiceControl
 	wchan  chan<- types.ServiceInstanceUpdate
 	state  types.ServiceState // note: these states mean a slightly different: RUN means process is running, INIT means nothing
@@ -51,7 +51,7 @@ func NewServiceInstance(id, module string, entry func()) *ServiceInstance {
 		id:     id,
 		module: module,
 		entry:  entry,
-		cmd:    nil,
+		fork:   nil,
 		mutex:  &sync.Mutex{},
 	}
 	si.setState((types.Service_STOP)) // we're obviously stopped right now
@@ -126,7 +126,7 @@ func (si *ServiceInstance) setState(state types.ServiceState) {
 }
 
 func (si *ServiceInstance) watcher() {
-	e := si.cmd.Wait()
+	e := si.fork.Wait()
 	if e != nil {
 		si.setState(types.Service_ERROR)
 		return
@@ -143,18 +143,8 @@ func (si *ServiceInstance) start() (e error) {
 	if _, e = os.Stat(si.exe); os.IsNotExist(e) {
 		return e
 	}
-	// TODO: we should probably do more sanity checks here...
-	si.cmd = exec.Command(si.exe)
-	si.cmd.Args = []string{"[kraken:" + si.ID() + "]"}
-	si.cmd.Stdin = os.Stdin
-	si.cmd.Stdout = os.Stdout
-	si.cmd.Stderr = os.Stderr
-	si.cmd.Env = append(os.Environ(),
-		"KRAKEN_SOCK="+si.sock,
-		"KRAKEN_MODULE="+si.module,
-		"KRAKEN_ID="+si.ID())
-	e = si.cmd.Start()
-	return
+	si.fork = fork.NewFork("ModuleExecute", ModuleExecute, os.Args[0], "["+si.id+"]")
+	return si.fork.Fork(si.ID(), si.module, si.sock)
 }
 
 // moduleExecute does all of the necessary steps to start the service instance
@@ -175,6 +165,8 @@ func ModuleExecute(id, module, sock string) {
 	if ok {
 		config = true
 	}
+
+	fmt.Printf("I am: %s\n", id)
 
 	api := NewModuleAPIClient(sock)
 	mss.Init(api)
@@ -267,4 +259,8 @@ func ModuleExecute(id, module, sock string) {
 			}
 		}
 	}
+}
+
+func init() {
+	fork.RegisterFunc("ModuleExecute", ModuleExecute)
 }
