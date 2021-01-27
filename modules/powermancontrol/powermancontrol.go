@@ -129,7 +129,7 @@ var _ types.ModuleWithConfig = (*PMC)(nil)
 func (p *PMC) NewConfig() proto.Message {
 	r := &Config{
 		ServerUrl: "type.googleapis.com/Powerman.Control/ApiServer",
-		NameUrl:   "type.googleapis.com/Powerman.Control/Name",
+		NameUrl:   "type.googleapis.com/Powerman.Control/NodeName",
 		Servers: map[string]*Server{
 			"pmc": {
 				Name: "pmc",

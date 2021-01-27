@@ -20,5 +20,5 @@ option (gogoproto.messagename_all) = true;
 
 message Control {
     string api_server = 1; // api server location
-    string nodeName = 2; // node name
+    string node_name = 2; // node name
 } 
