@@ -9,17 +9,17 @@ info:
     name: "BSD 3"
     url: "https://raw.githubusercontent.com/hpc/kraken/master/LICENSE"
 tags:
-- name: "cfg"
-  description: "Read and manipulate configuration state"
-- name: "dsc"
-  description: "Read and manipulate discovery state"
-- name: "sme"
-  description: "Control the State Mutation Engine"
-- name: "graph"
-  description: "Read graph info"
-- name: "miscellaneous"
+  - name: "cfg"
+    description: "Read and manipulate configuration state"
+  - name: "dsc"
+    description: "Read and manipulate discovery state"
+  - name: "sme"
+    description: "Control the State Mutation Engine"
+  - name: "graph"
+    description: "Read graph info"
+  - name: "miscellaneous"
 schemes:
-- "http"
+  - "http"
 paths:
   /cfg/nodes:
     get:
@@ -27,14 +27,14 @@ paths:
         - "cfg"
       summary: "Get configuration info for all nodes"
       description: "Returns an array containing configuration information for all nodes."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
           schema:
             type: "object"
-            properties: 
+            properties:
               nodes:
                 type: "array"
                 items:
@@ -47,24 +47,24 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          type: "object"
-          properties:
-            nodes: 
-              type: "array"
-              items:
-                $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
           schema:
             type: "object"
-            properties: 
+            properties:
               nodes:
                 type: "array"
                 items:
@@ -77,24 +77,24 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          type: "object"
-          properties:
-            nodes: 
-              type: "array"
-              items:
-                $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
           schema:
             type: "object"
-            properties: 
+            properties:
               nodes:
                 type: "array"
                 items:
@@ -108,13 +108,13 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -128,13 +128,13 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -147,13 +147,13 @@ paths:
       summary: "Get configuration info for a node"
       description: "Use this method to get the configuration info of a single node"
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the desired node"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the desired node"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -167,18 +167,18 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the node you want to update"
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the node you want to update"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -192,18 +192,18 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the node you want to create"
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the node you want to create"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -215,13 +215,13 @@ paths:
       summary: "Delete a node"
       description: "Use this method to delete a single node."
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the node you want to delete"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the node you want to delete"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -233,14 +233,14 @@ paths:
         - "dsc"
       summary: "Get discovery info for all nodes"
       description: "Returns an array containing discovery information for all nodes."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
           schema:
             type: "object"
-            properties: 
+            properties:
               nodes:
                 type: "array"
                 items:
@@ -253,24 +253,24 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          type: "object"
-          properties: 
-            nodes:
-              type: "array"
-              items:
-                $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              nodes:
+                type: "array"
+                items:
+                  $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
           schema:
             type: "object"
-            properties: 
+            properties:
               nodes:
                 type: "array"
                 items:
@@ -284,13 +284,13 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -303,13 +303,13 @@ paths:
       summary: "Get discovery info for a node"
       description: "Returns a single node's discovery information."
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the desired node"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the desired node"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -323,18 +323,18 @@ paths:
       consumes:
         - "application/json"
       parameters:
-      - in: path
-        name: "id"
-        required: true
-        type: string
-        description: "The ID of the node you want to update"
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
-      produces: 
-      - "application/json"
+        - in: path
+          name: "id"
+          required: true
+          type: string
+          description: "The ID of the node you want to update"
+        - in: body
+          name: "node config"
+          required: true
+          schema:
+            $ref: "#/definitions/NodeConfig"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -346,8 +346,8 @@ paths:
         - "graph"
       summary: "Get graph info for all nodes"
       description: "Returns the graph that the sme uses to determine every node's mutation path."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -359,8 +359,8 @@ paths:
         - "graph"
       summary: "Get graph info for a node"
       description: "Returns the same graph from `/graph/json` except with color coded edges and nodes to show the current mutation path and current active mutation for this node."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -372,8 +372,8 @@ paths:
         - "sme"
       summary: "Freeze the state mutation engine"
       description: "Freezes the state mutation engine which stops all mutations. Returns the new status of the state mutation engine."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -385,8 +385,8 @@ paths:
         - "sme"
       summary: "Thaw the state mutation engine"
       description: "Thaws the state mutation engine which resumes all mutations. Returns the new status of the state mutation engine."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -398,8 +398,8 @@ paths:
         - "sme"
       summary: "Check if the state mutation engine is frozen"
       description: "Returns the current freeze status of the state mutation engine."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -411,8 +411,8 @@ paths:
         - "miscellaneous"
       summary: "Get enumerables for all extensions built with this kraken instance"
       description: "Returns a list of all the enumerables for extensions and modules. This is primarily used by the Kraken dashboard."
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -424,8 +424,8 @@ paths:
         - "miscellaneous"
       summary: "Get url to start a websocket session"
       description: "Returns an object with information to start a websocket connection with Kraken. From there you are able to subscribe to different events in kraken. See the [Kraken dashboard](https://github.com/hpc/kraken-dashboard) as an example"
-      produces: 
-      - "application/json"
+      produces:
+        - "application/json"
       responses:
         "200":
           description: "successful operation"
@@ -439,10 +439,10 @@ definitions:
       id:
         type: "string"
         format: "byte"
-      parentId: 
+      parentId:
         type: "string"
         format: "byte"
-      runState: 
+      runState:
         type: "string"
       physState:
         type: "string"
@@ -456,23 +456,23 @@ definitions:
         type: "array"
         items:
           type: "object"
-          additionalProperties: 
+          additionalProperties:
             type: "object"
-          properties: 
-            "@type": 
+          properties:
+            "@type":
               type: "string"
       services:
         type: "array"
         items:
           type: "object"
-          additionalProperties: 
+          additionalProperties:
             type: "object"
           properties:
-            id: 
+            id:
               type: "string"
-            module: 
+            module:
               type: "string"
-            state: 
+            state:
               type: "string"
   GraphJson:
     type: "object"
@@ -508,7 +508,7 @@ definitions:
       properties:
         name:
           type: "string"
-        url: 
+        url:
           type: "string"
         options:
           type: "object"
@@ -516,7 +516,7 @@ definitions:
             type: string
   WebsocketRedirect:
     type: object
-    properties: 
+    properties:
       host:
         type: string
       port:
@@ -526,5 +526,5 @@ definitions:
   Frozen:
     type: object
     properties:
-      frozen: 
+      frozen:
         type: boolean
