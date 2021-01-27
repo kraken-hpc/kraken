@@ -1,0 +1,12 @@
+[Unit]
+Description=Powerman API Service
+After=network.target network-online.target
+Requires=network.target
+
+[Service]
+EnvironmentFile=%{_sysconfdir}/sysconfig/powermanapi
+Type=simple
+ExecStart=%{_sbindir}/powermanapi -ip "$POWERMAN_IP" -port "$POWERMAN_PORT" -pmc "$POWERMAN_PMC" -base "$POWERMAN_BASE"
+
+[Install]
+WantedBy=multi-user.target
