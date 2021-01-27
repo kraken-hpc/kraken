@@ -107,21 +107,20 @@ echo "Using generated kraken source tree at $KRAKEN_BUILDDIR"
 # Check that gobusybox is installed, clone it if not
 if [ ! -d "$GOPATH"/bin/makebb ]; then
     echo "You don't appear to have gobusybox installed, attempting to install it"
-    GOPATH="$GOPATH" go get github.com/u-root/gobusybox
-    ( cd "$GOPATH"/src/github.com/u-root/gobusybox/src/cmd/makebb && GOPATH="$GOPATH" go install )
+    GOPATH="$GOPATH" GO111MODULE=off go get github.com/u-root/gobusybox/src/cmd/makebb
 fi
 
 # Check that u-root is installed, clone it if not
 if [ ! -x "$GOPATH"/bin/u-root ]; then
     echo "You don't appear to have u-root installed, attempting to install it"
-    GOPATH="$GOPATH" go get github.com/u-root/u-root
+    GOPATH="$GOPATH" GO111MODULE=off go get github.com/u-root/u-root
 fi
 
 # Make sure commands are available
 for c in "${EXTRA_COMMANDS[@]}"; do
    if [ ! -d "$GOPATH/src/$c" ]; then
     echo "You don't appear to have $c, attempting to install it"
-    GOPATH=$GOPATH go get "$c"
+    GOPATH=$GOPATH GO111MODULE=off go get "$c"
    fi
 done
 
