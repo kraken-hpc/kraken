@@ -20,7 +20,6 @@ tags:
 - name: "miscellaneous"
 schemes:
 - "http"
-- "https"
 paths:
   /cfg/nodes:
     get:
@@ -214,17 +213,13 @@ paths:
       tags:
         - "cfg"
       summary: "Delete a node"
+      description: "Use this method to delete a single node."
       parameters:
       - in: path
         name: "id"
         required: true
         type: string
         description: "The ID of the node you want to delete"
-      - in: body
-        name: "node config"
-        required: true
-        schema:
-          $ref: "#/definitions/NodeConfig"
       produces: 
       - "application/json"
       responses:
@@ -254,6 +249,7 @@ paths:
       tags:
         - "dsc"
       summary: "Update discovery info for multiple nodes"
+      description: "Use this method to update multilple nodes' discovery state.\n\nNote: This is not a typical action and should be done sparingly."
       consumes:
         - "application/json"
       parameters:
@@ -284,6 +280,7 @@ paths:
       tags:
         - "dsc"
       summary: "Update discovery info for a node"
+      description: "Use this method to update a single node's discovery state.\n\nNote: This is not a typical action and should be done sparingly."
       consumes:
         - "application/json"
       parameters:
@@ -304,12 +301,13 @@ paths:
       tags:
         - "dsc"
       summary: "Get discovery info for a node"
+      description: "Returns a single node's discovery information."
       parameters:
       - in: path
         name: "id"
         required: true
         type: string
-        description: "The ID of the node you want to delete"
+        description: "The ID of the desired node"
       produces: 
       - "application/json"
       responses:
@@ -321,9 +319,15 @@ paths:
       tags:
         - "dsc"
       summary: "Update discovery info for a node"
+      description: "Use this method to update a single node's discovery information. This is identical to `PUT:/dsc/node`, but with the option of including the node id as a url parameter instead of in the body.\n\nNote: This is not a typical action and should be done sparingly."
       consumes:
         - "application/json"
       parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the node you want to update"
       - in: body
         name: "node config"
         required: true
@@ -341,6 +345,7 @@ paths:
       tags:
         - "graph"
       summary: "Get graph info for all nodes"
+      description: "Returns the graph that the sme uses to determine every node's mutation path."
       produces: 
       - "application/json"
       responses:
@@ -353,6 +358,7 @@ paths:
       tags:
         - "graph"
       summary: "Get graph info for a node"
+      description: "Returns the same graph from `/graph/json` except with color coded edges and nodes to show the current mutation path and current active mutation for this node."
       produces: 
       - "application/json"
       responses:
@@ -365,36 +371,46 @@ paths:
       tags:
         - "sme"
       summary: "Freeze the state mutation engine"
+      description: "Freezes the state mutation engine which stops all mutations. Returns the new status of the state mutation engine."
       produces: 
       - "application/json"
       responses:
         "200":
           description: "successful operation"
+          schema:
+            $ref: "#/definitions/Frozen"
   /sme/thaw:
     get:
       tags:
         - "sme"
       summary: "Thaw the state mutation engine"
+      description: "Thaws the state mutation engine which resumes all mutations. Returns the new status of the state mutation engine."
       produces: 
       - "application/json"
       responses:
         "200":
           description: "successful operation"
+          schema:
+            $ref: "#/definitions/Frozen"
   /sme/frozen:
     get:
       tags:
         - "sme"
       summary: "Check if the state mutation engine is frozen"
+      description: "Returns the current freeze status of the state mutation engine."
       produces: 
       - "application/json"
       responses:
         "200":
           description: "successful operation"
+          schema:
+            $ref: "#/definitions/Frozen"
   /enumerables:
     get:
       tags:
         - "miscellaneous"
       summary: "Get enumerables for all extensions built with this kraken instance"
+      description: "Returns a list of all the enumerables for extensions and modules. This is primarily used by the Kraken dashboard."
       produces: 
       - "application/json"
       responses:
@@ -407,6 +423,7 @@ paths:
       tags:
         - "miscellaneous"
       summary: "Get url to start a websocket session"
+      description: "Returns an object with information to start a websocket connection with Kraken. From there you are able to subscribe to different events in kraken. See the [Kraken dashboard](https://github.com/hpc/kraken-dashboard) as an example"
       produces: 
       - "application/json"
       responses:
@@ -506,7 +523,8 @@ definitions:
         type: string
       url:
         type: string
-
-externalDocs:
-  description: "Find out more about Swagger"
-  url: "http://swagger.io"
+  Frozen:
+    type: object
+    properties:
+      frozen: 
+        type: boolean
