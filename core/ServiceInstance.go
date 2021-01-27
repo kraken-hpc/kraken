@@ -51,7 +51,7 @@ func NewServiceInstance(id, module string, entry func()) *ServiceInstance {
 		id:     id,
 		module: module,
 		entry:  entry,
-		cmd:    nil,
+		fork:   nil,
 		mutex:  &sync.Mutex{},
 	}
 	si.setState((types.Service_STOP)) // we're obviously stopped right now
@@ -143,7 +143,7 @@ func (si *ServiceInstance) start() (e error) {
 	if _, e = os.Stat(si.exe); os.IsNotExist(e) {
 		return e
 	}
-	si.fork := fork.NewFork("ModuleExecute", ModuleExecute, os.Args[0], "["+si.id+"]")
+	si.fork = fork.NewFork("ModuleExecute", ModuleExecute, os.Args[0], "["+si.id+"]")
 	return si.fork.Fork(si.ID(), si.module, si.sock)
 }
 

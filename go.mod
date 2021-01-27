@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/jlowellwofford/go-fork v0.0.0-20210127173927-7e7e87ea912f
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
