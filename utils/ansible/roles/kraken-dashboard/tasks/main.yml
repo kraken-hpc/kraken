@@ -20,6 +20,9 @@
     src: "{{ kr_dashboard_url }}"
     dest: /usr/share/nginx/html
     remote_src: true
+    owner: root
+    group: root
+    mode: "u=rwX,g=rX,o=rX"
 
 - name: Enable nginx
   become: true
