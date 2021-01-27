@@ -390,7 +390,11 @@ func parseValues(line string) (nodes []string) {
 		} else {
 			// It's a single node
 			nodeValueExpression, _ := regexp.Compile(fmt.Sprintf("%s(\\d+)", prefixInfo.prefix))
-			nodeValue := nodeValueExpression.FindStringSubmatch(line)[1]
+			m := nodeValueExpression.FindStringSubmatch(line)
+			nodeValue := ""
+			if len(m) > 1 { // are there digits after the prefix or no?
+				nodeValue = m[1]
+			}
 			nodes = append(nodes, fmt.Sprintf("%v%v", prefixInfo.prefix, nodeValue))
 		}
 	}
