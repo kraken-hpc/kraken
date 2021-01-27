@@ -14,11 +14,15 @@
     group: root
     mode: 0644
 
-- name: Synchronize dashboard
+- name: Download/extract optmized kraken-dashboard release
   become: true
-  synchronize:
-    src: ../dashboard/
+  unarchive:
+    src: "{{ kr_dashboard_url }}"
     dest: /usr/share/nginx/html
+    remote_src: true
+    owner: root
+    group: root
+    mode: "u=rwX,g=rX,o=rX"
 
 - name: Enable nginx
   become: true
