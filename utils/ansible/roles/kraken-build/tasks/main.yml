@@ -32,13 +32,10 @@
         name: rpm-build
         state: present
     - name: Create distribution tarball
-      git:
-        repo: "{{ kr_src_dir }}"
-        archive: "{{ kr_src_dir }}/kraken-{{ kr_version }}.tar.gz"
-        archive_prefix: "kraken-{{ kr_version }}/"
-        version: "HEAD"
-        update: false
-        clone: false
+      command: git archive -o "kraken-{{ kr_version }}.tar.gz" --prefix="kraken-{{ kr_version }}/" HEAD
+      args:
+        creates: "kraken-{{ kr_version }}.tar.gz"
+        chdir: "{{ kr_src_dir }}"
     - name: Build kraken RPM
       command: >
         rpmbuild
