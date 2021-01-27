@@ -1,15 +1,12 @@
 Name:           kraken
 Version:        1.0
-Release:        0%{?dist}
+Release:        1%{?dist}
 Summary:        Kraken is a distributed state engine for scalable system boot and automation
 Group:          Applications/System
 License:        BSD-3
 URL:            https://github.com/hpc/kraken
 Source0:        %{name}-%{version}.tar.gz
-
-BuildRequires:  go, golang >= 1.15, golang-bin, golang-src
-
-%define  debug_package %{nil}
+BuildRequires:  go, golang >= 1.15, golang-bin, golang-src %define  debug_package %{nil}
 
 %if "%{_arch}" == "x86_64"
 %define GoBuildArch amd64
@@ -43,6 +40,12 @@ Summary: The powermanapi wraps the powerman service with a simple restful API se
 %description powermanapi
 The powermanapi service wraps the powerman service with a simple restful API service that can be used by Kraken.
 
+%package vboxapi
+Group: Applications/System
+Summary: The vboxapi wraps Oracle VirtualBox with a simple restful API service for power control of VMs.
+%description vboxapi
+The vboxapi service wraps Oracle VirtualBox with a simple restful API service for power control that can be used by Kraken.
+
 %prep
 %setup -q
 cp -p %{?KrakenConfig}%{?!KrakenConfig:kraken.yaml} build.yaml
@@ -54,6 +57,8 @@ rpm -D "KrakenWorkingDirectory %{?KrakenWorkingDirectory}%{?!KrakenWorkingDirect
 rpm --eval "$(cat utils/rpm/kraken.environment)" > kraken.environment
 rpm --eval "$(cat utils/powermanapi/powermanapi.service)" > powermanapi.service
 rpm --eval "$(cat utils/powermanapi/powermanapi.environment)" > powermanapi.environment
+rpm --eval "$(cat utils/vboxapi/vboxapi.service)" > vboxapi.service
+rpm --eval "$(cat utils/vboxapi/vboxapi.environment)" > vboxapi.environment
 
 # build kraken
 cat << EOF >> build.yaml 
@@ -71,6 +76,12 @@ go run kraken-build.go -force -v -config build.yaml
 (
   cd utils/powermanapi
   GOARCH=%{GoBuildArch} go build powermanapi.go
+)
+
+# build vboxapi
+(
+  cd utils/vboxapi
+  GOARCH=%{GoBuildArch} go build vboxapi.go
 )
 
 # build initramfs
@@ -93,6 +104,10 @@ install -D -m 0644 utils/rpm/state.json %{buildroot}%{_sysconfdir}/kraken/state.
 install -D -m 0755 utils/powermanapi/powermanapi %{buildroot}%{_sbindir}/powermanapi
 install -D -m 0644 powermanapi.service %{buildroot}%{_unitdir}/powermanapi.service
 install -D -m 0644 powermanapi.environment %{buildroot}%{_sysconfdir}/sysconfig/powermanapi
+# vboxapi
+install -D -m 0755 utils/vboxapi/vboxapi %{buildroot}%{_sbindir}/vboxapi
+install -D -m 0644 vboxapi.service %{buildroot}%{_unitdir}/vboxapi.service
+install -D -m 0644 vboxapi.environment %{buildroot}%{_sysconfdir}/sysconfig/vboxapi
 # initramfs
 install -D -m 0644 initramfs-base-%{GoBuildArch}.gz %{buildroot}/tftp/initramfs-base-%{GoBuildArch}.gz
 
@@ -109,6 +124,12 @@ install -D -m 0644 initramfs-base-%{GoBuildArch}.gz %{buildroot}/tftp/initramfs-
 %{_sbindir}/powermanapi
 %config(noreplace) %{_sysconfdir}/sysconfig/powermanapi
 %{_unitdir}/powermanapi.service
+
+%files vboxapi
+%license LICENSE
+%{_sbindir}/vboxapi
+%config(noreplace) %{_sysconfdir}/sysconfig/vboxapi
+%{_unitdir}/vboxapi.service
 
 %files initramfs-%{GoBuildArch}
 %license LICENSE
