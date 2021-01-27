@@ -1,3 +1,4 @@
+---
 kr_url: github.com/hpc/kraken
 kr_repo: https://github.com/hpc/kraken.git
 kr_repo_version: master
@@ -12,4 +13,6 @@ kr_rpm: true
 kr_version: 1.0
 kr_dist_string: "vbox"
 kr_release: "1"
-kr_rpm_path: "{{ ansible_env.HOME }}/rpmbuild/RPMS/x86_64/kraken-{{ kr_version }}-{{ kr_release }}{{ kr_dist_string }}.x86_64.rpm"
+kr_rpm_path: "{{ ansible_env.HOME }}/rpmbuild/RPMS/x86_64/\
+             kraken-{{ kr_version }}-{{ kr_release }}{{ kr_dist_string }}.\
+             x86_64.rpm"

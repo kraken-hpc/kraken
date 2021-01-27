@@ -1,8 +1,8 @@
 ---
 dependencies:
-- role: kraken-base
-- role: kraken-build
-- role: kraken-tftpboot
-- role: kraken-build-img
-- role: kraken-state
-- role: kraken-systemd
+  - role: kraken-base
+  - role: kraken-build
+  - role: kraken-tftpboot
+  - role: kraken-build-img
+  - role: kraken-state
+  - role: kraken-systemd

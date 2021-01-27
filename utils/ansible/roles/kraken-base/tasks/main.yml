@@ -1,7 +1,7 @@
 ---
 
 - name: Install golang and git
-  become: yes
+  become: true
   package:
     name:
       - golang

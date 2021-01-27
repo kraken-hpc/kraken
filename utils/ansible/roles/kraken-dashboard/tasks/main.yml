@@ -1,12 +1,12 @@
 ---
 - name: Install nginx
-  become: yes
+  become: true
   package:
     name: nginx
     state: present
 
 - name: Configure nginx
-  become: yes
+  become: true
   copy:
     src: nginx.conf
     dest: /etc/nginx/nginx.conf
@@ -15,14 +15,14 @@
     mode: 0644
 
 - name: Synchronize dashboard
-  become: yes
+  become: true
   synchronize:
     src: ../dashboard/
     dest: /usr/share/nginx/html
 
 - name: Enable nginx
-  become: yes
+  become: true
   service:
     name: nginx
-    enabled: yes
+    enabled: true
     state: started

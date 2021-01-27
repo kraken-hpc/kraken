@@ -1,24 +1,24 @@
 ---
 - name: Install vim
-  become: yes
+  become: true
   package:
     name: vim
     state: present
 
 - name: Install tcpdump
-  become: yes
+  become: true
   package:
     name: tcpdump
     state: present
 
 - name: Install traceroute
-  become: yes
+  become: true
   package:
     name: traceroute
     state: present
 
 - name: Install nmap
-  become: yes
+  become: true
   package:
     name: nmap
     state: present

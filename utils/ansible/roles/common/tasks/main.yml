@@ -1,10 +1,10 @@
 ---
-- name: Include 'insecure' role 
+- name: Include 'insecure' role
   include_role:
     name: insecure
 
 - name: Copy hosts file
-  become: yes
+  become: true
   copy:
     src: hosts
     dest: /etc/hosts
@@ -13,7 +13,7 @@
     mode: 0644
 
 - name: Install epel-release
-  become: yes
+  become: true
   package:
     name: epel-release
     state: present
