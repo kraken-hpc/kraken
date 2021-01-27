@@ -1,4 +1,10 @@
 ---
+kr_src_dir: "/home/vagrant/go/src/{{ kr_url }}"
+kr_conf_file: "{{ kr_src_dir }}/config/vbox_uroot.yaml"
+kr_target: "u-root"
+kr_img_build_script: "{{ kr_src_dir }}/utils/layer0/buildlayer0_uroot.sh"
+
+
 kraken_parent_id: "123e4567-e89b-12d3-a456-426655440000"
 kraken_default_runstate: "SYNC"
 kraken_default_platform: "vbox"

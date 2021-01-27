@@ -1,4 +1,5 @@
 kr_img_base: /home/vagrant/support/base
+kr_img_build_script: "{{ kr_src_dir }}/utils/layer0/buildlayer0.sh"
 # this is the module set for vbox vms
 kr_img_modules:
 - ac97_bus

@@ -45,7 +45,7 @@
     creates: "{{ kr_img_base }}/random_seed.dat"
 
 - name: Create boot image
-  shell: "sh {{ kr_src_dir }}/utils/layer0/buildlayer0.sh -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64"
+  shell: "sh {{ kr_img_build_script }} -o initramfs.cpio.gz -b {{ kr_img_base }} -k {{ kr_src_dir }} amd64"
   args:
     chdir: "{{ kr_tftp_dir }}"
     creates: initramfs.cpio.gz
