@@ -1,0 +1,9 @@
+---
+
+- name: Install golang and git
+  become: true
+  package:
+    name:
+      - golang
+      - git
+    state: present

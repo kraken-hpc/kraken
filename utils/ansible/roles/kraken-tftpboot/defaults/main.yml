@@ -1,0 +1,4 @@
+---
+kr_tftp_base: /home/vagrant/tftp
+kr_pxelinux_cfg: /home/vagrant/support/pxelinux.cfg
+syslinux_tftpboot: /tftpboot
