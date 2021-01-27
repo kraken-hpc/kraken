@@ -22,6 +22,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib/types"
+	"github.com/jlowellwofford/go-fork"
 
 	_ "net/http/pprof"
 
@@ -61,27 +62,10 @@ func main() {
 	}
 
 	// Launch as base Kraken or module?
-	//me := filepath.Base(os.Args[0])
+	fork.Init()
 
-	id := os.Getenv("KRAKEN_ID")
-	if id == "" {
-		id = "kraken"
-	}
-	log.Logf(types.LLNOTICE, "I am: %s", id)
-
-	if id != "kraken" {
-		module := os.Getenv("KRAKEN_MODULE")
-		sock := os.Getenv("KRAKEN_SOCK")
-		if m, ok := core.Registry.Modules[module]; ok {
-			if _, ok := m.(types.ModuleSelfService); ok {
-				log.Logf(types.LLNOTICE, "module entry point: %s", module)
-				core.ModuleExecute(id, module, sock)
-				return
-			}
-		}
-		log.Logf(types.LLCRITICAL, "could not start module: %s", module)
-		return
-	}
+	// Past this point we know we're not a module
+	log.Logf(types.LLNOTICE, "I am: kraken")
 
 	// Check that the parent IP is sane
 	parents := []string{}
