@@ -217,6 +217,53 @@ func buildRuntimeConfig(rc *RuntimeConfig) {
 	return
 }
 
+func processSIOverrides(rc *RuntimeConfig) {
+	// it's easiest if we build a flat index of service instances first
+	simap := map[string]types.ServiceInstance{}
+	for _, sis := range core.Registry.ServiceInstances {
+		for name, si := range sis {
+			simap[name] = si
+		}
+	}
+	for name, sic := range rc.ServiceInstances {
+		if si, ok := simap[name]; ok || name == "sse" {
+			// si existts
+			if sic.Disable {
+				if name == "sse" {
+					fmt.Printf("WARNING: the sse service instance cannot be disabled. Ignoring.")
+				}
+				// disable the existing si
+				delete(core.Registry.ServiceInstances[si.Module()], name)
+				// we also need to delete the mutations
+				delete(core.Registry.Mutations, name)
+				// it doesn't make sense to do anything else
+				continue
+			}
+			for mutname, mutc := range sic.Mutations {
+				if _, ok := core.Registry.Mutations[name]; ok {
+					// si has mutations registered
+					if mut, ok := core.Registry.Mutations[name][mutname]; ok {
+						// si has *this* mutation registered
+						if mutc.Disable {
+							delete(core.Registry.Mutations[name], mutname)
+						}
+						mut.SetTimeout(mutc.Timeout)
+					} else {
+						// si doesn't have this mutaiton registered
+						fmt.Printf("WARNING: runtime configuration specified mutation override for non existent mutation: %s/%s. Ignoring.\n", name, mutname)
+					}
+				} else {
+					// si has no mutations registered
+					fmt.Printf("WARNING: runtime configuration specified mutation override for non existent mutation: %s/%s. Ignoring.\n", name, mutname)
+				}
+			}
+		} else {
+			// si doesn't exist
+			fmt.Printf("WARNING: runtime configuration specified a new service instance (%s).  Defining new service instances is not yet supported. Ignoring.\n", name)
+		}
+	}
+}
+
 func main() {
 	rc := newRuntimeConfig()
 	// Flags not considered part of RunningConfig
@@ -247,6 +294,9 @@ func main() {
 	}
 
 	buildRuntimeConfig(rc)
+
+	// we do this before flags.prc so any warnings get printed
+	processSIOverrides(rc)
 
 	// process info options
 	if flags.prc {
