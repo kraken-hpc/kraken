@@ -36,14 +36,18 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const Version = "v1.0"
+
+type MutationConfig struct {
+	Disable bool          // completely disable the mutation
+	Timeout time.Duration // override the timeout
+	// we may allow overriding more things eventually
+}
+
 type ServiceInstanceConfig struct {
-	Disable   bool                // disable the whole instance (for defaults)
-	Module    string              // name of the module this SI is based on, only needed when defining new instances
-	Mutations map[string]struct { // allows overriding mutation settings
-		Disable bool          // completely disable the mutation
-		Timeout time.Duration // override the timeout
-		// we may allow overriding more things eventually
-	}
+	Disable   bool   // disable the whole instance (for defaults)
+	Module    string // name of the module this SI is based on, only needed when defining new instances
+	Mutations map[string]MutationConfig
 }
 
 // A RuntimeConfig sets overrides for kraken internals once at startup
@@ -71,8 +75,10 @@ var flags struct {
 	llevel   uint
 	noprefix bool
 	parent   string
+	prc      bool
 	sdnotify bool
 	state    string
+	version  bool
 }
 
 var setFlags map[string]bool
@@ -88,11 +94,59 @@ func usageExit(format string, a ...interface{}) {
 	os.Exit(1)
 }
 
-// construct our runtime config from arguments/config files
-func buildRuntimeConfig() (rc *RuntimeConfig) {
-	var e error
+// build and populate a runtime config with defaults
+func newRuntimeConfig() (rc *RuntimeConfig) {
+	rc = &RuntimeConfig{
+		Freeze:           false,
+		ID:               uuid.FromStringOrNil("123e4567-e89b-12d3-a456-426655440000"),
+		IP:               net.ParseIP("127.0.0.1"),
+		IPAPI:            net.ParseIP("127.0.0.1"),
+		LogLevel:         5,
+		Parent:           nil,
+		NoPrefix:         false,
+		SdNotify:         false,
+		StateFile:        "",
+		ServiceInstances: map[string]ServiceInstanceConfig{},
+	}
+	rc.ServiceInstances["sse"] = ServiceInstanceConfig{
+		Disable:   false,
+		Module:    "none",
+		Mutations: map[string]MutationConfig{},
+	}
+	// pack the default service instance config in
+	for _, sis := range core.Registry.ServiceInstances {
+		for name, si := range sis {
+			rc.ServiceInstances[name] = ServiceInstanceConfig{
+				Disable:   false,
+				Module:    si.Module(),
+				Mutations: map[string]MutationConfig{},
+			}
+		}
+	}
+	for si, muts := range core.Registry.Mutations {
+		for name, mut := range muts {
+			rc.ServiceInstances[si].Mutations[name] = MutationConfig{
+				Disable: false,
+				Timeout: mut.Timeout(),
+			}
+		}
+	}
+	return
+}
 
-	rc = &RuntimeConfig{ServiceInstances: map[string]ServiceInstanceConfig{}}
+func printBuildInfo() {
+	fmt.Printf("Kraken version: %s\n%s", Version, core.BuildInfo())
+}
+
+func printRuntimeDefaults(rc *RuntimeConfig) {
+	d, _ := yaml.Marshal(rc)
+	fmt.Printf("---\n")
+	fmt.Printf("%s\n", string(d))
+}
+
+// construct our runtime config from arguments/config files
+func buildRuntimeConfig(rc *RuntimeConfig) {
+	var e error
 
 	// was a config file specified?  If so parse it.
 	if flagIsSet("config") {
@@ -164,18 +218,21 @@ func buildRuntimeConfig() (rc *RuntimeConfig) {
 }
 
 func main() {
+	rc := newRuntimeConfig()
 	// Flags not considered part of RunningConfig
+	flag.BoolVar(&flags.version, "version", false, "print version and build information and exit")
 	flag.StringVar(&flags.cfgFile, "config", "", "path to a runtime configuration file")
+	flag.BoolVar(&flags.prc, "printrc", false, "print the runtime config and exit (can be used as a basis for a new config)")
 	// RunningConfig flags
-	flag.BoolVar(&flags.freeze, "freeze", false, "start the SME frozen (i.e. don't try to mutate any states at startup)")
-	flag.StringVar(&flags.id, "id", "123e4567-e89b-12d3-a456-426655440000", "specify a UUID for this node")
-	flag.StringVar(&flags.ip, "ip", "127.0.0.1", "what is my IP (for communications and listening)")
-	flag.StringVar(&flags.ipapi, "ipapi", "127.0.0.1", "what IP to use for the ReST API")
-	flag.UintVar(&flags.llevel, "log", 3, "set the log level (0-9)")
-	flag.BoolVar(&flags.noprefix, "noprefix", true, "don't prefix log messages with timestamps")
+	flag.BoolVar(&flags.freeze, "freeze", rc.Freeze, "start the SME frozen (i.e. don't try to mutate any states at startup)")
+	flag.StringVar(&flags.id, "id", rc.ID.String(), "specify a UUID for this node")
+	flag.StringVar(&flags.ip, "ip", rc.IP.String(), "what is my IP (for communications and listening)")
+	flag.StringVar(&flags.ipapi, "ipapi", rc.IPAPI.String(), "what IP to use for the ReST API")
+	flag.UintVar(&flags.llevel, "log", rc.LogLevel, "set the log level (0-9)")
+	flag.BoolVar(&flags.noprefix, "noprefix", rc.NoPrefix, "don't prefix log messages with timestamps")
 	flag.StringVar(&flags.parent, "parent", "", "IP adddress of parent")
-	flag.BoolVar(&flags.sdnotify, "sdnotify", false, "notify systemd when kraken is initialized")
-	flag.StringVar(&flags.state, "state", "", "path to a JSON file containing initial configuration state to load")
+	flag.BoolVar(&flags.sdnotify, "sdnotify", rc.SdNotify, "notify systemd when kraken is initialized")
+	flag.StringVar(&flags.state, "state", rc.StateFile, "path to a JSON file containing initial configuration state to load")
 	flag.Parse()
 
 	// This gives us an easy way to distinguesh when a flag happened to be set to its default
@@ -184,7 +241,18 @@ func main() {
 	setFlags = make(map[string]bool)
 	flag.Visit(func(f *flag.Flag) { setFlags[f.Name] = true })
 
-	rc := buildRuntimeConfig()
+	if flags.version {
+		printBuildInfo()
+		os.Exit(0)
+	}
+
+	buildRuntimeConfig(rc)
+
+	// process info options
+	if flags.prc {
+		printRuntimeDefaults(rc)
+		os.Exit(0)
+	}
 
 	fullStateNode := true
 	if rc.Parent != nil {
