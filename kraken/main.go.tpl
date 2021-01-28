@@ -42,7 +42,7 @@ func main() {
 	llevel := flag.Int("log", 3, "set the log level (0-9)")
 	sdnotify := flag.Bool("sdnotify", false, "notify systemd when kraken is initialized")
 	noprefix := flag.Bool("noprefix", true, "don't prefix log messages with timestamps")
-	cfg := flag.String("cfg", "", "path to a JSON file containing initial configuration state to load")
+	state := flag.String("state", "", "path to a JSON file containing initial configuration state to load")
 	freeze := flag.Bool("freeze", false, "start the SME frozen (i.e. don't try to mutate any states at startup)")
 	flag.Parse()
 
@@ -115,18 +115,18 @@ func main() {
 
 	nodes := []types.Node{}
 
-	// Parse -cfg file
-	if *cfg != "" {
-		log.Logf(types.LLINFO, "loading initial configuration state from: %s", *cfg)
-		data, e := ioutil.ReadFile(*cfg)
+	// Parse -state file
+	if *state != "" {
+		log.Logf(types.LLINFO, "loading initial configuration state from: %s", *state)
+		data, e := ioutil.ReadFile(*state)
 		if e != nil {
-			fmt.Printf("failed to read cfg state file: %s, %v", *cfg, e)
+			fmt.Printf("failed to read cfg state file: %s, %v", *state, e)
 			flag.PrintDefaults()
 			return
 		}
 		var pbs cpb.NodeList
 		if e = json.Unmarshal(data, &pbs); e != nil {
-			fmt.Printf("could not parse cfg state file: %s, %v", *cfg, e)
+			fmt.Printf("could not parse cfg state file: %s, %v", *state, e)
 			flag.PrintDefaults()
 			return
 		}
@@ -145,7 +145,7 @@ func main() {
 	}
 
 	// Populate interface0 information based on IP (iff cfg wasn't specified, or ip was explicitly specified)
-	if ok, _ := setFlags["ip"]; *cfg == "" || ok {
+	if ok, _ := setFlags["ip"]; *state == "" || ok {
 		netIP := net.ParseIP(*ip)
 		if netIP == nil {
 			log.Logf(types.LLCRITICAL, "could not parse IP address: %s", *ip)

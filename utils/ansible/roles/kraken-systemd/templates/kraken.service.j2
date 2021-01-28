@@ -7,7 +7,7 @@ Requires=network.target
 EnvironmentFile=/etc/sysconfig/kraken
 Type=notify
 WorkingDirectory={{ ansible_env.HOME }}
-ExecStart={{ kr_build_dir ~ '/' ~ kr_target }} -cfg "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
+ExecStart={{ kr_build_dir ~ '/' ~ kr_target }} -state "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
 
 [Install]
 WantedBy=multi-user.target
