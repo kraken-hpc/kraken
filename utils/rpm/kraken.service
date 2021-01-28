@@ -7,7 +7,7 @@ Requires=network.target
 EnvironmentFile=%{_sysconfdir}/sysconfig/kraken
 Type=notify
 WorkingDirectory=%{?KrakenWorkingDirectory}%{?!KrakenWorkingDirectory:/}
-ExecStart=%{_sbindir}/kraken -state "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
+ExecStart=%{_sbindir}/kraken -config "$KRAKEN_CONFIG_FILE" -state "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
 
 [Install]
 WantedBy=multi-user.target

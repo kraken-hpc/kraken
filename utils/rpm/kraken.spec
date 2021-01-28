@@ -61,9 +61,15 @@ rpm --eval "$(cat utils/vboxapi/vboxapi.service)" > vboxapi.service
 rpm --eval "$(cat utils/vboxapi/vboxapi.environment)" > vboxapi.environment
 
 # build kraken
+NATIVE_GOOS=$(go version | awk '{print $NF}' | awk -F'/' '{print $1}')
+NATIVE_GOGOARCH=$(go version | awk '{print $NF}' | awk -F'/' '{print $2}')
+
 cat << EOF >> build.yaml 
 
 targets:
+  'native':
+    os: $NATIVE_GOOS
+    arch: $NATIVE_GOARCH
   'rpm':
     os: 'linux'
     arch: '%{GoBuildArch}'
@@ -71,6 +77,9 @@ targets:
 EOF
 
 go run kraken-build.go -force -v -config build.yaml
+
+# create default runtime config file
+build/kraken-native -state "/etc/kraken/state.json" -printrc > defaults.yaml
 
 # build powermanapi
 (
@@ -100,6 +109,7 @@ install -D -m 0755 build/kraken-rpm %{buildroot}%{_sbindir}/kraken
 install -D -m 0644 kraken.service %{buildroot}%{_unitdir}/kraken.service
 install -D -m 0644 kraken.environment %{buildroot}%{_sysconfdir}/sysconfig/kraken
 install -D -m 0644 utils/rpm/state.json %{buildroot}%{_sysconfdir}/kraken/state.json
+install -D -m 0644 defaults.yaml %{buildroot}%{_sysconfdir}/kraken/config.yaml
 # powermanapi
 install -D -m 0755 utils/powermanapi/powermanapi %{buildroot}%{_sbindir}/powermanapi
 install -D -m 0644 powermanapi.service %{buildroot}%{_unitdir}/powermanapi.service
@@ -116,6 +126,7 @@ install -D -m 0644 initramfs-base-%{GoBuildArch}.gz %{buildroot}/tftp/initramfs-
 %license LICENSE
 %{_sbindir}/kraken
 %config(noreplace) %{_sysconfdir}/kraken/state.json
+%config(noreplace) %{_sysconfdir}/kraken/config.yaml
 %{_unitdir}/kraken.service
 %config(noreplace) %{_sysconfdir}/sysconfig/kraken
 
