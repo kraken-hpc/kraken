@@ -191,4 +191,6 @@ func (s *StateMutation) SpecCompatOut(sp types.StateSpec, muts map[string]uint32
 
 func (s *StateMutation) Timeout() time.Duration { return s.timeout }
 
+func (s *StateMutation) SetTimeout(t time.Duration) { s.timeout = t }
+
 func (s *StateMutation) FailTo() [3]string { return s.failto }

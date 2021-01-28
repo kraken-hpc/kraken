@@ -388,6 +388,7 @@ type StateMutation interface {
 	SpecCompatIn(StateSpec, map[string]uint32) bool
 	SpecCompatOut(StateSpec, map[string]uint32) bool
 	Timeout() time.Duration
+	SetTimeout(time.Duration)
 	FailTo() [3]string // discover address: module:url:value_id
 }
 

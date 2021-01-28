@@ -173,6 +173,21 @@ func (k *Kraken) Release() {
 	k.Run()
 }
 
+func BuildInfo() (r string) {
+	extString := ""
+	for e := range Registry.Extensions {
+		extString += fmt.Sprintf("\n\t%s", e)
+	}
+	r += fmt.Sprintf("this kraken is built with extensions: %s\n", extString)
+
+	modString := ""
+	for m := range Registry.Modules {
+		modString += fmt.Sprintf("\n\t%s", m)
+	}
+	r += fmt.Sprintf("this kraken is built with modules: %s\n", modString)
+	return
+}
+
 // Bootstrap creates all service instances in the correct order
 // with all of the correct plumbing
 func (k *Kraken) Bootstrap() {
