@@ -64,7 +64,6 @@ cp -p %{?KrakenConfig}%{?!KrakenConfig:kraken.yaml} build.yaml
 
 # template systemd units
 rpm -D "KrakenWorkingDirectory %{?KrakenWorkingDirectory}%{?!KrakenWorkingDirectory:/}" --eval "$(cat utils/rpm/kraken.service)" > kraken.service
-rpm --eval "$(cat utils/rpm/kraken.environment)" > kraken.environment
 rpm --eval "$(cat utils/powermanapi/powermanapi.service)" > powermanapi.service
 rpm --eval "$(cat utils/powermanapi/powermanapi.environment)" > powermanapi.environment
 rpm --eval "$(cat utils/vboxapi/vboxapi.service)" > vboxapi.service
@@ -89,7 +88,7 @@ EOF
 go run kraken-build.go -force -v -config build.yaml
 
 # create default runtime config file
-build/kraken-native -state "/etc/kraken/state.json" -printrc > defaults.yaml
+build/kraken-native -state "/etc/kraken/state.json" -noprefix -sdnotify -printrc > defaults.yaml
 
 %if %{with powermanapi}
 # build powermanapi
@@ -123,7 +122,6 @@ mkdir -p %{buildroot}
 # kraken
 install -D -m 0755 build/kraken-rpm %{buildroot}%{_sbindir}/kraken
 install -D -m 0644 kraken.service %{buildroot}%{_unitdir}/kraken.service
-install -D -m 0644 kraken.environment %{buildroot}%{_sysconfdir}/sysconfig/kraken
 install -D -m 0644 utils/rpm/state.json %{buildroot}%{_sysconfdir}/kraken/state.json
 install -D -m 0644 defaults.yaml %{buildroot}%{_sysconfdir}/kraken/config.yaml
 %if %{with powermanapi}
@@ -150,7 +148,6 @@ install -D -m 0644 initramfs-base-%{GoBuildArch}.gz %{buildroot}/tftp/initramfs-
 %config(noreplace) %{_sysconfdir}/kraken/state.json
 %config(noreplace) %{_sysconfdir}/kraken/config.yaml
 %{_unitdir}/kraken.service
-%config(noreplace) %{_sysconfdir}/sysconfig/kraken
 
 %if %{with powermanapi}
 %files powermanapi
