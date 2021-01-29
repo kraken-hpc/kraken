@@ -438,7 +438,7 @@ func main() {
 	k.Release()
 
 	// Thaw if full state and not told to freeze
-	if len(parents) == 0 || !rc.Freeze {
+	if fullStateNode && !rc.Freeze {
 		k.Sme.Thaw()
 	}
 
