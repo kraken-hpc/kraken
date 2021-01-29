@@ -385,8 +385,8 @@ func main() {
 		}
 	}
 
-	// Populate interface0 information based on IP (iff cfg wasn't specified, or ip was explicitly specified)
-	if ok, _ := setFlags["ip"]; rc.StateFile == "" || ok {
+	// Populate interface0 information based on IP (if it doesn't already exist from the state file)
+	if _, e := self.GetValue("type.googleapis.com/IPv4.IPv4OverEthernet/Ifaces/kraken/Ip/Ip"); e != nil {
 		iface := net.Interface{}
 		network := net.IPNet{}
 		ifaces, e := net.Interfaces()
