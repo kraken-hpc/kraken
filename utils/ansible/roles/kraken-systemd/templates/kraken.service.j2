@@ -4,10 +4,9 @@ After=network.target network-online.target
 Requires=network.target
 
 [Service]
-EnvironmentFile=/etc/sysconfig/kraken
 Type=notify
 WorkingDirectory={{ ansible_env.HOME }}
-ExecStart={{ kr_build_dir ~ '/' ~ kr_target }} -config "$KRAKEN_CONFIG_FILE" -state "$KRAKEN_STATE_FILE" -id "$KRAKEN_UUID" -ip "$KRAKEN_IP" -ipapi "$KRAKEN_IPAPI" -log "$KRAKEN_LOGLEVEL" -noprefix -sdnotify
+ExecStart={{ kr_build_dir ~ '/' ~ kr_target }} -config /etc/kraken/config.yaml -sdnotify -noprefix
 
 [Install]
 WantedBy=multi-user.target
