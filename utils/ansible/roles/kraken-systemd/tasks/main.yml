@@ -9,14 +9,19 @@
     mode: 0644
   when: not kr_rpm
 
-- name: Install kraken environment file
+- name: Write the kraken runtime configuration file
   become: true
-  template:
-    src: 'kraken.environment.j2'
-    dest: '/etc/sysconfig/kraken'
-    owner: root
-    group: root
-    mode: 0644
+  shell:
+    cmd: >
+      /usr/sbin/kraken -printrc
+      -id "{{ kraken_id }}"
+      -ip "{{ kraken_ip }}"
+      -ipapi "{{ kraken_ipapi }}"
+      -log "{{ kraken_loglevel }}"
+      -state "{{ kraken_state_file }}"
+      > /etc/kraken/config.yaml
+      && touch /etc/kraken/.ansible_config
+    creates: /etc/kraken/.ansible_config
 
 - name: Enable & start kraken service
   become: true
