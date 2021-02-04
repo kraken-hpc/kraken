@@ -132,7 +132,7 @@ func (px *PXE) NodeDelete(qb nodeQueryBy, q string) { // silently ignores non-ex
 		px.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 	}
 	ip := v[px.cfg.IpUrl].Interface().(ipv4t.IP).IP
-	mac := v[px.cfg.MacUrl].Interface().(ipv4t.IP).IP
+	mac := v[px.cfg.MacUrl].Interface().(ipv4t.MAC).HardwareAddr
 	delete(px.nodeBy[queryByIP], ip.String())
 	delete(px.nodeBy[queryByMAC], mac.String())
 	px.mutex.Unlock()
