@@ -16,7 +16,7 @@ import (
 
 //go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. powerapi-node.proto
 
-const Name = "type.googleapis.com/Powerman.Control"
+const Name = "type.googleapis.com/PowerAPI.Node"
 
 ////////////////////
 // Control Object /
