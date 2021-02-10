@@ -1,8 +1,11 @@
 **/.vscode
 /build
+config.yaml
+config/kitchensink.yaml
 tmp
 munge.key
 ssh_host_*key*
+state.json
 **/.DS_Store
 /kraken-build
 **/*.swp
