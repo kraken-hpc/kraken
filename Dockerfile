@@ -17,7 +17,7 @@ ARG GOVER="1.15"
 ################################################################################
 ### Container #1:  Alpine-based Go dev env with Kraken built & installed
 ################################################################################
-FROM registry.lanl.gov:5000/golang:${GOVER}-alpine AS kraken-build
+FROM golang:${GOVER}-alpine AS kraken-build
 MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
@@ -46,7 +46,7 @@ CMD [ "--help" ]
 ################################################################################
 ### Container #2:  Pure Alpine container (no Go) with Kraken copied in
 ################################################################################
-FROM registry.lanl.gov:5000/alpine AS kraken-alpine
+FROM alpine AS kraken-alpine
 MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
