@@ -1,0 +1,66 @@
+/* image.proto: generic data for tracking images
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package Image;
+option go_package = ".;image";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Image{
+    enum State { 
+        // these are kraken only error states
+        UNKNOWN     = 0; // unknown...
+        ERROR       = 1; // recoverable error state
+        FATAL       = 2; // non-recoverable error state
+        // these map to the imageapi container states
+        CREATED     = 3; // requestable
+        RUNNING     = 4; // requestable
+        STOPPING    = 5; // not requestable
+        EXITED      = 6; // requestable
+        DEAD        = 7; // not requestable
+    }
+    string  name    = 1; // the unique identifier, e.g. RBD name
+    string  command = 2; // entrypoint command (with arguments)
+    bool    systmed = 3; // is init for this image systemd?
+    string  fs_type = 4; // filesystem type string (that would be recognizable by `mount`)
+    string  server  = 5; // the server definition to use (as defined in the module config)
+    State   state   = 6; // state we should be in
+    enum ErrorCode {
+        NONE            = 0; // no error
+        MAX_ATTEMPTS    = 1; // failed to attach too many times
+        MAX_DEATHS      = 2; // died too many times
+        SERVER_FAIL     = 3; // underlying server error
+        ATTACH          = 4; // failed to attach
+        MOUNT           = 5; // failed to mount
+        OVERLAY         = 6; // failed to overlay
+        INIT_FAIL       = 7; // failed to init
+        DIED            = 8; // container is dead
+        // ... 
+    }
+    ErrorCode error_code = 7; // last reached error code
+}
+
+message ImageSet{
+    enum State {
+        UNKNOWN = 0; // unknown...
+        STOPPED = 1; // all images unloaded
+        RUNNING = 2; // all images running
+        UPDATE  = 3; // need image updates
+        ERROR   = 4; // one or more image in a recoverable error state
+        FATAL   = 5; // one or more image in a fatal error state
+    }
+    repeated Image  images      = 1;
+    State           state       = 2;
+}
