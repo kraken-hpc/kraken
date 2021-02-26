@@ -1,0 +1,174 @@
+// BEGIN: NON-GENERATED HEADER
+syntax = "proto3";
+package ImageAPI;
+
+option go_package = ".;imageapi";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+
+message CustomType {
+  RbdOptions secret = 1 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/imageapi/customtypes.Secret"];
+}
+// END: NON-GENERATED HEADER
+// AUTO-GENERATED CONTENT BELOW
+
+enum ContainerNamespace {
+  CGROUP = 0;
+  IPC = 1;
+  NET = 2;
+  MNT = 3;
+  PID = 4;
+  TIME = 5;
+  USER = 6;
+  UTS = 7;
+}
+
+enum ContainerState {
+  CREATED = 0;
+  RUNNING = 1;
+  STOPPING = 2;
+  EXITED = 3;
+  DEAD = 4;
+}
+
+// The `container` option describes a minimally namespaced container.
+// 
+// A container is identified by a service-provided unique numeric `pid`.
+// 
+// Optionally, a container can be provided with a `name`.  The name must
+// be unique.  Containers can be referenced by `name` if provided.
+message Container {
+  string command = 1;
+  int64 id = 2;
+  string logfile = 3;
+  Mount mount = 4;
+
+  // name is an optional identifier for the container.  Name must be unique.
+  string name = 5;
+
+  // A list of Linux namespaces to use.
+  // 
+  // Note: This is currently unused.  All containers currently get `mnt` and `pid`.
+  //       It's here as a placeholder for future use.
+  repeated ContainerNamespace namespaces = 6;
+
+  // When read, this contains the current container state. On creation, this requests the initial state (valid options: `created` or `running`). The default is `created`.
+  ContainerState state = 7;
+
+  // When `systemd` is set to `true`, we will assume that this container will run `systemd`, and perform the necessary magic dance to make systemd run inside of the container. The default is `false`.
+  bool systemd = 8;
+}
+
+message Error {
+  int64 code = 1;
+  string message = 2;
+}
+
+// Generically address mounts by kind and ID or definition
+// Either an `mount_id` or a mount definition must be supplied.
+// If both are supplied, the mount definition will be ignored.
+// If `mount_id` is specified, then the kind/id will be used to reference that mount.
+// If no `mount_id` is supplied a defition of type `kind` must be present.
+message Mount {
+  enum MountKind {
+    MOUNT_KIND_OVERLAY = 0;
+    MOUNT_KIND_RBD = 1;
+  }
+
+  MountKind kind = 1;
+  int64 mount_id = 2;
+  MountOverlay overlay = 3;
+  MountRbd rbd = 4;
+}
+
+// `mount_overlay` describes an Overlayfs mount.  All mount points must be RBD ID's.
+// At very least, `lower` must be specified.  If `upper` length is zero, no `upper`
+// mounts will be used.  `workdir` will be assigned automatically.
+// 
+// If the mounts specified in `lower` are specifications and not ID references, they
+// will be recursively mounted/attached.
+// 
+// Overlay mounts are identified by their uppermost `lower` ID.
+message MountOverlay {
+  int64 id = 1;
+
+  // This is an array of mount specifications to be used (in order) as lower mounts for the overlay.
+  repeated Mount lower = 2;
+  string mountpoint = 3;
+  int64 refs = 4;
+
+  // currently, upperdir is always a directory in mountDir
+  string upperdir = 5;
+  string workdir = 6;
+}
+
+// mount_rbd describes an RBD mount.  This must have at least and RBD ID associated with it
+// (which becomes the mount's ID), and a provided filesystem type.
+// 
+// Either `rbd_id` or `rbd` must be specified.  If both are specified, `rbd` will be ignored.
+// 
+// If `rbd` is specified and `rbd_id` is omitted, the RBD will first be attached, and will be
+// detached on deletion.
+message MountRbd {
+  string fs_type = 1;
+  int64 id = 2;
+  repeated string mount_options = 3;
+  string mountpoint = 4;
+  Rbd rbd = 5;
+  int64 rbd_id = 6;
+  int64 refs = 7;
+}
+
+// rbd describes an RBD map.  To successfully map, at least one monitor, pool and image must be specified.
+// Additionally, you will need options.name and options.secret specified.
+message Rbd {
+  // The device_file is the path to the system device file.
+  string device_file = 1;
+
+  // The dev_id is the device ID in the rbd subsystem.
+  int64 device_id = 2;
+  int64 id = 3;
+  string image = 4;
+  repeated string monitors = 5;
+  RbdOptions options = 6;
+  string pool = 7;
+  int64 refs = 8;
+  string snapshot = 9;
+}
+
+message RbdOptions {
+  bool abort_on_full = 1;
+  int32 alloc_size = 2;
+  bool ceph_requires_signatures = 3;
+  bool cephx_sign_messages = 4;
+  bool crc = 5;
+  bool exclusive = 6;
+  bool force = 7;
+  string fsid = 8;
+  string ip = 9;
+  bool lock_on_read = 10;
+  int64 lock_timeout = 11;
+  int32 mount_timeout = 12;
+  string name = 13;
+  string namespace = 14;
+  bool noceph_requires_signatures = 15;
+  bool nocephx_sign_messages = 16;
+  bool nocrc = 17;
+  bool noshare = 18;
+  bool notcp_nodelay = 19;
+  bool notrim = 20;
+  int32 osd_idle_ttl = 21;
+  int32 osdkeepalive = 22;
+  int32 queue_depth = 23;
+  bool ro = 24;
+  bool rw = 25;
+  string secret = 26;
+  bool share = 27;
+  bool tcp_nodelay = 28;
+}

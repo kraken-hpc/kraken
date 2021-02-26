@@ -1,0 +1,64 @@
+/* imageapi.proto: generic data for tracking images
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package ImageAPI;
+
+option go_package = ".;imageapi";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+import "generated.proto";
+
+// states for Images & ImageSets
+enum ImageState { 
+  // these are kraken only error states
+  UNKNOWN     = 0; // unknown...
+  OK          = 1; // non-error state/we're in the desired container state
+  UPDATE      = 2; // image needs to be updated
+  ERROR       = 3; // recoverable error state
+  FATAL       = 4; // non-recoverable error state
+}
+
+// An Image is a container with some extra metadata
+message Image{
+    enum ErrorCode {
+        NONE            = 0; // no error
+        MAX_ATTEMPTS    = 1; // failed to attach too many times
+        MAX_DEATHS      = 2; // died too many times
+        SERVER_FAIL     = 3; // underlying server error
+        ATTACH          = 4; // failed to attach
+        MOUNT           = 5; // failed to mount
+        OVERLAY         = 6; // failed to overlay
+        INIT_FAIL       = 7; // failed to init
+        DIED            = 8; // container is dead
+        // ... 
+    }
+    Container   container   = 1; // the container definition
+    ImageState  state       = 2;
+    ErrorCode   last_error  = 3; // last reached error code
+}
+
+message ImageSet{
+    enum State {
+        UNKNOWN = 0; // unknown...
+        OK      = 1; // all images unloaded
+        RUNNING = 2; // all images running
+        UPDATE  = 3; // need image updates
+        ERROR   = 4; // one or more image in a recoverable error state
+        FATAL   = 5; // one or more image in a fatal error state
+    }
+    map<string, Container>  containers  = 1; // map key is a unique identifier 
+    State                   state       = 2;
+}
