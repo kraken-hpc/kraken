@@ -68,6 +68,7 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 			CIDR     string
 			ID       string
 			ParentIP string
+			Nodename string
 		}
 		data := tplData{}
 		iface, _ := n.GetValue(px.cfg.SrvIfaceUrl)
@@ -78,6 +79,8 @@ func (px *PXE) writeToTFTP(filename string, rf io.ReaderFrom) (e error) {
 		subip := i.Interface().(ipv4t.IP)
 		cidr, _ := net.IPMask(subip.To4()).Size()
 		data.CIDR = strconv.Itoa(cidr)
+		i, _ = n.GetValue("/Nodename")
+		data.Nodename = i.String()
 		data.ID = n.ID().String()
 		data.ParentIP = px.selfIP.String()
 		tpl, e := template.ParseFiles(lfile + ".tpl")
