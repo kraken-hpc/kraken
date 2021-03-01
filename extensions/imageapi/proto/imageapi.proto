@@ -21,20 +21,20 @@ option (gogoproto.messagename_all) = true;
 
 import "generated.proto";
 
-// states for Images & ImageSets
 enum ImageState { 
-  // these are kraken only error states
-  UNKNOWN     = 0; // unknown...
-  OK          = 1; // non-error state/we're in the desired container state
-  UPDATE      = 2; // image needs to be updated
-  ERROR       = 3; // recoverable error state
-  FATAL       = 4; // non-recoverable error state
+    // these are kraken only error states
+    UNKNOWN     = 0; // unknown...
+    IDLE        = 1; // idle the image set (no running images)
+    ACTIVE      = 2; // all images running & ok
+    UPDATE      = 3; // image needs to be updated
+    ERROR       = 4; // recoverable error state
+    FATAL       = 5; // non-recoverable error state
 }
 
 // An Image is a container with some extra metadata
 message Image{
     enum ErrorCode {
-        NONE            = 0; // no error
+        NOERROR         = 0; // no error
         MAX_ATTEMPTS    = 1; // failed to attach too many times
         MAX_DEATHS      = 2; // died too many times
         SERVER_FAIL     = 3; // underlying server error
@@ -45,20 +45,20 @@ message Image{
         DIED            = 8; // container is dead
         // ... 
     }
+    enum Action {
+        NONE            = 0; // no action needed
+        CREATE          = 1; // this image hasn't been created yet
+        DELETE          = 2; // this image should be deleted
+        RELOAD          = 3; // container needs to be reloaded
+    }
     Container   container   = 1; // the container definition
-    ImageState  state       = 2;
-    ErrorCode   last_error  = 3; // last reached error code
+    ImageState  state       = 2; // current state of this image
+    Action      action      = 3; // current pending action on this image
+    ErrorCode   last_error  = 4; // last reached error code
 }
 
 message ImageSet{
-    enum State {
-        UNKNOWN = 0; // unknown...
-        OK      = 1; // all images unloaded
-        RUNNING = 2; // all images running
-        UPDATE  = 3; // need image updates
-        ERROR   = 4; // one or more image in a recoverable error state
-        FATAL   = 5; // one or more image in a fatal error state
-    }
-    map<string, Container>  containers  = 1; // map key is a unique identifier 
-    State                   state       = 2;
+    // states for Images & ImageSets
+    map<string, Image>  images  = 1; // map key is a unique identifier 
+    ImageState          state   = 2;
 }
