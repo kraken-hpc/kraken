@@ -6,4 +6,4 @@ MENU TITLE Main Menu
 LABEL node
     MENU LABEL Boot x86_64 Compute Node (diskless)
     KERNEL vmlinuz
-    APPEND console=tty1 root=/dev/ram0 initrd=initramfs.cpio.gz kraken.iface={{.Iface}} kraken.ip={{.IP}} kraken.net={{.CIDR}} kraken.id={{.ID}} kraken.parent={{.ParentIP}}
+    APPEND console=tty1 root=/dev/ram0 initrd=initramfs.cpio.gz kraken.iface={{.Iface}} kraken.ip={{.IP}} kraken.net={{.CIDR}} kraken.id={{.ID}} kraken.parent={{.ParentIP}} kraken.name={{.Nodename}}
