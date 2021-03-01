@@ -1,0 +1,37 @@
+/* capmc.proto: describes the CAPMCConfig object
+ *
+ * Author: J. Lowell Wofford <lowell@lanl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2018, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package ImageAPI;
+option go_package = ".;imageapi";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Config {
+    ApiServer api_server        = 1;
+    string polling_interval     = 3;    // How frequently should we poll for all images' status?
+}
+
+message ApiServer {
+    string server   = 1; // hostname or ip (default 127.0.0.1)
+    int32 port      = 2; // network port (default 8080)
+    bool https      = 3; // currently unused
+    string api_base = 4; // default /imageapi/v1
+    enum Status {
+        UNKNOWN = 0; // no attempts have been made
+        OK      = 1; // last attempt to connect succeded
+        ERROR   = 2; // last attempt to connect failed
+    }
+    Status status = 5;
+}
