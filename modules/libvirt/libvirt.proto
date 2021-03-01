@@ -1,0 +1,37 @@
+/* libvirt.proto: describes the LibVirt object
+ *
+ * Author: Benjamin S. Allen <bsallen@alcf.anl.gov>
+ *
+ * This software is open source software available under the BSD-3 license.
+ * Copyright (c) 2021, Triad National Security, LLC
+ * See LICENSE file for details.
+ */
+
+syntax = "proto3";
+package LibVirt;
+option go_package = ".;libvirt";
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+option (gogoproto.marshaler_all) = true;
+option (gogoproto.unmarshaler_all) = true;
+option (gogoproto.sizer_all) = true;
+option (gogoproto.goproto_registration) = true;
+option (gogoproto.messagename_all) = true;
+
+message Config {
+    map<string, Server> servers = 1;
+    string polling_interval = 2;
+    string name_url = 3;
+    string server_url = 4;
+    string uuid_url = 5;
+}
+
+message Server {
+    string name = 1;
+    string ip = 2;
+    int32  port = 3;
+    string tlsKey = 4;
+    string tlsCert = 5;
+    string tlsCACert = 6;
+    string socketPath = 7;
+}

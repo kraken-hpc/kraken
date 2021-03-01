@@ -2,6 +2,7 @@ module github.com/hpc/kraken
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+	github.com/digitalocean/go-libvirt v0.0.0-20210201230814-aaced3ae0e81
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
 	github.com/google/gopacket v1.1.19
