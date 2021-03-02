@@ -11,10 +11,11 @@ option (gogoproto.sizer_all) = true;
 option (gogoproto.goproto_registration) = true;
 option (gogoproto.messagename_all) = true;
 
-
+/*
 message CustomType {
   RbdOptions secret = 1 [(gogoproto.customtype) = "github.com/hpc/kraken/extensions/imageapi/customtypes.Secret"];
 }
+*/
 // END: NON-GENERATED HEADER
 // AUTO-GENERATED CONTENT BELOW
 

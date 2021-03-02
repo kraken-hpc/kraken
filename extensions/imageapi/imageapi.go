@@ -16,7 +16,7 @@ import (
 
 //go:generate protoc -I ../../core/proto/src -I proto/ --gogo_out=plugins=grpc:. proto/imageapi.proto proto/generated.proto
 
-const Name = "type.googleapis.com/Image.ImageSet"
+const Name = "type.googleapis.com/ImageAPI.ImageSet"
 
 /////////////////////
 // ImageSet Object /
