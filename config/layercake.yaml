@@ -1,0 +1,20 @@
+# kraken-build.go: describes a build for a Virtualbox testbed
+targets:
+  'linux-amd64':
+    os: 'linux'
+    arch: 'amd64'
+
+# included extensions
+extensions:
+  - github.com/hpc/kraken/extensions/imageapi
+  - github.com/hpc/kraken/extensions/ipv4
+  - github.com/hpc/kraken/extensions/powerapi
+  - github.com/hpc/kraken/extensions/pxe
+
+# included modules
+modules:
+  - github.com/hpc/kraken/modules/imageapi
+  - github.com/hpc/kraken/modules/powerapi
+  - github.com/hpc/kraken/modules/pxe
+  - github.com/hpc/kraken/modules/restapi
+  - github.com/hpc/kraken/modules/websocket
