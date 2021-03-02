@@ -55,10 +55,12 @@ message Image{
     ImageState  state       = 2; // current state of this image
     Action      action      = 3; // current pending action on this image
     ErrorCode   last_error  = 4; // last reached error code
+    int32       retries     = 5; // The number of times that this image has hit error without hitting success
 }
 
 message ImageSet{
     // states for Images & ImageSets
     map<string, Image>  images  = 1; // map key is a unique identifier 
     ImageState          state   = 2;
+    int32               retries = 5; // The number of times that this imageset has hit error without hitting success
 }

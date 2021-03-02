@@ -21,6 +21,7 @@ option (gogoproto.messagename_all) = true;
 message Config {
     ApiServer api_server        = 1;
     string polling_interval     = 3;    // How frequently should we poll for all images' status?
+    int32 max_retries           = 4;    // How many times can we retry on error before going fatal?
 }
 
 message ApiServer {

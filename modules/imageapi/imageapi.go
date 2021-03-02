@@ -19,9 +19,11 @@ package imageapi
 import (
 	"encoding/json"
 	"fmt"
+	math "math"
 	"os"
 	"reflect"
 	"regexp"
+	"sync"
 	"time"
 
 	transport "github.com/go-openapi/runtime/client"
@@ -76,7 +78,7 @@ var muts = map[string]ismut{
 	"UKtoIDLE": {
 		f:       ia.ImageState_UNKNOWN,
 		t:       ia.ImageState_IDLE,
-		timeout: "10s",
+		timeout: "1s",
 		failto:  [3]string{siName, issURL, ia.ImageState_FATAL.String()},
 	},
 	"IDLEtoACTIVE": {
@@ -91,8 +93,20 @@ var muts = map[string]ismut{
 		timeout: "1m",
 		failto:  [3]string{siName, issURL, ia.ImageState_ERROR.String()},
 	},
+	"UPDATEtoACTIVE": {
+		f:       ia.ImageState_UPDATE,
+		t:       ia.ImageState_ACTIVE,
+		timeout: "1m",
+		failto:  [3]string{siName, issURL, ia.ImageState_ERROR.String()},
+	},
+	"UPDATEtoIDLE": {
+		f:       ia.ImageState_UPDATE,
+		t:       ia.ImageState_IDLE,
+		timeout: "1m",
+		failto:  [3]string{siName, issURL, ia.ImageState_ERROR.String()},
+	},
 	// we can mutate out of error (but not fatal)
-	"ERRORtoRUN": {
+	"ERRORtoACTIVE": {
 		f:       ia.ImageState_ERROR,
 		t:       ia.ImageState_UPDATE,
 		timeout: "1m", // systemd can take a bit to stop, for instance
@@ -152,6 +166,8 @@ func init() {
 // ImageAPI Object /
 ///////////////////
 
+type trigger func(name string)
+
 // ImageAPI provides layer1 image loading capabilities
 type ImageAPI struct {
 	api        types.ModuleAPIClient
@@ -160,6 +176,9 @@ type ImageAPI struct {
 	dchan      chan<- types.Event
 	echan      <-chan types.Event
 	pollTicker *time.Ticker
+	target     ia.ImageState
+	triggers   map[string]map[ia.ContainerState]trigger
+	mutex      *sync.Mutex
 }
 
 /*
@@ -195,7 +214,8 @@ func (*ImageAPI) NewConfig() proto.Message {
 			Https:   false,
 			ApiBase: "/imageapi/v1",
 		},
-		PollingInterval: "1s",
+		PollingInterval: "10s",
+		MaxRetries:      3,
 	}
 	return r
 }
@@ -274,6 +294,9 @@ func (is *ImageAPI) Entry() {
 func (is *ImageAPI) Init(api types.ModuleAPIClient) {
 	is.api = api
 	is.cfg = is.NewConfig().(*Config)
+	is.mutex = &sync.Mutex{}
+	is.target = ia.ImageState_UNKNOWN
+	is.triggers = make(map[string]map[ia.ContainerState]trigger)
 }
 
 // Stop should perform a graceful exit
@@ -285,6 +308,110 @@ func (is *ImageAPI) Stop() {
 // Unexported methods /
 //////////////////////
 
+////////////////////////
+// Mutation handlers //
+//////////////////////
+
+func (is *ImageAPI) mUKtoIDLE(me *core.MutationEvent) {
+	// force a discovery run and go to idle
+	is.clearAllTriggers()
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.target = ia.ImageState_IDLE
+
+	is.discover()
+	is.dchan <- core.NewEvent(
+		types.Event_DISCOVERY,
+		util.NodeURLJoin(is.api.Self().String(), issURL),
+		&core.DiscoveryEvent{
+			URL:     issURL,
+			ValueID: ia.ImageState_IDLE.String(),
+		},
+	)
+}
+
+func (is *ImageAPI) mANYtoACTIVE(me *core.MutationEvent) {
+	// Activate all Images (if they aren't already)
+	is.clearAllTriggers()
+	is.mutex.Lock()
+	is.target = ia.ImageState_ACTIVE
+	is.mutex.Unlock()
+	v, _ := me.NodeCfg.GetValue(isURL)
+	isc := v.Interface().(ia.ImageSet)
+	v, _ = me.NodeDsc.GetValue(isURL)
+	isd := v.Interface().(ia.ImageSet)
+	for name, image := range isc.Images {
+		action := ia.Image_CREATE
+		if di, ok := isd.Images[name]; ok {
+			// we already know about this image
+			action = di.Action
+		}
+		switch action {
+		case ia.Image_CREATE:
+			is.createImage(name, image)
+		case ia.Image_RELOAD:
+			is.reloadImage(name, image)
+		case ia.Image_DELETE:
+			is.deleteImage(name, image)
+		case ia.Image_NONE:
+			// nop
+		}
+		is.setTrigger(name, image.Container.State, is.tSetACTIVE)
+	}
+}
+
+func (is *ImageAPI) mANYtoIDLE(me *core.MutationEvent) {
+	// Stop & delete all Images
+	is.clearAllTriggers()
+	is.mutex.Lock()
+	is.target = ia.ImageState_IDLE
+	is.mutex.Unlock()
+	v, _ := me.NodeCfg.GetValue(isURL)
+	isc := v.Interface().(ia.ImageSet)
+	v, _ = me.NodeDsc.GetValue(isURL)
+	isd := v.Interface().(ia.ImageSet)
+	for name, image := range isc.Images {
+		if _, ok := isd.Images[name]; ok {
+			// this container needs to be deleted
+			is.deleteImage(name, image)
+		}
+	}
+}
+
+func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
+	// logic for when an error is recoverable
+	cleared := true
+	changed := false
+	n, _ := is.api.QueryReadDsc(is.api.Self().String()) // we get a fresh copy to be a little safer
+	v, _ := n.GetValue(isURL)
+	isd := v.Interface().(ia.ImageSet)
+	for name, image := range isd.Images {
+		if image.State == ia.ImageState_ERROR {
+			image.Retries++
+			changed = true
+			if image.Retries > is.cfg.MaxRetries {
+				// too many retries
+				cleared = false
+				image.State = ia.ImageState_FATAL
+				image.LastError = ia.Image_MAX_ATTEMPTS
+				is.api.Logf(types.LLERROR, "image reached maximum retries (%d/%d): %s", image.Retries, is.cfg.MaxRetries, name)
+			} else {
+				image.State = ia.ImageState_UPDATE
+				is.api.Logf(types.LLERROR, "image is retrying (%d/%d): %s", image.Retries, is.cfg.MaxRetries, name)
+			}
+		}
+	}
+	if changed {
+		n.SetValue(isURL, reflect.ValueOf(isd))
+		is.api.QueryUpdateDsc(n)
+	}
+	return cleared
+}
+
+/////////////////////
+// Event handlers //
+///////////////////
+
 func (is *ImageAPI) handleMutation(m types.Event) {
 	if m.Type() != types.Event_STATE_MUTATION {
 		is.api.Log(types.LLINFO, "got an unexpected event type on mutation channel")
@@ -294,13 +421,24 @@ func (is *ImageAPI) handleMutation(m types.Event) {
 	// mutation switch
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
-		if mut, ok := muts[me.Mutation[1]]; ok {
-			// this is a mutation we known, call its handler
-			mut.h(me)
-		} else {
+		switch me.Mutation[1] {
+		case "UKtoIDLE":
+			is.mUKtoIDLE(me)
+		case "IDLEtoACTIVE", "UPDATEtoACTIVE":
+			is.mANYtoACTIVE(me)
+		case "ACTIVEtoIDLE", "UPDATEtoIDLE":
+			is.mANYtoIDLE(me)
+		case "ERRORtoACTIVE":
+			if is.mRecoverError(me) {
+				is.mANYtoACTIVE(me)
+			}
+		case "ERRORtoIDLE":
+			if is.mRecoverError(me) {
+				is.mANYtoIDLE(me)
+			}
+		default:
 			is.api.Logf(types.LLERROR, "asked to perform unknown mutation: %s", me.Mutation[1])
 		}
-		break
 	case core.MutationEvent_INTERRUPT:
 		// nothing to do
 		break
@@ -349,6 +487,7 @@ func (is *ImageAPI) cfgChange(name, sub string, cfg, dsc types.Node) {
 		// this Image is no longer configured.  It should be marked for deletion
 		if _, err := dsc.GetValue(ctnURL); err != nil {
 			// it seems to have already been deleted.  We're done.
+			is.updateSetState()
 			return
 		}
 		// mark node for update/delete
@@ -364,85 +503,70 @@ func (is *ImageAPI) cfgChange(name, sub string, cfg, dsc types.Node) {
 		})
 	}
 	is.api.QueryUpdateDsc(dsc)
-	// discover the imagestate update
-	is.dchan <- core.NewEvent(
-		types.Event_DISCOVERY,
-		util.NodeURLJoin(is.api.Self().String(), issURL),
-		&core.DiscoveryEvent{
-			URL:     util.NodeURLJoin(is.api.Self().String(), issURL),
-			ValueID: ia.ImageState_UPDATE.String(),
-		},
-	)
+	is.updateSetState()
+}
+
+// updateSetState looks at all of the individual image states and derives the set state
+// it then discovers the state if it varies from the exiting one
+func (is *ImageAPI) updateSetState() {
+	n, _ := is.api.QueryReadDsc(is.api.Self().String())
+	v, _ := n.GetValue(isURL)
+	s := v.Interface().(ia.ImageSet)
+
+	state := float64(ia.ImageState_UNKNOWN)
+
+	for _, img := range s.Images {
+		// we rely on the numeric sequence here
+		state = math.Max(float64(img.State), state)
+	}
+
+	if ia.ImageState(state) != s.State {
+		// discover the imagestate update
+		is.dchan <- core.NewEvent(
+			types.Event_DISCOVERY,
+			util.NodeURLJoin(is.api.Self().String(), issURL),
+			&core.DiscoveryEvent{
+				URL:     util.NodeURLJoin(is.api.Self().String(), issURL),
+				ValueID: ia.ImageState(state).String(),
+			},
+		)
+	}
 }
 
 // dsc changes mean something about the container(s) changed
 func (is *ImageAPI) dscChange(name, sub string, cfg, dsc types.Node, value reflect.Value) {
-	checkCompletion := false
 	ctnURL := util.URLPush(util.URLPush(isURL, "Images"), name)
-	switch sub {
-	case "": // might be a deletion
-		if _, err := dsc.GetValue(ctnURL); err != nil {
-			checkCompletion = true
+	// ok, we had a change in running state
+	v, err := dsc.GetValue(ctnURL)
+	if err != nil {
+		if sub == "" {
+			// image was deleted
+			is.fireTriggers(name, DELETED)
+			is.updateSetState()
 		}
-	case "/Container/State":
-		// ok, we had a change in running state
-		v, err := dsc.GetValue(ctnURL)
-		if err != nil {
-			// shouldn't really happen, but be safe
-			return
+		return
+	}
+	idc := v.Interface().(ia.Image)
+
+	update := false
+	if sub == "/Container/State" {
+		if is.fireTriggers(name, idc.Container.State) {
+			update = true
 		}
-		switch state {
-		case ia.ContainerState_CREATED:
-		case ia.ContainerState_RUNNING:
-			// this probably means we achieved our update/start/whatever
-
-		case ia.ContainerState_STOPPING:
-		case ia.ContainerState_EXITED:
-		case ia.ContainerState_DEAD:
+		if idc.Container.State == ia.ContainerState_DEAD {
+			// this is always an error
+			idc.State = ia.ImageState_ERROR
+			idc.LastError = ia.Image_DIED
+			dsc.SetValue(ctnURL, reflect.ValueOf(idc))
+			is.api.QueryUpdateDsc(dsc)
+			update = true
 		}
 	}
-	if checkCompletion {
-
+	if update {
+		// update dsc
+		// update global
+		is.updateSetState()
 	}
-}
-
-// get a configured API client
-func (is ImageAPI) getAPIClient(as ApiServer) *api.Imageapi {
-	t := transport.New(fmt.Sprintf("%s:%s", as.Server, as.Port), "", nil)
-	t.BasePath = as.ApiBase
-	return api.New(t, strfmt.Default)
-}
-
-// not super efficient, but should work
-func (is *ImageAPI) protoToAPI(p *ia.Container) *models.Container {
-	b, err := kjson.Marshal(p)
-	if err != nil {
-		is.api.Logf(types.LLFATAL, "error translating container proto -> API: %v", err)
-		return nil
-	}
-	r := &models.Container{}
-	err := json.Unmarshal(b)
-	if err != nil {
-		is.api.Logf(types.LLFATAL, "error translating container proto -> API: %v", err)
-		return nil
-	}
-	return r
-}
-
-// not super efficient, but should work
-func (is *ImageAPI) apiToProto(a *models.Container) *ia.Container {
-	b, err := json.Marshal(a)
-	if err != nil {
-		is.api.Logf(types.LLFATAL, "error translating container API -> proto: %v", err)
-		return nil
-	}
-	r := &ia.Container{}
-	kjson.Unmarshal(b, r)
-	if err != nil {
-		is.api.Logf(types.LLFATAL, "error translating container API -> proto: %v", err)
-		return nil
-	}
-	return r
 }
 
 // discover's job is to periodically poll the imageapi for current data and update discoverable state
@@ -509,95 +633,213 @@ func (is *ImageAPI) discover() {
 	is.api.QueryUpdateDsc(dsc)
 }
 
-/*
-func (is *ImageAPI) nodeOn(srvName, name string, id types.NodeID) {
-	srv, ok := is.cfg.Servers[srvName]
-	if !ok {
-		is.api.Logf(types.LLERROR, "cannot control power for unknown API server: %s", srvName)
-		return
-	}
-	client, ctx := clientContext(srv)
+////////////////////////
+// Utility functions //
+//////////////////////
 
-	body := api.NewResetRequestBody(api.RESETTYPE_FORCE_ON)
-	_, r, e := client.DefaultApi.ComputerSystemsNameActionsComputerSystemResetPost(ctx, name).ResetRequestBody(*body).Execute()
-	if is.apiError(r, e) {
-		return
-	}
-
-	url := util.NodeURLJoin(id.String(), "/PhysState")
-	v := core.NewEvent(
-		types.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			URL:     url,
-			ValueID: "POWER_ON",
-		},
-	)
-	is.dchan <- v
+// get a configured API client
+func (is ImageAPI) getAPIClient() *api.Imageapi {
+	as := is.cfg.ApiServer
+	t := transport.New(fmt.Sprintf("%s:%d", as.Server, as.Port), "", nil)
+	t.BasePath = as.ApiBase
+	return api.New(t, strfmt.Default)
 }
 
-func (is *ImageAPI) nodeOff(srvName, name string, id types.NodeID) {
-	srv, ok := is.cfg.Servers[srvName]
-	if !ok {
-		is.api.Logf(types.LLERROR, "cannot control power for unknown API server: %s", srvName)
-		return
+// not super efficient, but should work
+func (is *ImageAPI) protoToAPI(p *ia.Container) *models.Container {
+	b, err := kjson.Marshal(p)
+	if err != nil {
+		is.api.Logf(types.LLFATAL, "error translating container proto -> API: %v", err)
+		return nil
 	}
-	client, ctx := clientContext(srv)
-
-	body := api.NewResetRequestBody(api.RESETTYPE_FORCE_OFF)
-	_, r, e := client.DefaultApi.ComputerSystemsNameActionsComputerSystemResetPost(ctx, name).ResetRequestBody(*body).Execute()
-	if is.apiError(r, e) {
-		return
+	r := &models.Container{}
+	err = json.Unmarshal(b, r)
+	if err != nil {
+		is.api.Logf(types.LLFATAL, "error translating container proto -> API: %v", err)
+		return nil
 	}
-
-	url := util.NodeURLJoin(id.String(), "/PhysState")
-	v := core.NewEvent(
-		types.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			URL:     url,
-			ValueID: "POWER_OFF",
-		},
-	)
-	is.dchan <- v
+	return r
 }
 
-// discoverAll is used to do polling discovery of power state
-// Note: this is probably not extremely efficient for large systems
-func (is *ImageAPI) discoverAll() {
-	is.api.Log(types.LLDEBUG, "polling for node state")
-	ns, e := is.api.QueryReadAll()
-	if e != nil {
-		is.api.Logf(types.LLERROR, "polling node query failed: %v", e)
-		return
+// not super efficient, but should work
+func (is *ImageAPI) apiToProto(a *models.Container) *ia.Container {
+	b, err := json.Marshal(a)
+	if err != nil {
+		is.api.Logf(types.LLFATAL, "error translating container API -> proto: %v", err)
+		return nil
 	}
-	idmap := make(map[string]types.NodeID)
-	bySrv := make(map[string][]string)
-
-	// build lists
-	for _, n := range ns {
-		vs, e := n.GetValues([]string{"/Platform", is.cfg.GetNameUrl(), is.cfg.GetServerUrl()})
-		if e != nil {
-			is.api.Logf(types.LLERROR, "error getting values for node: %v", e)
-		}
-		if len(vs) != 3 {
-			is.api.Logf(types.LLDEBUG, "skiising node %s, doesn't have complete ImageAPI info", n.ID().String())
-			continue
-		}
-		if vs["/Platform"].String() != PlatformString { // Note: this may need to be more flexible in the future
-			continue
-		}
-		name := vs[is.cfg.GetNameUrl()].String()
-		srv := vs[is.cfg.GetServerUrl()].String()
-		idmap[name] = n.ID()
-		bySrv[srv] = aisend(bySrv[srv], name)
+	r := &ia.Container{}
+	kjson.Unmarshal(b, r)
+	if err != nil {
+		is.api.Logf(types.LLFATAL, "error translating container API -> proto: %v", err)
+		return nil
 	}
+	return r
+}
 
-	// This is not very efficient
-	for s, ns := range bySrv {
-		for _, n := range ns {
-			is.nodeDiscover(s, n, idmap[n])
+func (is *ImageAPI) createImage(name string, image *ia.Image) {
+	is.api.Logf(types.LLINFO, "creating image %s", name)
+	// make sure naming is uniform.  The container must be named the same as the map.
+	image.Container.Name = name
+	client := is.getAPIClient()
+	apiContainer := is.protoToAPI(image.Container)
+	_, err := client.Containers.CreateContainer(&containers.CreateContainerParams{
+		Container: apiContainer,
+	})
+	if err != nil {
+		is.api.Logf(types.LLERROR, "container creation failed for image %s: %v", name, err)
+		// "discover" our error state
+		isd := &ia.Image{
+			State:     ia.ImageState_ERROR,
+			LastError: ia.Image_ATTACH,
 		}
+		n, _ := is.api.QueryReadDsc(is.api.Self().String())
+		n.SetValue(util.URLPush(util.URLPush(isURL, "Images"), name), reflect.ValueOf(isd))
+		is.api.QueryUpdateDsc(n)
 	}
 }
-*/
+
+func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
+	n, _ := is.api.QueryReadDsc(is.api.Self().String())
+	url := isURL
+	for _, u := range []string{"Images", name, "Container", "State"} {
+		url = util.URLPush(url, u)
+	}
+	v, err := n.GetValue(url)
+	if err != nil {
+		// image must not exist, so our work is done
+		return
+	}
+	client := is.getAPIClient()
+	switch v.Interface().(ia.ContainerState) {
+	case ia.ContainerState_RUNNING:
+		// tell the node to stop
+		_, err := client.Containers.SetContainerStateByname(&containers.SetContainerStateBynameParams{
+			Name:  name,
+			State: string(models.ContainerStateExited),
+		})
+		if err != nil {
+			is.api.Logf(types.LLERROR, "failed to stop container %s: %v", name, err)
+			// "discover" our error state
+			isd := &ia.Image{
+				State:     ia.ImageState_ERROR,
+				LastError: ia.Image_ATTACH,
+			}
+			n, _ := is.api.QueryReadDsc(is.api.Self().String())
+			n.SetValue(util.URLPush(util.URLPush(isURL, "Images"), name), reflect.ValueOf(isd))
+			is.api.QueryUpdateDsc(n)
+		}
+		fallthrough
+	case ia.ContainerState_STOPPING:
+		// set a trigger and get rerun when it's done
+		is.setTrigger(name, ia.ContainerState_EXITED, is.tDelete)
+		return
+	}
+	// ok, we're ready to delete
+	_, err = client.Containers.DeleteContainerByname(&containers.DeleteContainerBynameParams{
+		Name: name,
+	})
+	if err != nil {
+		is.api.Logf(types.LLERROR, "failed to delete container %s: %v", name, err)
+		// "discover" our error state
+		isd := &ia.Image{
+			State:     ia.ImageState_ERROR,
+			LastError: ia.Image_ATTACH,
+		}
+		n, _ := is.api.QueryReadDsc(is.api.Self().String())
+		n.SetValue(util.URLPush(util.URLPush(isURL, "Images"), name), reflect.ValueOf(isd))
+		is.api.QueryUpdateDsc(n)
+	}
+}
+
+func (is *ImageAPI) reloadImage(name string, image *ia.Image) {
+	is.setTrigger(name, DELETED, is.tCreate)
+	is.deleteImage(name, image)
+}
+
+///////////////////////
+// trigger handling //
+/////////////////////
+
+// Triggers are hooks that get called when a certain ContainerState is reached
+// This allows for chaining of async actions
+// All triggers take an Image name as argument
+
+// we define an extra container state to recognize deleted containers
+const DELETED = ia.ContainerState(-1)
+
+func (is *ImageAPI) clearAllTriggers() {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.triggers = make(map[string]map[ia.ContainerState]trigger)
+}
+
+func (is *ImageAPI) clearTriggers(name string) {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.triggers[name] = make(map[ia.ContainerState]trigger)
+}
+
+func (is *ImageAPI) setTrigger(name string, state ia.ContainerState, t trigger) {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	var ok bool
+	var ts map[ia.ContainerState]trigger
+	if ts, ok = is.triggers[name]; !ok {
+		is.triggers[name] = make(map[ia.ContainerState]trigger)
+		ts = is.triggers[name]
+	}
+	ts[state] = t
+}
+
+func (is *ImageAPI) fireTriggers(name string, state ia.ContainerState) bool {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	if t, ok := is.triggers[name][state]; ok {
+		t(name)
+		delete(is.triggers[name], state)
+		return true
+	}
+	return false
+}
+
+func (is *ImageAPI) tDelete(name string) {
+	// we use an empty image
+	is.deleteImage(name, &ia.Image{})
+}
+
+func (is *ImageAPI) tCreate(name string) {
+	n, _ := is.api.QueryRead(is.api.Self().String())
+	iurl := util.URLPush(util.URLPush(isURL, "Images"), name)
+	v, err := n.GetValue(iurl)
+	if err != nil {
+		// apparently there's nothing to create
+		is.api.Logf(types.LLDEBUG, "triggered to create image that is no longer defined: %s", name)
+		return
+	}
+	is.createImage(name, v.Addr().Interface().(*ia.Image))
+}
+
+func (is *ImageAPI) tSetACTIVE(name string) {
+	is.api.Logf(types.LLINFO, "image %s becomes ACTIVE", name)
+	n, _ := is.api.QueryReadDsc(is.api.Self().String())
+	iurl := util.URLPush(util.URLPush(isURL, "Images"), name)
+	n.SetValues(map[string]reflect.Value{
+		util.URLPush(iurl, "State"):   reflect.ValueOf(ia.ImageState_ACTIVE),
+		util.URLPush(iurl, "Action"):  reflect.ValueOf(ia.Image_NONE),
+		util.URLPush(iurl, "Retries"): reflect.ValueOf(0),
+	})
+	is.api.QueryUpdateDsc(n)
+}
+
+func (is *ImageAPI) tSetIDLE(name string) {
+	is.api.Logf(types.LLINFO, "image %s becomes IDLE", name)
+	n, _ := is.api.QueryReadDsc(is.api.Self().String())
+	iurl := util.URLPush(util.URLPush(isURL, "Images"), name)
+	n.SetValues(map[string]reflect.Value{
+		util.URLPush(iurl, "State"):   reflect.ValueOf(ia.ImageState_IDLE),
+		util.URLPush(iurl, "Action"):  reflect.ValueOf(ia.Image_NONE),
+		util.URLPush(iurl, "Retries"): reflect.ValueOf(0),
+	})
+	is.api.QueryUpdateDsc(n)
+}
