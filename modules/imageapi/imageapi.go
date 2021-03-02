@@ -68,7 +68,15 @@ type ismut struct {
 	t       ia.ImageState // to
 	timeout string        // timeout
 	failto  [3]string
+	reqs    map[string]reflect.Value
+	excs    map[string]reflect.Value
 }
+
+// any mut that doesnt' provide reqs or excs will get these defaults
+var reqs = map[string]reflect.Value{
+	"/RunState": reflect.ValueOf(cpb.Node_SYNC),
+}
+var excs = map[string]reflect.Value{}
 
 // our mutation definitions
 // also we discover anything we can mutate to
@@ -80,6 +88,10 @@ var muts = map[string]ismut{
 		t:       ia.ImageState_IDLE,
 		timeout: "1s",
 		failto:  [3]string{siName, issURL, ia.ImageState_FATAL.String()},
+		reqs: map[string]reflect.Value{
+			"/RunState":  reflect.ValueOf(cpb.Node_SYNC),
+			"/PhysState": reflect.ValueOf(cpb.Node_POWER_ON),
+		},
 	},
 	"IDLEtoACTIVE": {
 		f:       ia.ImageState_IDLE,
@@ -120,14 +132,6 @@ var muts = map[string]ismut{
 	},
 }
 
-// modify these if you want different requires for mutations
-var reqs = map[string]reflect.Value{
-	"/RunState": reflect.ValueOf(cpb.Node_SYNC),
-}
-
-// modify this if you want excludes
-var excs = map[string]reflect.Value{}
-
 ////////////////////////////
 // Module Initialization //
 //////////////////////////
@@ -135,22 +139,28 @@ var excs = map[string]reflect.Value{}
 func init() {
 	mutations := make(map[string]types.StateMutation)
 	// create mutation/discovers from our muts
-	for m := range muts {
+	for m, mut := range muts {
 		dur, _ := time.ParseDuration(muts[m].timeout)
+		if mut.reqs == nil {
+			mut.reqs = reqs
+		}
+		if mut.excs == nil {
+			mut.excs = excs
+		}
 		mutations[m] = core.NewStateMutation(
 			map[string][2]reflect.Value{
 				issURL: {
-					reflect.ValueOf(muts[m].f),
-					reflect.ValueOf(muts[m].t),
+					reflect.ValueOf(mut.f),
+					reflect.ValueOf(mut.t),
 				},
 			},
-			reqs,
-			excs,
+			mut.reqs,
+			mut.excs,
 			types.StateMutationContext_SELF,
 			dur,
-			muts[m].failto,
+			mut.failto,
 		)
-		discovers[issURL][muts[m].t.String()] = reflect.ValueOf(muts[m].t)
+		discovers[issURL][mut.t.String()] = reflect.ValueOf(mut.t)
 	}
 
 	// Register it all
