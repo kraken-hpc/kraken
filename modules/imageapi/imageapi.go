@@ -86,7 +86,7 @@ var muts = map[string]ismut{
 	"UKtoIDLE": {
 		f:       ia.ImageState_UNKNOWN,
 		t:       ia.ImageState_IDLE,
-		timeout: "1s",
+		timeout: "10s",
 		failto:  [3]string{siName, issURL, ia.ImageState_FATAL.String()},
 		reqs: map[string]reflect.Value{
 			"/RunState":  reflect.ValueOf(cpb.Node_SYNC),
@@ -330,11 +330,12 @@ func (is *ImageAPI) mUKtoIDLE(me *core.MutationEvent) {
 	is.target = ia.ImageState_IDLE
 
 	is.discover()
+	url := util.NodeURLJoin(is.api.Self().String(), issURL)
 	is.dchan <- core.NewEvent(
 		types.Event_DISCOVERY,
-		util.NodeURLJoin(is.api.Self().String(), issURL),
+		url,
 		&core.DiscoveryEvent{
-			URL:     issURL,
+			URL:     url,
 			ValueID: ia.ImageState_IDLE.String(),
 		},
 	)
@@ -590,13 +591,16 @@ func (is *ImageAPI) discover() {
 	isdv, _ := dsc.GetValue(isURL)
 	isd := isdv.Interface().(ia.ImageSet)
 	client := is.getAPIClient()
-	resp, err := client.Containers.ListContainers(&containers.ListContainersParams{})
+	resp, err := client.Containers.ListContainers(containers.NewListContainersParams())
 	if err != nil {
 		// set error stuff
+		is.api.Logf(types.LLERROR, "failed to list containers: %v", err)
+		return
 	}
 	ctnsList := resp.GetPayload()
 
 	// dset is where we will build the ImageSet that we will discover for the node
+	is.api.Logf(types.LLDDDEBUG, "discover found %d containers", len(ctnsList))
 	dset := &ia.ImageSet{
 		State:  isd.State,              // we preserve state values
 		Images: map[string]*ia.Image{}, // but start with an empty list
@@ -650,8 +654,7 @@ func (is *ImageAPI) discover() {
 // get a configured API client
 func (is ImageAPI) getAPIClient() *api.Imageapi {
 	as := is.cfg.ApiServer
-	t := transport.New(fmt.Sprintf("%s:%d", as.Server, as.Port), "", nil)
-	t.BasePath = as.ApiBase
+	t := transport.New(fmt.Sprintf("%s:%d", as.Server, as.Port), as.ApiBase, []string{"http"})
 	return api.New(t, strfmt.Default)
 }
 
@@ -693,9 +696,9 @@ func (is *ImageAPI) createImage(name string, image *ia.Image) {
 	image.Container.Name = name
 	client := is.getAPIClient()
 	apiContainer := is.protoToAPI(image.Container)
-	_, err := client.Containers.CreateContainer(&containers.CreateContainerParams{
-		Container: apiContainer,
-	})
+	params := containers.NewCreateContainerParams()
+	params.Container = apiContainer
+	_, err := client.Containers.CreateContainer(params)
 	if err != nil {
 		is.api.Logf(types.LLERROR, "container creation failed for image %s: %v", name, err)
 		// "discover" our error state
@@ -724,10 +727,10 @@ func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
 	switch v.Interface().(ia.ContainerState) {
 	case ia.ContainerState_RUNNING:
 		// tell the node to stop
-		_, err := client.Containers.SetContainerStateByname(&containers.SetContainerStateBynameParams{
-			Name:  name,
-			State: string(models.ContainerStateExited),
-		})
+		params := containers.NewSetContainerStateBynameParams()
+		params.Name = name
+		params.State = string(models.ContainerStateExited)
+		_, err := client.Containers.SetContainerStateByname(params)
 		if err != nil {
 			is.api.Logf(types.LLERROR, "failed to stop container %s: %v", name, err)
 			// "discover" our error state
@@ -746,9 +749,9 @@ func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
 		return
 	}
 	// ok, we're ready to delete
-	_, err = client.Containers.DeleteContainerByname(&containers.DeleteContainerBynameParams{
-		Name: name,
-	})
+	params := containers.NewDeleteContainerBynameParams()
+	params.Name = name
+	_, err = client.Containers.DeleteContainerByname(params)
 	if err != nil {
 		is.api.Logf(types.LLERROR, "failed to delete container %s: %v", name, err)
 		// "discover" our error state
