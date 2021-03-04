@@ -48,7 +48,7 @@ func (u *NodeID) UnmarshalJSON(data []byte) error {
 }
 
 func (u *NodeID) EqualTo(i interface{}) bool {
-	if u2, ok := i.(*NodeID); ok {
+	if u2, ok := i.(*NodeID); ok && u2 != nil {
 		return uuid.Equal(u.UUID, u2.UUID)
 	}
 	return false
