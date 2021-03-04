@@ -275,8 +275,8 @@ github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANyt
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jlowellwofford/go-fork v0.1.0 h1:5ZQTtU2wLZZzXpRXv12RrQS6yKtJYlO/NSGt/muagPc=
 github.com/jlowellwofford/go-fork v0.1.0/go.mod h1:zyN2LmGALF7QJbMSbXe0j0hkfask/scXWxKR+wYr9fM=
-github.com/jlowellwofford/imageapi v0.0.0-20210226183749-5f88e0b8e57e h1:CtNL5RiGQV8Fh1qocX5zQGvN4qZRs4UVluhrZVGM/Qc=
-github.com/jlowellwofford/imageapi v0.0.0-20210226183749-5f88e0b8e57e/go.mod h1:v2GRT0dhp7Ub7MABW175nawxF3frLuWZ2l641Js75/Y=
+github.com/jlowellwofford/imageapi v0.1.0 h1:vYoSDzsoo6VgqQfP6b+FW5XEdKIyXD7tPq+p6T0PX0g=
+github.com/jlowellwofford/imageapi v0.1.0/go.mod h1:v2GRT0dhp7Ub7MABW175nawxF3frLuWZ2l641Js75/Y=
 github.com/jlowellwofford/uinit v0.1.0/go.mod h1:pSvgxRwS4DLDylGDoITBWMWVfrZNxytrE09UnTxkQrI=
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=

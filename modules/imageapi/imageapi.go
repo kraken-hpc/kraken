@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	transport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	proto "github.com/gogo/protobuf/proto"
@@ -189,7 +190,9 @@ type ImageAPI struct {
 	echan      <-chan types.Event
 	pollTicker *time.Ticker
 	target     ia.ImageState
-	triggers   map[string]map[string]trigger
+	triggers   map[string]map[string][]trigger // action triggers assigned to images
+	running    bool                            // are we currently cleared to make changes?
+	actions    map[string]ia.Image_Action      // currently running actions
 	mutex      *sync.Mutex
 }
 
@@ -308,7 +311,9 @@ func (is *ImageAPI) Init(api types.ModuleAPIClient) {
 	is.cfg = is.NewConfig().(*Config)
 	is.mutex = &sync.Mutex{}
 	is.target = ia.ImageState_UNKNOWN
-	is.triggers = make(map[string]map[string]trigger)
+	is.triggers = make(map[string]map[string][]trigger)
+	is.running = false
+	is.actions = make(map[string]ia.Image_Action)
 }
 
 // Stop should perform a graceful exit
@@ -345,49 +350,83 @@ func (is *ImageAPI) mUKtoIDLE(me *core.MutationEvent) {
 
 func (is *ImageAPI) mANYtoACTIVE(me *core.MutationEvent) {
 	// Activate all Images (if they aren't already)
-	is.clearAllTriggers()
 	is.mutex.Lock()
 	is.target = ia.ImageState_ACTIVE
 	is.mutex.Unlock()
-	v, _ := me.NodeCfg.GetValue(isURL)
-	isc := v.Interface().(ia.ImageSet)
+	is.setRunning()
 	n, _ := is.api.QueryReadDsc(is.api.Self().String())
-	v, _ = n.GetValue(isURL)
+	v, _ := n.GetValue(isURL)
 	isd := v.Interface().(ia.ImageSet)
-	for name, image := range isd.Images {
-		action := image.Action
-		/*
-			action := ia.Image_CREATE
-			if di, ok := isd.Images[name]; ok {
-				// we already know about this image
-				action = di.Action
-			}
-		*/
-		if action == ia.Image_DELETE {
-			is.deleteImage(name, &ia.Image{})
-			return
-		}
-
-		cfgImage, ok := isc.Images[name]
-		if !ok {
-			is.api.Logf(types.LLERROR, "asked to perform a non-delete action on a non-existent image: %s : %s", name, action.String())
-		}
-
-		switch action {
-		case ia.Image_CREATE:
-			is.createImage(name, cfgImage)
-		case ia.Image_RELOAD:
-			is.reloadImage(name, cfgImage)
-		case ia.Image_NONE:
-			// nop
-		}
-		is.setTrigger(name, cfgImage.Container.State, is.tSetACTIVE)
+	for name, _ := range isd.Images {
+		is.activateImage(name)
 	}
+}
+
+func (is *ImageAPI) activateImage(name string) {
+	if !is.isRunning() || is.target != ia.ImageState_ACTIVE {
+		// do nothing
+		return
+	}
+	var cfgImage, dscImage *ia.Image
+
+	imgURL := util.URLPush(util.URLPush(isURL, "Images"), name)
+	n, _ := is.api.QueryReadDsc(is.api.Self().String())
+	v, err := n.GetValue(imgURL)
+	if err != nil {
+		// shouldn't have been called
+		is.api.Logf(types.LLDDEBUG, "actiaveImage called on an image that has no dsc state: %s", name)
+	}
+	dscImage = v.Addr().Interface().(*ia.Image)
+
+	n, _ = is.api.QueryRead(is.api.Self().String())
+	v, err = n.GetValue(imgURL)
+	if err != nil {
+		cfgImage = nil
+	} else {
+		cfgImage = v.Addr().Interface().(*ia.Image)
+	}
+
+	action := dscImage.Action
+	if action == is.getAction(name) {
+		// we're already doing it...
+		is.api.Logf(types.LLDDDEBUG, "asked to perform an action we're already performing: %s on %s", action.String(), name)
+		return
+	}
+	is.api.Logf(types.LLDDEBUG, "activating %s (%s), dsc: %v\n", name, action.String(), spew.Sdump(dscImage))
+
+	if action == ia.Image_DELETE {
+		is.setAction(name, ia.Image_DELETE)
+		is.deleteImage(name, &ia.Image{})
+		is.setTrigger(name, ContainerState_DELETED, is.clearAction)
+		return
+	}
+
+	// from this point we need the cfgImage
+	n, _ = is.api.QueryRead(is.api.Self().String())
+	v, err = n.GetValue(imgURL)
+	if err != nil {
+		is.api.Logf(types.LLERROR, "asked to perform a non-delete action on a non-existent image: %s : %s", name, action.String())
+		return
+	}
+	cfgImage = v.Addr().Interface().(*ia.Image)
+
+	switch action {
+	case ia.Image_CREATE:
+		is.setAction(name, ia.Image_CREATE)
+		is.createImage(name, cfgImage)
+	case ia.Image_RELOAD:
+		is.setAction(name, ia.Image_RELOAD)
+		is.reloadImage(name, cfgImage)
+	case ia.Image_NONE:
+		return
+	}
+	is.setTrigger(name, cfgImage.Container.State, is.tSetACTIVE)
+	is.setTrigger(name, cfgImage.Container.State, is.clearAction)
 }
 
 func (is *ImageAPI) mANYtoIDLE(me *core.MutationEvent) {
 	// Stop & delete all Images
-	is.clearAllTriggers()
+	is.setRunning()
 	is.mutex.Lock()
 	is.target = ia.ImageState_IDLE
 	is.mutex.Unlock()
@@ -398,8 +437,10 @@ func (is *ImageAPI) mANYtoIDLE(me *core.MutationEvent) {
 	for name, image := range isc.Images {
 		if _, ok := isd.Images[name]; ok {
 			// this container needs to be deleted
+			is.setAction(name, ia.Image_DELETE)
 			is.deleteImage(name, image)
 			is.setTrigger(name, ContainerState_DELETED, is.tSetIDLE)
+			is.setTrigger(name, ContainerState_DELETED, is.clearAction)
 		}
 	}
 }
@@ -409,7 +450,6 @@ func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
 	cleared := true
 	changed := false
 	is.mutex.Lock()
-	defer is.mutex.Unlock()
 	n, _ := is.api.QueryReadDsc(is.api.Self().String()) // we get a fresh copy to be a little safer
 	v, _ := n.GetValue(isURL)
 	isd := v.Interface().(ia.ImageSet)
@@ -432,6 +472,9 @@ func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
 	if changed {
 		n.SetValue(isURL, reflect.ValueOf(isd))
 		is.api.QueryUpdateDsc(n)
+	}
+	is.mutex.Unlock()
+	if changed {
 		is.updateSetState()
 	}
 	return cleared
@@ -439,10 +482,10 @@ func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
 
 func (is *ImageAPI) setValues(vs map[string]reflect.Value) {
 	is.mutex.Lock()
-	defer is.mutex.Unlock()
 	n, _ := is.api.QueryReadDsc(is.api.Self().String())
 	n.SetValues(vs)
 	is.api.QueryUpdateDsc(n)
+	is.mutex.Unlock()
 	is.updateSetState()
 }
 
@@ -459,6 +502,9 @@ func (is *ImageAPI) handleMutation(m types.Event) {
 	// mutation switch
 	switch me.Type {
 	case core.MutationEvent_MUTATE:
+		is.clearAllTriggers()
+		is.clearAllActions()
+		is.clearRunning()
 		switch me.Mutation[1] {
 		case "UKtoIDLE":
 			is.mUKtoIDLE(me)
@@ -481,8 +527,9 @@ func (is *ImageAPI) handleMutation(m types.Event) {
 			is.api.Logf(types.LLERROR, "asked to perform unknown mutation: %s", me.Mutation[1])
 		}
 	case core.MutationEvent_INTERRUPT:
-		// nothing to do
-		break
+		is.clearAllActions()
+		is.clearAllTriggers()
+		is.clearRunning()
 	}
 }
 
@@ -583,6 +630,10 @@ func (is *ImageAPI) updateSetState() {
 
 	if ia.ImageState(state) != s.State {
 		// discover the imagestate update
+		// this always means we have to stop running
+		is.clearRunning()
+		is.clearAllActions()
+		is.clearAllTriggers()
 		is.dchan <- core.NewEvent(
 			types.Event_DISCOVERY,
 			util.NodeURLJoin(is.api.Self().String(), issURL),
@@ -597,6 +648,10 @@ func (is *ImageAPI) updateSetState() {
 // dsc changes mean something about the container(s) changed
 func (is *ImageAPI) dscChange(name, sub string, cfg, dsc types.Node, value reflect.Value) {
 	// Note: currently sub always == "" because map value changes represent a single change
+	if sub == "/Action" {
+		is.activateImage(name)
+		return
+	}
 	if sub != "" && sub != "/State" && sub != "/Container/State" {
 		is.api.Logf(types.LLDDDEBUG, "unhandled dsc change path: %s", sub)
 	}
@@ -628,6 +683,10 @@ func (is *ImageAPI) dscChange(name, sub string, cfg, dsc types.Node, value refle
 	if is.fireTriggers(name, idc.Container.State) {
 		is.updateSetState()
 	}
+	// Action may have been included in a whole-image change
+	if sub == "" && idc.Action != is.getAction(name) {
+		is.activateImage(name)
+	}
 }
 
 // discover's job is to periodically poll the imageapi for current data and update discoverable state
@@ -635,7 +694,6 @@ func (is *ImageAPI) dscChange(name, sub string, cfg, dsc types.Node, value refle
 // ironically, discover uses SetValue + Update instead of discover, since it updates a complex data structure
 func (is *ImageAPI) discover() {
 	is.mutex.Lock()
-	defer is.mutex.Unlock()
 	is.api.Logf(types.LLDDDEBUG, "initiating image discovery")
 	cfg, _ := is.api.QueryRead(is.api.Self().String())
 	dsc, _ := is.api.QueryReadDsc(is.api.Self().String())
@@ -647,6 +705,7 @@ func (is *ImageAPI) discover() {
 	resp, err := client.Containers.ListContainers(containers.NewListContainersParams())
 	if err != nil {
 		// set error stuff
+		is.mutex.Unlock()
 		err := err.(*containers.ListContainersDefault).Payload
 		is.api.Logf(types.LLERROR, "failed to list containers: Code: %d Message: %s", err.Code, *err.Message)
 		return
@@ -705,6 +764,7 @@ func (is *ImageAPI) discover() {
 	// we do a query instead of a discover because we're setting various values
 	dsc.SetValue(isURL, reflect.ValueOf(*dset))
 	is.api.QueryUpdateDsc(dsc)
+	is.mutex.Unlock()
 	is.updateSetState()
 }
 
@@ -850,14 +910,14 @@ func (is *ImageAPI) clearAllTriggers() {
 	is.api.Logf(types.LLDDDEBUG, "clearing all triggers")
 	is.mutex.Lock()
 	defer is.mutex.Unlock()
-	is.triggers = make(map[string]map[string]trigger)
+	is.triggers = make(map[string]map[string][]trigger)
 }
 
 func (is *ImageAPI) clearTriggers(name string) {
 	is.api.Logf(types.LLDDDEBUG, "clearing triggers for %s", name)
 	is.mutex.Lock()
 	defer is.mutex.Unlock()
-	is.triggers[name] = make(map[string]trigger)
+	is.triggers[name] = make(map[string][]trigger)
 }
 
 func (is *ImageAPI) setTrigger(name, state string, t trigger) {
@@ -865,21 +925,27 @@ func (is *ImageAPI) setTrigger(name, state string, t trigger) {
 	is.mutex.Lock()
 	defer is.mutex.Unlock()
 	var ok bool
-	var ts map[string]trigger
+	var ts map[string][]trigger
 	if ts, ok = is.triggers[name]; !ok {
-		is.triggers[name] = make(map[string]trigger)
+		is.triggers[name] = make(map[string][]trigger)
 		ts = is.triggers[name]
 	}
-	ts[state] = t
+	ts[state] = append(ts[state], t)
 }
 
 func (is *ImageAPI) fireTriggers(name, state string) bool {
 	is.mutex.Lock()
-	if t, ok := is.triggers[name][state]; ok {
-		is.api.Logf(types.LLDDEBUG, "firing image trigger %s for %s", state, name)
+	if ts, ok := is.triggers[name][state]; ok {
+		if len(ts) == 0 {
+			is.mutex.Unlock()
+			return false
+		}
+		is.api.Logf(types.LLDDEBUG, "firing image %d triggers %s for %s", len(ts), state, name)
 		delete(is.triggers[name], state)
 		is.mutex.Unlock()
-		t(name)
+		for _, t := range ts {
+			t(name)
+		}
 		return true
 	}
 	is.mutex.Unlock()
@@ -922,4 +988,54 @@ func (is *ImageAPI) tSetIDLE(name string) {
 		util.URLPush(iurl, "Action"):  reflect.ValueOf(ia.Image_CREATE),
 		util.URLPush(iurl, "Retries"): reflect.ValueOf(0),
 	})
+}
+
+// action handling
+
+func (is *ImageAPI) setRunning() {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.running = true
+}
+
+func (is *ImageAPI) isRunning() bool {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	return is.running
+}
+
+func (is *ImageAPI) clearRunning() {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.running = false
+}
+
+func (is *ImageAPI) setAction(name string, action ia.Image_Action) {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.actions[name] = action
+}
+
+// note: also a trigger
+func (is *ImageAPI) clearAction(name string) {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	if _, ok := is.actions[name]; ok {
+		delete(is.actions, name)
+	}
+}
+
+func (is *ImageAPI) clearAllActions() {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	is.actions = make(map[string]ia.Image_Action)
+}
+
+func (is *ImageAPI) getAction(name string) ia.Image_Action {
+	is.mutex.Lock()
+	defer is.mutex.Unlock()
+	if a, ok := is.actions[name]; ok {
+		return a
+	}
+	return ia.Image_NONE
 }

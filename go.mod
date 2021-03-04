@@ -2,6 +2,7 @@ module github.com/hpc/kraken
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
+	github.com/davecgh/go-spew v1.1.1
 	github.com/go-openapi/runtime v0.19.26
 	github.com/go-openapi/strfmt v0.20.0
 	github.com/gogo/protobuf v1.3.2
@@ -12,7 +13,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hpc/powerapi v0.0.0-20210204171234-b5c0625fdba5
 	github.com/jlowellwofford/go-fork v0.1.0
-	github.com/jlowellwofford/imageapi v0.0.0-20210226183749-5f88e0b8e57e
+	github.com/jlowellwofford/imageapi v0.1.0
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0
