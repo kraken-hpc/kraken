@@ -19,25 +19,6 @@ message CustomType {
 // END: NON-GENERATED HEADER
 // AUTO-GENERATED CONTENT BELOW
 
-enum ContainerNamespace {
-  CGROUP = 0;
-  IPC = 1;
-  NET = 2;
-  MNT = 3;
-  PID = 4;
-  TIME = 5;
-  USER = 6;
-  UTS = 7;
-}
-
-enum ContainerState {
-  CREATED = 0;
-  RUNNING = 1;
-  STOPPING = 2;
-  EXITED = 3;
-  DEAD = 4;
-}
-
 // The `container` option describes a minimally namespaced container.
 // 
 // A container is identified by a service-provided unique numeric `pid`.
@@ -57,10 +38,10 @@ message Container {
   // 
   // Note: This is currently unused.  All containers currently get `mnt` and `pid`.
   //       It's here as a placeholder for future use.
-  repeated ContainerNamespace namespaces = 6;
+  repeated string namespaces = 6;
 
   // When read, this contains the current container state. On creation, this requests the initial state (valid options: `created` or `running`). The default is `created`.
-  ContainerState state = 7;
+  string state = 7;
 
   // When `systemd` is set to `true`, we will assume that this container will run `systemd`, and perform the necessary magic dance to make systemd run inside of the container. The default is `false`.
   bool systemd = 8;
@@ -77,12 +58,7 @@ message Error {
 // If `mount_id` is specified, then the kind/id will be used to reference that mount.
 // If no `mount_id` is supplied a defition of type `kind` must be present.
 message Mount {
-  enum MountKind {
-    MOUNT_KIND_OVERLAY = 0;
-    MOUNT_KIND_RBD = 1;
-  }
-
-  MountKind kind = 1;
+  string kind = 1;
   int64 mount_id = 2;
   MountOverlay overlay = 3;
   MountRbd rbd = 4;
