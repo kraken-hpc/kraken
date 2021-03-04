@@ -18,7 +18,6 @@ ARG GOVER="1.15"
 ### Container #1:  Alpine-based Go dev env with Kraken built & installed
 ################################################################################
 FROM golang:${GOVER}-alpine AS kraken-build
-MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 ARG GOOS
@@ -46,8 +45,7 @@ CMD [ "--help" ]
 ################################################################################
 ### Container #2:  Pure Alpine container (no Go) with Kraken copied in
 ################################################################################
-FROM alpine AS kraken-alpine
-MAINTAINER Michael Jennings <mej@lanl.gov>
+FROM alpine:latest AS kraken-alpine
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY --from=kraken-build /sbin/kraken /sbin/kraken
@@ -61,7 +59,6 @@ CMD [ "--help" ]
 ### Container #3:  Nothing but the Kraken executable (composable/sidecar)
 ################################################################################
 FROM scratch AS kraken-exe
-MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY --from=kraken-build /sbin/kraken /sbin/kraken
@@ -75,7 +72,6 @@ CMD [ "--help" ]
 ### Container #4:  Above "kraken-build" container plus configs
 ################################################################################
 FROM kraken-build AS kraken-build-cfg
-MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY config.yaml state.json /etc/kraken/
@@ -89,7 +85,6 @@ CMD [ "--help" ]
 ### Container #5:  Above "kraken-alpine" container plus configs
 ################################################################################
 FROM kraken-alpine AS kraken-alpine-cfg
-MAINTAINER Michael Jennings <mej@lanl.gov>
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY config.yaml state.json /etc/kraken/
