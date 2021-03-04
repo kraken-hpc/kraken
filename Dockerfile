@@ -45,7 +45,7 @@ CMD [ "--help" ]
 ################################################################################
 ### Container #2:  Pure Alpine container (no Go) with Kraken copied in
 ################################################################################
-FROM alpine:latest AS kraken-alpine
+FROM alpine:3 AS kraken-alpine
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY --from=kraken-build /sbin/kraken /sbin/kraken
