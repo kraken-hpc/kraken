@@ -363,14 +363,14 @@ func (is *ImageAPI) mANYtoACTIVE(me *core.MutationEvent) {
 				action = di.Action
 			}
 		*/
+		if action == ia.Image_DELETE {
+			is.deleteImage(name, &ia.Image{})
+			return
+		}
+
 		cfgImage, ok := isc.Images[name]
 		if !ok {
-			if action == ia.Image_DELETE {
-				is.deleteImage(name, &ia.Image{})
-				return
-			} else {
-				is.api.Logf(types.LLERROR, "asked to perform a non-delete action on a non-existent image: %s : %s", name, action.String())
-			}
+			is.api.Logf(types.LLERROR, "asked to perform a non-delete action on a non-existent image: %s : %s", name, action.String())
 		}
 
 		switch action {
