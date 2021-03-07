@@ -1,0 +1,4 @@
+.circleci
+.git*
+config.yaml
+state.json
