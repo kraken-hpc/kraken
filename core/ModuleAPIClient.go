@@ -130,6 +130,7 @@ func (a *ModuleAPIClient) querySetValuesByKind(dsc bool, id string, values map[s
 	if rq.Filter == nil {
 		return
 	}
+	ret = make(map[string]interface{})
 	for _, k := range rq.Filter {
 		ret[k] = values[k]
 	}
@@ -184,6 +185,7 @@ func (a *ModuleAPIClient) queryGetValuesByKind(dsc bool, id string, urls []strin
 	if err != nil {
 		return
 	}
+	values = make(map[string]interface{})
 	for k, v := range vs {
 		if !v.CanInterface() {
 			return values, fmt.Errorf("could not interface value for: %s", k)
