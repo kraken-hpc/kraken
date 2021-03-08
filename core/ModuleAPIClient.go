@@ -106,6 +106,122 @@ func (a *ModuleAPIClient) QueryUpdateDsc(n types.Node) (r types.Node, e error) {
 	return
 }
 
+func (a *ModuleAPIClient) querySetValuesByKind(dsc bool, id string, values map[string]interface{}) (ret map[string]interface{}, err error) {
+	n := NewNodeWithID(id)
+	q := &pb.Query{
+		Filter: []string{},
+	}
+	for k, v := range values {
+		if _, err = n.SetValue(k, reflect.ValueOf(v)); err != nil {
+			return nil, err
+		}
+		q.Filter = append(q.Filter, k)
+	}
+	q.Payload = &pb.Query_Node{
+		Node: n.Message().(*pb.Node),
+	}
+	var rv reflect.Value
+	if dsc {
+		rv, err = a.oneshot("QueryUpdateDsc", reflect.ValueOf(q))
+	} else {
+		rv, err = a.oneshot("QueryUpdate", reflect.ValueOf(q))
+	}
+	rq := rv.Interface().(*pb.Query)
+	if rq.Filter == nil {
+		return
+	}
+	for _, k := range rq.Filter {
+		ret[k] = values[k]
+	}
+	return
+}
+
+// QuerySetValues sets a specified list of configuration state values on node ID
+func (a *ModuleAPIClient) QuerySetValues(id string, values map[string]interface{}) (ret map[string]interface{}, err error) {
+	return a.querySetValuesByKind(false, id, values)
+}
+
+// QuerySetValue sets a single configurate state value on node ID
+func (a *ModuleAPIClient) QuerySetValue(id string, url string, value interface{}) (err error) {
+	vs, err := a.QuerySetValues(id, map[string]interface{}{url: value})
+	if err != nil {
+		return err
+	}
+	if _, ok := vs[url]; !ok {
+		return fmt.Errorf("value not set: %s", url)
+	}
+	return
+}
+
+// QuerySetValuesDsc sets a specified list of discoverable state values on node ID
+func (a *ModuleAPIClient) QuerySetValuesDsc(id string, values map[string]interface{}) (ret map[string]interface{}, err error) {
+	return a.querySetValuesByKind(true, id, values)
+}
+
+// QuerySetValueDsc sets a single discoverable state value on node ID
+func (a *ModuleAPIClient) QuerySetValueDsc(id string, url string, value interface{}) (err error) {
+	vs, err := a.QuerySetValuesDsc(id, map[string]interface{}{url: value})
+	if err != nil {
+		return err
+	}
+	if _, ok := vs[url]; !ok {
+		return fmt.Errorf("value not set: %s", url)
+	}
+	return
+}
+
+func (a *ModuleAPIClient) queryGetValuesByKind(dsc bool, id string, urls []string) (values map[string]interface{}, err error) {
+	var n types.Node
+	if dsc {
+		n, err = a.QueryReadDsc(id)
+	} else {
+		n, err = a.QueryRead(id)
+	}
+	if err != nil {
+		return
+	}
+	vs, err := n.GetValues(urls)
+	if err != nil {
+		return
+	}
+	for k, v := range vs {
+		if !v.CanInterface() {
+			return values, fmt.Errorf("could not interface value for: %s", k)
+		}
+		values[k] = v.Interface()
+	}
+	return
+}
+
+// QueryGetValues returns the configuration values `urls` for `id`
+func (a *ModuleAPIClient) QueryGetValues(id string, urls []string) (values map[string]interface{}, err error) {
+	return a.queryGetValuesByKind(false, id, urls)
+}
+
+// QueryGetValue returns the configuration value `url` for `id`
+func (a *ModuleAPIClient) QueryGetValue(id string, url string) (value interface{}, err error) {
+	vs, err := a.queryGetValuesByKind(false, id, []string{url})
+	if err != nil {
+		return nil, err
+	}
+	return vs[url], nil
+}
+
+// QueryGetValuesDsc returns the discoverable values `urls` for `id`
+func (a *ModuleAPIClient) QueryGetValuesDsc(id string, urls []string) (values map[string]interface{}, err error) {
+	return a.queryGetValuesByKind(true, id, urls)
+}
+
+// QueryGetValueDsc returns the configuration value `url` for `id`
+func (a *ModuleAPIClient) QueryGetValueDsc(id string, url string) (value interface{}, err error) {
+	vs, err := a.queryGetValuesByKind(true, id, []string{url})
+	if err != nil {
+		return nil, err
+	}
+	return vs[url], nil
+}
+
+// QueryDelete deletes a node by id
 func (a *ModuleAPIClient) QueryDelete(id string) (r types.Node, e error) {
 	q := &pb.Query{URL: id}
 	rv, e := a.oneshot("QueryDelete", reflect.ValueOf(q))
