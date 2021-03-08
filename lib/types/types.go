@@ -614,5 +614,13 @@ type ModuleAPIClient interface {
 	QueryFreeze() error
 	QueryThaw() error
 	QueryFrozen() (bool, error)
+	QuerySetValues(string, map[string]interface{}) (map[string]interface{}, error)
+	QuerySetValuesDsc(string, map[string]interface{}) (map[string]interface{}, error)
+	QuerySetValue(string, string, interface{}) error
+	QuerySetValueDsc(string, string, interface{}) error
+	QueryGetValues(string, []string) (map[string]interface{}, error)
+	QueryGetValuesDsc(string, []string) (map[string]interface{}, error)
+	QueryGetValue(string, string) (interface{}, error)
+	QueryGetValueDsc(string, string) (interface{}, error)
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }
