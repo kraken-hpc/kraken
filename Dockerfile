@@ -20,17 +20,20 @@ LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 ARG GOARCH="${GOARCH:-amd64}"
 ARG GOOS="${GOOS:-linux}"
+ARG KRCFG="${KRCFG:-config/kraken.yaml}"
 
 WORKDIR "${GOPATH}/src/kraken"
 COPY . .
 
-RUN export GOARCH="${GOARCH}" GOOS="${GOOS}" \
-        && env \
-        && go build -v -o "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" \
-        && go install -v \
-        && cp -a "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" /sbin/ \
-        && ln -s "kraken-${GOOS}-${GOARCH}" /sbin/kraken \
-        && rm -rf "${GOPATH}/pkg"
+RUN env \
+    && go build -v -o "${GOPATH}/bin/kraken-build-${GOOS}-${GOARCH}" kraken-build.go \
+    && cp -a "${GOPATH}/bin/kraken-build-${GOOS}-${GOARCH}" /sbin/ \
+    && ln -s "kraken-build-${GOOS}-${GOARCH}" /sbin/kraken-build
+
+RUN kraken-build -config "${KRCFG}" -dir "${GOPATH}/bin" \
+    && cp -a "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" /sbin/ \
+    && ln -s "kraken-${GOOS}-${GOARCH}" /sbin/kraken \
+    && rm -rf "${GOPATH}/pkg"
 
 ENTRYPOINT [ "/sbin/kraken" ]
 CMD [ "--help" ]
