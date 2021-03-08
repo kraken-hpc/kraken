@@ -106,9 +106,9 @@ var _ types.ModuleWithConfig = (*Virt)(nil)
 // NewConfig returns a fully initialized default config
 func (*Virt) NewConfig() proto.Message {
 	defConf := &Config{
-		ServerUrl: "type.googleapis.com/LibVirt.VirtualMachine/Server",
-		NameUrl:   "type.googleapis.com/LibVirt.VirtualMachine/VmName",
-		UuidUrl:   "type.googleapis.com/LibVirt.VirtualMachine/Uuid",
+		ServerUrl: "type.googleapis.com/LibVirtExt.VirtualMachine/Server",
+		NameUrl:   "type.googleapis.com/LibVirtExt.VirtualMachine/VmName",
+		UuidUrl:   "type.googleapis.com/LibVirtExt.VirtualMachine/Uuid",
 		Servers: map[string]*Server{
 			"socket": {
 				Name:       "socket",
@@ -164,6 +164,7 @@ var _ types.ModuleSelfService = (*Virt)(nil)
 func (v *Virt) Init(api types.ModuleAPIClient) {
 	v.api = api
 	v.cfg = v.NewConfig().(*Config)
+	v.srvConns = map[string]*lv.Libvirt{}
 }
 
 // Entry is the LibVirt module's executable entrypoint
@@ -211,13 +212,14 @@ func (v *Virt) handleMutation(m types.Event) {
 		v.api.Log(types.LLINFO, "got an unexpected event type on mutation channel")
 	}
 	me := m.Data().(*core.MutationEvent)
+
 	// extract the mutating node's name and server
 	values, err := me.NodeCfg.GetValues([]string{v.cfg.GetNameUrl(), v.cfg.GetServerUrl()})
 	if err != nil {
 		v.api.Logf(types.LLERROR, "error getting values for node: %v", err)
 	}
 	if len(values) != 2 {
-		v.api.Logf(types.LLERROR, "could not get Node ID and/or LibVirt server for node: %s", me.NodeCfg.ID().String())
+		v.api.Logf(types.LLERROR, "could not get Node ID and/or LibVirt server for node: %s, %#v", me.NodeCfg.ID().String(), values)
 		return
 	}
 	name := values[v.cfg.GetNameUrl()].String()
@@ -271,7 +273,7 @@ func (v *Virt) discoverAll() {
 			v.api.Logf(types.LLERROR, "error getting values for node: %v", e)
 		}
 		if len(vs) != 3 {
-			v.api.Logf(types.LLDEBUG, "skipping node %s, doesn't have complete LibVirt info", n.ID().String())
+			v.api.Logf(types.LLDEBUG, "skipping node %s, doesn't have complete LibVirt info: %#v", n.ID().String(), vs)
 			continue
 		}
 		if vs["/Platform"].String() != PlatformString {
@@ -324,16 +326,29 @@ func (v *Virt) connectToServer(srvName string) *lv.Libvirt {
 	}
 
 	libVirtConn := lv.New(c)
+
+	// Attempt polkit authentication for systems using systemd socket
+	// activation for the libvirt socket.
+	if srv.SocketPath != "" {
+		_, err := libVirtConn.AuthPolkit()
+		if err != nil {
+			v.api.Logf(types.LLWARNING, "libvirt failed to authenticate with polkit: %v", err)
+		}
+	}
+
 	if err := libVirtConn.Connect(); err != nil {
 		v.api.Logf(types.LLERROR, "failed to connect to libvirt server: %v", err)
 		return nil
 	}
+
+	v.api.Logf(types.LLDEBUG, "connected to libvirt server: %s", srvName)
 
 	v.srvConns[srvName] = libVirtConn
 	return libVirtConn
 }
 
 func (v *Virt) vmDiscover(name string, id types.NodeID, libVirtConn *lv.Libvirt) {
+	v.api.Logf(types.LLDEBUG, "looking up domain by name: %s", name)
 	dom, err := libVirtConn.DomainLookupByName(name)
 	if err != nil {
 		v.api.Logf(types.LLERROR, "failed to retrieve domain: %s, %v", dom.Name, err)
