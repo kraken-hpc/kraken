@@ -222,13 +222,11 @@ func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_Servi
 }
 
 func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance_ServiceState) {
-	n, _ := sm.query.ReadDsc(sm.ctx.Self)
-	_, e := n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
+	_, e := sm.query.SetValueDsc(util.NodeURLJoin(sm.ctx.Self.String(), sm.stateURL(si)), reflect.ValueOf(state))
 	if e != nil {
 		sm.log.Logf(types.LLERROR, "failed to set dsc state value (%s): %s", sm.stateURL(si), e.Error())
 		return
 	}
-	sm.query.UpdateDsc(n)
 }
 
 func (sm *ServiceManager) stateURL(si string) string {
