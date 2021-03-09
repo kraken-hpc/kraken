@@ -1598,10 +1598,10 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 				continue
 			}
 			v, _ := node.GetValue(m)
-			node.SetValue(m, reflect.Zero(v.Type()))
+			sme.Logf(DDEBUG, "setting %s:%s to zero", node.ID().String(), m)
+			sme.query.SetValueDsc(util.NodeURLJoin(node.ID().String(), m), reflect.Zero(v.Type()))
 		}
 		sme.graphMutex.RUnlock()
-		sme.query.UpdateDsc(node)
 
 	} else {
 		// we found some possible mutation nodes for our fake types.node. Lets just take the first one and force our types.node to match it.
@@ -1617,15 +1617,15 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 				continue
 			}
 			if val, ok := pns[0].spec.Requires()[m]; ok {
-				n.SetValue(m, val)
+				sme.Logf(DDEBUG, "setting %s:%s to %v", n.ID().String(), m, val.Interface())
+				sme.query.SetValueDsc(util.NodeURLJoin(n.ID().String(), m), val)
 			} else {
 				v, _ := n.GetValue(m)
-				n.SetValue(m, reflect.Zero(v.Type()))
+				sme.Logf(DDEBUG, "setting %s:%s to zero", n.ID().String(), m)
+				sme.query.SetValueDsc(util.NodeURLJoin(n.ID().String(), m), reflect.Zero(v.Type()))
 			}
 		}
 		sme.graphMutex.RUnlock()
-		sme.query.UpdateDsc(n)
-
 	}
 
 	// now send a discover to whatever failed state
@@ -1894,6 +1894,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
@@ -1907,6 +1908,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
@@ -1922,6 +1924,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
