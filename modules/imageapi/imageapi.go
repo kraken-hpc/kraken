@@ -472,7 +472,7 @@ func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
 func (is *ImageAPI) setValues(vs map[string]interface{}) {
 	is.mutex.Lock()
 	if _, err := is.api.QuerySetValuesDsc(is.api.Self().String(), vs); err != nil {
-		is.api.Logf(types.LLERROR, "setvalues failed: %v", err)
+		is.api.Logf(types.LLERROR, "setvalues failed: %v: %v", err, vs)
 	}
 	is.mutex.Unlock()
 	is.updateSetState()
@@ -689,8 +689,11 @@ func (is *ImageAPI) discover() {
 	if err != nil {
 		// set error stuff
 		is.mutex.Unlock()
-		err := err.(*containers.ListContainersDefault).Payload
-		is.api.Logf(types.LLERROR, "failed to list containers: Code: %d Message: %s", err.Code, *err.Message)
+		if cerr, ok := err.(*containers.ListContainersDefault); ok {
+			is.api.Logf(types.LLERROR, "failed to list containers: Code: %d Message: %s", cerr.Payload.Code, *cerr.Payload.Message)
+		} else {
+			is.api.Logf(types.LLERROR, "failed to call imageapi: %v", err)
+		}
 		return
 	}
 	ctnsList := resp.GetPayload()
@@ -811,9 +814,12 @@ func (is *ImageAPI) createImage(name string, image *ia.Image) {
 	params.Container = apiContainer
 	_, err := client.Containers.CreateContainer(params)
 	if err != nil {
-		err := err.(*containers.CreateContainerDefault).Payload
-		is.api.Logf(types.LLERROR, "container creation failed for image %s: Code: %d Message: %s", name, err.Code, *err.Message)
-		// "discover" our error state
+		if cerr, ok := err.(*containers.CreateContainerDefault); ok {
+			is.api.Logf(types.LLERROR, "container creation failed for image %s: Code: %d Message: %s", name, cerr.Payload.Code, *cerr.Payload.Message)
+			// "discover" our error state
+		} else {
+			is.api.Logf(types.LLERROR, "failed to call imageapi: %v", err)
+		}
 		is.imageRaiseError(name, ia.Image_ATTACH)
 	}
 }
@@ -838,8 +844,11 @@ func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
 		params.State = string(models.ContainerStateExited)
 		_, err := client.Containers.SetContainerStateByname(params)
 		if err != nil {
-			err := err.(*containers.SetContainerStateBynameDefault).Payload
-			is.api.Logf(types.LLERROR, "failed to stop container %s: Code: %d Message %s", name, err.Code, *err.Message)
+			if cerr, ok := err.(*containers.SetContainerStateBynameDefault); ok {
+				is.api.Logf(types.LLERROR, "failed to stop container %s: Code: %d Message %s", name, cerr.Payload.Code, *cerr.Payload.Message)
+			} else {
+				is.api.Logf(types.LLERROR, "failed to call imageapi: %v", err)
+			}
 			// "discover" our error state
 			is.imageRaiseError(name, ia.Image_ATTACH)
 		}
@@ -856,9 +865,12 @@ func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
 	params.Name = name
 	_, err = client.Containers.DeleteContainerByname(params)
 	if err != nil {
-		err := err.(*containers.DeleteContainerBynameDefault).Payload
-		is.api.Logf(types.LLERROR, "failed to delete container %s: Code: %d Message %s", name, err.Code, *err.Message)
-		// "discover" our error state
+		if cerr, ok := err.(*containers.DeleteContainerBynameDefault); ok {
+			is.api.Logf(types.LLERROR, "failed to delete container %s: Code: %d Message %s", name, cerr.Payload.Code, *cerr.Payload.Message)
+			// "discover" our error state
+		} else {
+			is.api.Logf(types.LLERROR, "failed to call imageapi: %v", err)
+		}
 		is.imageRaiseError(name, ia.Image_ATTACH)
 	}
 }
@@ -957,7 +969,7 @@ func (is *ImageAPI) tSetACTIVE(name string) {
 	is.setValues(map[string]interface{}{
 		util.URLPush(iurl, "State"):   ia.ImageState_ACTIVE,
 		util.URLPush(iurl, "Action"):  ia.Image_NONE,
-		util.URLPush(iurl, "Retries"): 0,
+		util.URLPush(iurl, "Retries"): int32(0),
 	})
 }
 
@@ -967,7 +979,7 @@ func (is *ImageAPI) tSetIDLE(name string) {
 	is.setValues(map[string]interface{}{
 		util.URLPush(iurl, "State"):   ia.ImageState_IDLE,
 		util.URLPush(iurl, "Action"):  ia.Image_CREATE,
-		util.URLPush(iurl, "Retries"): 0,
+		util.URLPush(iurl, "Retries"): int32(0),
 	})
 }
 
