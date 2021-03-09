@@ -126,6 +126,9 @@ func (a *ModuleAPIClient) querySetValuesByKind(dsc bool, id string, values map[s
 	} else {
 		rv, err = a.oneshot("QueryUpdate", reflect.ValueOf(q))
 	}
+	if err != nil {
+		return nil, err
+	}
 	rq := rv.Interface().(*pb.Query)
 	if rq.Filter == nil {
 		return
