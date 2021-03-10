@@ -856,6 +856,23 @@ func init() {
 			time.Second*90, // FIXME: don't hardcode values
 			[3]string{"sse", "/PhysState", "HANG"},
 		),
+		"SYNCtoINIT": NewStateMutation(
+			map[string][2]reflect.Value{
+				"/RunState": {
+					reflect.ValueOf(pb.Node_SYNC),
+					reflect.ValueOf(pb.Node_INIT),
+				},
+			},
+			map[string]reflect.Value{
+				"/PhysState": reflect.ValueOf(pb.Node_POWER_ON),
+			},
+			map[string]reflect.Value{
+				"/Busy": reflect.ValueOf(pb.Node_BUSY),
+			},
+			types.StateMutationContext_CHILD,
+			time.Second*10, // FIXME: don't hardcode values
+			[3]string{"sse", "/PhysState", "HANG"},
+		),
 	}
 	Registry.RegisterDiscoverable(&StateSyncEngine{}, discoverables)
 	Registry.RegisterMutations(&StateSyncEngine{}, mutations)

@@ -213,12 +213,9 @@ func (s *StateSpec) LeastCommon(b types.StateSpec) {
 	}
 }
 
-// Equal tests if two specs are identical.  Note: DeepEqual doesn't work because it doesn't turn vals into interfaces.
-func (s *StateSpec) Equal(b types.StateSpec) bool {
+// ReqsEqual tests if two specs have the same requirements
+func (s *StateSpec) ReqsEqual(b types.StateSpec) bool {
 	if len(s.Requires()) != len(b.Requires()) {
-		return false
-	}
-	if len(s.Excludes()) != len(b.Excludes()) {
 		return false
 	}
 	for r, v := range s.Requires() {
@@ -230,6 +227,14 @@ func (s *StateSpec) Equal(b types.StateSpec) bool {
 			return false
 		}
 	}
+	return true
+}
+
+// ExcsEqual tests if two specs have the same excludes
+func (s *StateSpec) ExcsEqual(b types.StateSpec) bool {
+	if len(s.Excludes()) != len(b.Excludes()) {
+		return false
+	}
 	for r, v := range s.Excludes() {
 		bv, ok := b.Excludes()[r]
 		if !ok {
@@ -238,6 +243,17 @@ func (s *StateSpec) Equal(b types.StateSpec) bool {
 		if v.Interface() != bv.Interface() {
 			return false
 		}
+	}
+	return true
+}
+
+// Equal tests if two specs are identical.  Note: DeepEqual doesn't work because it doesn't turn vals into interfaces.
+func (s *StateSpec) Equal(b types.StateSpec) bool {
+	if !s.ReqsEqual(b) {
+		return false
+	}
+	if !s.ExcsEqual(b) {
+		return false
 	}
 	return true
 }

@@ -359,6 +359,8 @@ type StateSpec interface {
 	SpecMergeMust(StateSpec) StateSpec
 	Requires() map[string]reflect.Value
 	Excludes() map[string]reflect.Value
+	ReqsEqual(StateSpec) bool
+	ExcsEqual(StateSpec) bool
 	Equal(StateSpec) bool
 	LeastCommon(StateSpec)
 	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts

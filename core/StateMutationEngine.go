@@ -767,9 +767,10 @@ func (sme *StateMutationEngine) buildGraphStage1(root *mutationNode, edge *mutat
 
 	// is this node equal to one we've already seen?
 	for sp, n := range seenNodes {
-		if sp.Equal(root.spec) {
+		if sp.ReqsEqual(root.spec) {
 			// yes, we've seen this node, so we're done processing this chain.  Merge the nodes.
 			sme.remapToNode(root, n, true)
+			n.spec.LeastCommon(root.spec)
 			return nodes, edges
 		}
 	}
@@ -1034,14 +1035,14 @@ func (sme *StateMutationEngine) graphIsSane(nodes []*mutationNode, edges []*muta
 		ret = false
 	}
 	// 2. nodeEdges should have ref count 2
-	bad := 0
-	for _, c := range nodeEdges {
+	bad := []*mutationEdge{}
+	for e, c := range nodeEdges {
 		if c != 2 {
-			bad++
+			bad = append(bad, e)
 		}
 	}
-	if bad > 0 {
-		fmt.Printf("%d edges have ref count != 2\n", bad)
+	if len(bad) > 0 {
+		fmt.Printf("%d edges have ref count != 2: %v\n", len(bad), bad)
 		ret = false
 	}
 
@@ -1096,11 +1097,14 @@ OUTER_NODE:
 		n.spec = NewStateSpec(nr, ne)
 		// Now, has this node become redundant?  If so, remap it.
 		for _, nn := range newNodes {
-			if n.spec.Equal(nn.spec) { // duplicate node
+			// We only care that the requirements are the same
+			// It's OK if the excludes get broader
+			if n.spec.ReqsEqual(nn.spec) { // duplicate node
 				dead := sme.remapToNode(n, nn, false)
 				for _, e := range dead {
 					rmEdge(edges, e)
 				}
+				nn.spec.LeastCommon(n.spec) // strip extra excludes
 				continue OUTER_NODE
 			}
 		}
