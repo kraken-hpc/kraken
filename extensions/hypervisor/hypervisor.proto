@@ -1,4 +1,4 @@
-/* VBox.proto: describes VirtualBox specific state objects
+/* Hypervisor.proto: describes common hypervisor specific state objects
  *
  * Author: J. Lowell Wofford <lowell@lanl.gov>
  *
@@ -8,8 +8,8 @@
  */
 
 syntax = "proto3";
-package VBox;
-option go_package = ".;vbox";
+package Hypervisor;
+option go_package = ".;hypervisor";
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 option (gogoproto.marshaler_all) = true;

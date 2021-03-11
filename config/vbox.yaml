@@ -7,7 +7,7 @@ targets:
 # included extensions
 extensions:
   - github.com/hpc/kraken/extensions/ipv4
-  - github.com/hpc/kraken/extensions/vbox
+  - github.com/hpc/kraken/extensions/hypervisor
   - github.com/hpc/kraken/extensions/pxe
 
 # included modules

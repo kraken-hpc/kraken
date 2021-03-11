@@ -106,9 +106,9 @@ var _ types.ModuleWithConfig = (*Virt)(nil)
 // NewConfig returns a fully initialized default config
 func (*Virt) NewConfig() proto.Message {
 	defConf := &Config{
-		ServerUrl: "type.googleapis.com/LibVirtExt.VirtualMachine/Server",
-		NameUrl:   "type.googleapis.com/LibVirtExt.VirtualMachine/VmName",
-		UuidUrl:   "type.googleapis.com/LibVirtExt.VirtualMachine/Uuid",
+		ServerUrl: "type.googleapis.com/Hypervisor.VirtualMachine/ApiServer",
+		NameUrl:   "type.googleapis.com/Hypervisor.VirtualMachine/VmName",
+		UuidUrl:   "type.googleapis.com/Hypervisor.VirtualMachine/Uuid",
 		Servers: map[string]*Server{
 			"socket": {
 				Name:       "socket",

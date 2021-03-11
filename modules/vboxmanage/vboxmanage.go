@@ -120,9 +120,9 @@ var _ types.ModuleWithConfig = (*VBM)(nil)
 // NewConfig returns a fully initialized default config
 func (*VBM) NewConfig() proto.Message {
 	r := &Config{
-		ServerUrl: "type.googleapis.com/VBox.VirtualMachine/ApiServer",
-		NameUrl:   "type.googleapis.com/VBox.VirtualMachine/VmName",
-		UuidUrl:   "type.googleapis.com/VBox.VirtualMachine/Uuid",
+		ServerUrl: "type.googleapis.com/Hypervisor.VirtualMachine/ApiServer",
+		NameUrl:   "type.googleapis.com/Hypervisor.VirtualMachine/VmName",
+		UuidUrl:   "type.googleapis.com/Hypervisor.VirtualMachine/Uuid",
 		Servers: map[string]*Server{
 			"vbm": {
 				Name: "vbm",

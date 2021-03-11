@@ -7,16 +7,16 @@
  * See LICENSE file for details.
  */
 
-package vbox
+package hypervisor
 
 import (
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib/types"
 )
 
-//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. vbox.proto
+//go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. hypervisor.proto
 
-const Name = "type.googleapis.com/VBox.VirtualMachine"
+const Name = "type.googleapis.com/Hypervisor.VirtualMachine"
 
 /////////////////
 // VBox Object /
