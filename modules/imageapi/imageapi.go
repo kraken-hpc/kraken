@@ -63,6 +63,10 @@ var discovers = map[string]map[string]reflect.Value{
 	siURL: {
 		cpb.ServiceInstance_RUN.String(): reflect.ValueOf(cpb.ServiceInstance_RUN),
 	},
+	"/RunState": {
+		cpb.Node_INIT.String():  reflect.ValueOf(cpb.Node_INIT),
+		cpb.Node_ERROR.String(): reflect.ValueOf(cpb.Node_ERROR),
+	},
 }
 
 // ismut helps us succinctly define our mutations
@@ -79,7 +83,9 @@ type ismut struct {
 var reqs = map[string]reflect.Value{
 	"/RunState": reflect.ValueOf(cpb.Node_SYNC),
 }
-var excs = map[string]reflect.Value{}
+var excs = map[string]reflect.Value{
+	"/Busy": reflect.ValueOf(cpb.Node_BUSY),
+}
 
 // our mutation definitions
 // also we discover anything we can mutate to
@@ -95,6 +101,7 @@ var muts = map[string]ismut{
 			"/RunState":  reflect.ValueOf(cpb.Node_SYNC),
 			"/PhysState": reflect.ValueOf(cpb.Node_POWER_ON),
 		},
+		excs: map[string]reflect.Value{},
 	},
 	"IDLEtoACTIVE": {
 		f:       ia.ImageState_IDLE,
@@ -165,6 +172,24 @@ func init() {
 		)
 		discovers[issURL][mut.t.String()] = reflect.ValueOf(mut.t)
 	}
+	// we use SYNCtoINIT to make a barrier against powering off a node if it's in use
+	mutations["SYNCtoINIT"] = core.NewStateMutation(
+		map[string][2]reflect.Value{
+			"/RunState": {
+				reflect.ValueOf(cpb.Node_SYNC),
+				reflect.ValueOf(cpb.Node_INIT),
+			},
+		},
+		map[string]reflect.Value{
+			issURL: reflect.ValueOf(ia.ImageState_IDLE),
+		},
+		map[string]reflect.Value{
+			"/Busy": reflect.ValueOf(cpb.Node_BUSY),
+		},
+		types.StateMutationContext_SELF,
+		time.Second*10,
+		[3]string{siName, "/RunState", cpb.Node_ERROR.String()},
+	)
 
 	// Register it all
 	module := &ImageAPI{}
