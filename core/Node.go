@@ -596,6 +596,7 @@ const nodeFixture string = `
 	"physState": "PHYS_UNKNOWN",
 	"arch": "",
 	"platform": "",
+	"busy": "FREE",
 	"extensions": [
 		]
 	  }

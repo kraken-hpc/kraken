@@ -173,9 +173,17 @@ func (s *StateSpec) SpecMergeMust(b types.StateSpec) (ns types.StateSpec) {
 		creq[u] = v
 	}
 	for u, v := range s.exc {
+		if r, ok := creq[u]; ok && r.Interface() == v.Interface() {
+			// exc and req can't contradict each other, req wins
+			continue
+		}
 		cexc[u] = v
 	}
 	for u, v := range b.Excludes() {
+		if r, ok := creq[u]; ok && r.Interface() == v.Interface() {
+			// exc and req can't contradict each other, req wins
+			continue
+		}
 		cexc[u] = v
 	}
 
@@ -256,4 +264,18 @@ func (s *StateSpec) Equal(b types.StateSpec) bool {
 		return false
 	}
 	return true
+}
+
+// StripZeros removes any reqs/excs that are equal to zero value
+func (s *StateSpec) StripZeros() {
+	for i, v := range s.req {
+		if v.IsZero() {
+			delete(s.req, i)
+		}
+	}
+	for i, v := range s.exc {
+		if v.IsZero() {
+			delete(s.req, i)
+		}
+	}
 }

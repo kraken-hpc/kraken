@@ -276,11 +276,17 @@ func mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 		label := ""
 
 		var reqKeys []string
+		var excKeys []string
 		var reqs = mn.spec.Requires()
 		for k := range reqs {
 			reqKeys = append(reqKeys, k)
 		}
 		sort.Strings(reqKeys)
+		var excs = mn.spec.Excludes()
+		for k := range excs {
+			excKeys = append(excKeys, k)
+		}
+		sort.Strings(excKeys)
 
 		for _, reqKey := range reqKeys {
 			reqValue := reqs[reqKey]
@@ -293,7 +299,17 @@ func mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 				label = fmt.Sprintf("%s\n%s: %s", label, trimKey, util.ValueToString(reqValue))
 			}
 		}
-
+		for _, excKey := range excKeys {
+			excValue := excs[excKey]
+			// Add req to label
+			trimKey := strings.Replace(excKey, "type.googleapis.com", "", -1)
+			trimKey = strings.Replace(trimKey, "/", "", -1)
+			if label == "" {
+				label = fmt.Sprintf("%s: !%s", trimKey, util.ValueToString(excValue))
+			} else {
+				label = fmt.Sprintf("%s\n%s: !%s", label, trimKey, util.ValueToString(excValue))
+			}
+		}
 		nmn.Label = label
 		r.MutationNodeList = append(r.MutationNodeList, &nmn)
 	}
@@ -691,11 +707,23 @@ func (sme *StateMutationEngine) collectURLs() {
 	}
 }
 
-func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode, mutOnly bool) []*mutationEdge {
+func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode, reqsOnly bool) []*mutationEdge {
 	var mutEqual func(*mutationEdge, *mutationEdge) bool
 
-	if mutOnly {
-		mutEqual = func(a *mutationEdge, b *mutationEdge) bool { return a.mut == b.mut }
+	// if reqsOnly we consider nodes the same if they have the same requirements
+	if reqsOnly {
+		mutEqual = func(a *mutationEdge, b *mutationEdge) bool {
+			if a.mut != b.mut {
+				return false
+			}
+			if !a.from.spec.ReqsEqual(b.from.spec) {
+				return false
+			}
+			if !a.to.spec.ReqsEqual(b.to.spec) {
+				return false
+			}
+			return true
+		}
 	} else {
 		mutEqual = func(a *mutationEdge, b *mutationEdge) bool { return a.Equal(b) }
 	}
@@ -712,18 +740,30 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 	rmEdges := []*mutationEdge{}
 	// we perform a union on in/out
 	for _, in := range root.in {
+		in.to = to
 		if !inSlice(to.in, in) {
-			in.to = to
 			to.in = append(to.in, in)
 		} else {
 			rmEdges = append(rmEdges, in)
+			// make sure the tail is cleared
+			for i, v := range in.from.out {
+				if v == in {
+					in.from.out = append(in.from.out[:i], in.from.out[i+1:]...)
+				}
+			}
 		}
 	}
 	for _, out := range root.out {
+		out.from = to
 		if !inSlice(to.out, out) {
-			out.from = to
 			to.out = append(to.out, out)
 		} else {
+			// make sure the head is cleared
+			for i, v := range out.to.in {
+				if v == out {
+					out.to.in = append(out.to.in[:i], out.to.in[i+1:]...)
+				}
+			}
 			rmEdges = append(rmEdges, out)
 		}
 	}
@@ -767,10 +807,12 @@ func (sme *StateMutationEngine) buildGraphStage1(root *mutationNode, edge *mutat
 
 	// is this node equal to one we've already seen?
 	for sp, n := range seenNodes {
-		if sp.ReqsEqual(root.spec) {
+		if sp.Equal(root.spec) {
 			// yes, we've seen this node, so we're done processing this chain.  Merge the nodes.
-			sme.remapToNode(root, n, true)
-			n.spec.LeastCommon(root.spec)
+			dead := sme.remapToNode(root, n, false)
+			if len(dead) != 0 {
+				fmt.Printf("dead edges was %d, expected 0!", len(dead))
+			}
 			return nodes, edges
 		}
 	}
@@ -801,6 +843,7 @@ OUTER:
 				in:   []*mutationEdge{newEdge},           // we know we have this in at least
 				out:  []*mutationEdge{},                  // for now, out is empty
 			}
+			newNode.spec.StripZeros()
 			newEdge.to = newNode
 			root.out = append(root.out, newEdge)
 			// ready to recurse
@@ -824,6 +867,7 @@ OUTER:
 				in:   []*mutationEdge{},
 				out:  []*mutationEdge{newEdge},
 			}
+			newNode.spec.StripZeros()
 			newEdge.from = newNode
 			root.in = append(root.in, newEdge)
 			ns, _ := sme.buildGraphStage1(newNode, newEdge, seenNodes)
@@ -933,7 +977,7 @@ func (sme *StateMutationEngine) buildGraphDiscoverDepends(edges []*mutationEdge)
 			if isDiscoverFor(url, e) { // this is one of our discovery edges
 				if spec == nil { // we need to start with a new, but populated spec
 					reqs := clone(e.from.spec.Requires())
-					excs := clone(e.from.spec.Excludes())
+					excs := make(map[string]reflect.Value) // stripping states based on excludes can have some strange results...
 					// we can't require something of our own url
 					// anything co-mutating should have mutation target as a requires
 					// should we also remove non-discoverables?
@@ -1068,6 +1112,19 @@ func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edge
 		return edges
 	}
 
+	// does s1 contain more info than s2? (i.e. a mutator that's not in s2)
+	hasExtraInfo := func(s1, s2 types.StateSpec) bool {
+		r1 := s1.Requires()
+		r2 := s2.Requires()
+		for k := range r1 {
+			if _, ok := r2[k]; !ok {
+				// we gained info!
+				return true
+			}
+		}
+		return false
+	}
+
 	// 1. iterate through the nodes
 	//    - remove dependecy violating info
 	//    - remove zero values
@@ -1100,7 +1157,7 @@ OUTER_NODE:
 			// We only care that the requirements are the same
 			// It's OK if the excludes get broader
 			if n.spec.ReqsEqual(nn.spec) { // duplicate node
-				dead := sme.remapToNode(n, nn, false)
+				dead := sme.remapToNode(n, nn, true)
 				for _, e := range dead {
 					rmEdge(edges, e)
 				}
@@ -1123,7 +1180,7 @@ OUTER_EDGE:
 			continue
 		}
 		imp := e.from.spec.SpecMergeMust(e.mut.After())
-		if len(imp.Requires()) < len(e.to.spec.Requires()) { // we're not allowed to gain extra mutation information
+		if hasExtraInfo(e.to.spec, imp) { // we're not allowed to gain extra mutation information. FIXME: we should reconsider how we evaluate this
 			for u := range e.to.spec.Requires() {
 				if _, ok := imp.Requires()[u]; !ok { // outlier
 					if _, ok := sme.mutators[u]; ok { // and a mutator, delete
@@ -1134,10 +1191,29 @@ OUTER_EDGE:
 				}
 			}
 		}
-		if !e.mut.SpecCompatIn(e.to.spec, sme.mutators) || !e.mut.SpecCompatOut(e.from.spec, sme.mutators) { // this edge is no longer compatible
+		if !e.mut.SpecCompatOut(e.from.spec, sme.mutators) { // this edge is no longer compatible
 			e.from.out = rmEdge(e.from.out, e)
 			e.to.in = rmEdge(e.to.in, e)
 			continue
+		}
+		if !e.mut.SpecCompatIn(e.to.spec, sme.mutators) { // this edge is no longer compatible
+			// there is one special case where this is ok: we forgot our requirement on mutation
+			tmpNode := &mutationNode{
+				spec: e.to.spec.SpecMergeMust(NewStateSpec(e.mut.Requires(), map[string]reflect.Value{})),
+			}
+			r, _ := sme.nodeViolatesDeps(deps, tmpNode)
+			if len(r) != 0 {
+				if !e.mut.SpecCompatIn(tmpNode.spec, sme.mutators) {
+					e.from.out = rmEdge(e.from.out, e)
+					e.to.in = rmEdge(e.to.in, e)
+					continue
+				}
+			} else {
+				// no special case
+				e.from.out = rmEdge(e.from.out, e)
+				e.to.in = rmEdge(e.to.in, e)
+				continue
+			}
 		}
 		newEdges = append(newEdges, e)
 	}
@@ -1156,13 +1232,12 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 		sme.graphIsSane(nodes, edges)
 	}
 
-	if sme.log.GetLoggerLevel() > types.LLDDEBUG {
-		sme.DumpJSONGraph(nodes, edges)
-	}
-
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > types.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
+	}
+	if sme.log.GetLoggerLevel() > types.LLDDEBUG {
+		sme.DumpJSONGraph(nodes, edges)
 	}
 	return
 }
