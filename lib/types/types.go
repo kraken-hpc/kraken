@@ -362,6 +362,7 @@ type StateSpec interface {
 	ReqsEqual(StateSpec) bool
 	ExcsEqual(StateSpec) bool
 	Equal(StateSpec) bool
+	StripZeros()
 	LeastCommon(StateSpec)
 	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
 	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
