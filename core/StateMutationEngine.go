@@ -1302,9 +1302,11 @@ func (sme *StateMutationEngine) boundarySearch(start types.Node, end types.Node)
 	}
 	sme.graphMutex.RUnlock()
 	// there's one exception: we may be starting on the graph root (if nothing else matched)
+	/* actually, this is a bad idea
 	if len(gstart) == 0 {
 		gstart = append(gstart, sme.graph)
 	}
+	*/
 	return
 }
 
