@@ -113,7 +113,8 @@ type StateMutationEngine struct {
 	// stuff we can compute from muts
 	mutators    map[string]uint32 // ref count, all URLs that mutate
 	requires    map[string]uint32 // ref count, referenced (req/exc) urls that don't mutate
-	graph       *mutationNode     // graph start
+	deps        map[string]types.StateSpec
+	graph       *mutationNode // graph start
 	graphMutex  *sync.RWMutex
 	nodes       []*mutationNode // so we can search for matches
 	edges       []*mutationEdge
@@ -145,6 +146,7 @@ func NewStateMutationEngine(ctx Context, qc chan types.Query) *StateMutationEngi
 		activeMutex: &sync.Mutex{},
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
+		deps:        make(map[string]types.StateSpec),
 		graph:       &mutationNode{spec: ctx.SME.RootSpec},
 		graphMutex:  &sync.RWMutex{},
 		nodes:       []*mutationNode{},
@@ -1100,6 +1102,7 @@ func (sme *StateMutationEngine) graphIsSane(nodes []*mutationNode, edges []*muta
 // note: we can't really know discoverable dependencies for sure until we did stage1 build
 func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edges []*mutationEdge) ([]*mutationNode, []*mutationEdge) {
 	deps := sme.buildGraphDiscoverDepends(edges)
+	sme.deps = deps
 	sme.printDeps(deps) // print debugging output for deps
 
 	rmEdge := func(edges []*mutationEdge, edge *mutationEdge) []*mutationEdge {
@@ -1273,6 +1276,10 @@ func (sme *StateMutationEngine) nodeSearch(node types.Node) (mns []*mutationNode
 	sme.graphMutex.RLock()
 	defer sme.graphMutex.RUnlock()
 	for _, n := range sme.nodes {
+		if n == sme.graph {
+			// the root node with match anything, but we don't want it...
+			continue
+		}
 		if n.spec.NodeMatch(node) {
 			mns = append(mns, n)
 		}
@@ -1643,68 +1650,29 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 		return
 	}
 
-	// We couldn't devolve so...
-	// Create fake types.node with our failto and all non-mutators (sme.requires).
-	// These non-mutators do not exist in the dsc (platform for example) so we have to pull from the cfg node
-	fn := NewNodeWithID(n.ID().String())
-	sme.graphMutex.RLock()
-	for r := range sme.requires {
-		if r == d[1] {
-			continue
-		}
-		v, _ := n.GetValue(r)
-		if v.Interface() == reflect.Zero(v.Type()).Interface() {
-			v, _ = nc.GetValue(r)
-		}
-		fn.SetValue(r, v)
+	// this isn't a devolution
+	// our strategy is to:
+	//  0) create a spec that mimics the current state of the node
+	//  1) set the failto value
+	//  2) remove any values that violate epistemology
+	n.SetValue(d[1], val)
+	meld := sme.dscNodeMeld(nc, n)
+	ms := []string{}
+	for k := range sme.mutators {
+		ms = append(ms, k)
 	}
-	sme.graphMutex.RUnlock()
-	fn.SetValue(d[1], val)
-
-	// get all possible mutation nodes for this fake types.node
-	pns := sme.nodeSearch(fn)
-
-	if len(pns) == 0 {
-		// we didn't find any possible mutation nodes so let's give up and set all mutators to zero
-		sme.Logf(DEBUG, "failed to find possible mutation node for %s. Resetting all mutators to zero", nid)
-
-		// reset all mutators to zero, except the failure mutator
-		// FIXME: setting things without discovery isn't very polite
-		node, _ := sme.query.ReadDsc(nid)
-		sme.graphMutex.RLock()
-		for m := range sme.mutators {
-			if m == d[1] {
-				continue
-			}
-			v, _ := node.GetValue(m)
-			sme.Logf(DDEBUG, "setting %s:%s to zero", node.ID().String(), m)
-			sme.query.SetValueDsc(util.NodeURLJoin(node.ID().String(), m), reflect.Zero(v.Type()))
-		}
-		sme.graphMutex.RUnlock()
-
-	} else {
-		// we found some possible mutation nodes for our fake types.node. Lets just take the first one and force our types.node to match it.
-		sme.Logf(DEBUG, "found a matching mutation node for %s. Setting mutators to equal mutation node's requires: %v", nid, pns[0].spec.Requires())
-
-		// loop through all the mutators
-		// if the mutator is the failto, skip
-		// if the mutator is in the requires of this mutation node, set it to whatever it requires
-		// if the mutator isn't either of those, set it to zero
-		sme.graphMutex.RLock()
-		for m := range sme.mutators {
-			if m == d[1] {
-				continue
-			}
-			if val, ok := pns[0].spec.Requires()[m]; ok {
-				sme.Logf(DDEBUG, "setting %s:%s to %v", n.ID().String(), m, val.Interface())
-				sme.query.SetValueDsc(util.NodeURLJoin(n.ID().String(), m), val)
-			} else {
-				v, _ := n.GetValue(m)
-				sme.Logf(DDEBUG, "setting %s:%s to zero", n.ID().String(), m)
-				sme.query.SetValueDsc(util.NodeURLJoin(n.ID().String(), m), reflect.Zero(v.Type()))
-			}
-		}
-		sme.graphMutex.RUnlock()
+	for k := range sme.requires {
+		ms = append(ms, k)
+	}
+	reqs, _ := meld.GetValues(ms)
+	nn := &mutationNode{
+		spec: NewStateSpec(reqs, map[string]reflect.Value{}),
+	}
+	violations, _ := sme.nodeViolatesDeps(sme.deps, nn)
+	sme.Logf(DEBUG, "%s could not devolve, setting failure %s = %s and forgetting values: %v", nid, d[1], util.ValueToString(val), violations)
+	for _, r := range violations {
+		v, _ := n.GetValue(r)
+		sme.query.SetValueDsc(util.NodeURLJoin(nid.String(), r), reflect.Zero(v.Type()))
 	}
 
 	// now send a discover to whatever failed state
@@ -1915,7 +1883,9 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 			}
 		}
 		m.curSeen = []string{} // possibly redundant
-		m.timer.Stop()
+		if m.timer != nil {
+			m.timer.Stop()
+		}
 		// are we done?
 		if len(m.chain) == m.cur+1 {
 			// all done!
