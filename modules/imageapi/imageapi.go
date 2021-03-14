@@ -537,6 +537,17 @@ func (is *ImageAPI) handleMutation(m types.Event) {
 			if is.mRecoverError(me) {
 				is.mANYtoIDLE(me)
 			}
+		case "SYNCtoINIT":
+			url := util.NodeURLJoin(is.api.Self().String(), "/RunState")
+			// we just directly discover the state
+			is.dchan <- core.NewEvent(
+				types.Event_DISCOVERY,
+				url,
+				&core.DiscoveryEvent{
+					URL:     url,
+					ValueID: cpb.Node_INIT.String(),
+				},
+			)
 		default:
 			is.api.Logf(types.LLERROR, "asked to perform unknown mutation: %s", me.Mutation[1])
 		}
