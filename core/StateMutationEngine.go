@@ -1054,6 +1054,17 @@ func (sme *StateMutationEngine) nodeForgetUnknowable(cfg, dsc types.Node) {
 		v, _ := dsc.GetValue(r)
 		sme.query.SetValueDsc(util.NodeURLJoin(cfg.ID().String(), r), reflect.Zero(v.Type()))
 	}
+	// finally, deal with one special case for services: we can't know service states if we're not in SYNC
+	v, _ := dsc.GetValue("/RunState")
+	if v.Interface() != pb.Node_SYNC {
+		for _, s := range cfg.GetServiceIDs() {
+			url := ""
+			for _, u := range []string{"/Services", s, "State"} {
+				url = util.URLPush(url, u)
+			}
+			sme.query.SetValueDsc(util.NodeURLJoin(cfg.ID().String(), url), reflect.ValueOf(pb.ServiceInstance_UNKNOWN))
+		}
+	}
 }
 
 func (sme *StateMutationEngine) printDeps(deps map[string]types.StateSpec) {
