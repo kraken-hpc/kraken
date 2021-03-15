@@ -1035,6 +1035,38 @@ func (sme *StateMutationEngine) nodeViolatesDeps(deps map[string]types.StateSpec
 	return
 }
 
+func (sme *StateMutationEngine) nodeForgetUnknowable(cfg, dsc types.Node) {
+	meld := sme.dscNodeMeld(cfg, dsc)
+	ms := []string{}
+	for k := range sme.mutators {
+		ms = append(ms, k)
+	}
+	for k := range sme.requires {
+		ms = append(ms, k)
+	}
+	reqs, _ := meld.GetValues(ms)
+	nn := &mutationNode{
+		spec: NewStateSpec(reqs, map[string]reflect.Value{}),
+	}
+	violations, _ := sme.nodeViolatesDeps(sme.deps, nn)
+	sme.Logf(DEBUG, "%s forgetting unknowable values: %v", cfg.ID().String(), violations)
+	for _, r := range violations {
+		v, _ := dsc.GetValue(r)
+		sme.query.SetValueDsc(util.NodeURLJoin(cfg.ID().String(), r), reflect.Zero(v.Type()))
+	}
+	// finally, deal with one special case for services: we can't know service states if we're not in SYNC
+	v, _ := dsc.GetValue("/RunState")
+	if v.Interface() != pb.Node_SYNC {
+		for _, s := range cfg.GetServiceIDs() {
+			url := ""
+			for _, u := range []string{"/Services", s, "State"} {
+				url = util.URLPush(url, u)
+			}
+			sme.query.SetValueDsc(util.NodeURLJoin(cfg.ID().String(), url), reflect.ValueOf(pb.ServiceInstance_UNKNOWN))
+		}
+	}
+}
+
 func (sme *StateMutationEngine) printDeps(deps map[string]types.StateSpec) {
 	// print some nice log messages documenting our dependencies
 	for u := range deps {
@@ -1657,25 +1689,9 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 	//  0) create a spec that mimics the current state of the node
 	//  1) set the failto value
 	//  2) remove any values that violate epistemology
+	sme.Logf(DEBUG, "%s could not devolve, setting failure %s = %s", nid, d[1], util.ValueToString(val))
 	n.SetValue(d[1], val)
-	meld := sme.dscNodeMeld(nc, n)
-	ms := []string{}
-	for k := range sme.mutators {
-		ms = append(ms, k)
-	}
-	for k := range sme.requires {
-		ms = append(ms, k)
-	}
-	reqs, _ := meld.GetValues(ms)
-	nn := &mutationNode{
-		spec: NewStateSpec(reqs, map[string]reflect.Value{}),
-	}
-	violations, _ := sme.nodeViolatesDeps(sme.deps, nn)
-	sme.Logf(DEBUG, "%s could not devolve, setting failure %s = %s and forgetting values: %v", nid, d[1], util.ValueToString(val), violations)
-	for _, r := range violations {
-		v, _ := n.GetValue(r)
-		sme.query.SetValueDsc(util.NodeURLJoin(nid.String(), r), reflect.Zero(v.Type()))
-	}
+	sme.nodeForgetUnknowable(nc, n)
 
 	// now send a discover to whatever failed state
 	url := util.NodeURLJoin(nid.String(), d[1])
@@ -1827,6 +1843,11 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 		sme.activeMutex.Unlock()
 		return
 	}
+	// let's make sure we forget anything we can't know anymore
+	nid := ct.NewNodeID(node)
+	cfg, _ := sme.query.Read(nid)
+	dsc, _ := sme.query.ReadDsc(nid)
+	sme.nodeForgetUnknowable(cfg, dsc)
 	// we should reset waiting status
 	sme.unwaitForService(m)
 	sme.activeMutex.Unlock()

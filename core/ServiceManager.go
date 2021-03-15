@@ -86,6 +86,7 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 		for _, si := range sm.srv {
 			sm.log.Logf(types.LLDDEBUG, "starting initial service sync: %s", si.ID())
 			sm.syncService(si.ID())
+			sm.setServiceStateDsc(si.ID(), pb.ServiceInstance_STOP)
 		}
 	}()
 

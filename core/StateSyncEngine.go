@@ -388,6 +388,15 @@ func (sse *StateSyncEngine) callParent(p string) {
 		sse.delNeighbor(nid)
 		return
 	}
+	// we shouldn't clobber service manager states because our parent doesn't really know about those...
+	curDsc, _ := sse.query.ReadDsc(sse.self)
+	for _, s := range curDsc.GetServices() {
+		url := ""
+		for _, u := range []string{"/Services", s.GetId(), "State"} {
+			url = util.URLPush(url, u)
+		}
+		rpd.Node.SetValue(url, reflect.ValueOf(s.State))
+	}
 	_, e = sse.query.UpdateDsc(rpd.Node)
 	if e != nil {
 		sse.Log(ERROR, e.Error())
