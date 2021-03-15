@@ -477,8 +477,11 @@ func (is *ImageAPI) mRecoverError(me *core.MutationEvent) bool {
 				image.LastError = ia.Image_MAX_ATTEMPTS
 				is.api.Logf(types.LLERROR, "image reached maximum retries (%d/%d): %s", image.Retries, is.cfg.MaxRetries, name)
 			} else {
+				image.State = ia.ImageState_UPDATE
 				image.Action = ia.Image_RELOAD
-				is.api.Logf(types.LLERROR, "image is retrying (%d/%d): %s", image.Retries, is.cfg.MaxRetries, name)
+				backoff := int(5 * math.Pow(2, float64(image.Retries-1))) // FIXME: this probably should be configurable
+				is.api.Logf(types.LLERROR, "image is retrying (%d/%d) in %ds: %s", image.Retries, is.cfg.MaxRetries, backoff, name)
+				time.Sleep(time.Duration(backoff) * time.Second)
 			}
 		}
 	}
