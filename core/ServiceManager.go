@@ -75,9 +75,12 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 
 	// initialize service instances
 	for m := range Registry.ServiceInstances {
+		base := util.NodeURLJoin(sm.ctx.Self.String(), "/Services")
 		for _, si := range Registry.ServiceInstances[m] {
 			sm.log.Logf(types.LLINFO, "adding service: %s", si.ID())
 			sm.AddService(si)
+			// clearly at startup, we don't have any services running yet... but we might have a stale state left over from a reboot
+			sm.query.SetValueDsc(util.NodeURLJoin(base, si.ID()), reflect.ValueOf(pb.ServiceInstance_STOP))
 		}
 	}
 
