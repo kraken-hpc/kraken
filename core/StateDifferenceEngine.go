@@ -172,6 +172,9 @@ func (n *StateDifferenceEngine) setValueDiff(url string, cur, v reflect.Value) (
 	case reflect.Struct: // maybe a message we can diff?
 		if m1, ok := cur.Addr().Interface().(proto.Message); ok {
 			// this is a proto message
+			if !v.CanAddr() {
+				return diff, fmt.Errorf("tried to set unaddressable value: %s", url)
+			}
 			if m2, ok := v.Addr().Interface().(proto.Message); ok {
 				return util.MessageDiff(m1, m2, url)
 			}
