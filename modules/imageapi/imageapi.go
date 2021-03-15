@@ -541,8 +541,21 @@ func (is *ImageAPI) handleMutation(m types.Event) {
 				is.mANYtoIDLE(me)
 			}
 		case "SYNCtoINIT":
-			url := util.NodeURLJoin(is.api.Self().String(), "/RunState")
 			// we just directly discover the state
+			if is.pollTicker != nil {
+				is.pollTicker.Stop()
+			}
+			url := util.NodeURLJoin(is.api.Self().String(), issURL)
+			// fixme: this should really be automatically handled by the sme
+			is.dchan <- core.NewEvent(
+				types.Event_DISCOVERY,
+				url,
+				&core.DiscoveryEvent{
+					URL:     url,
+					ValueID: ia.ImageState_UNKNOWN.String(),
+				},
+			)
+			url = util.NodeURLJoin(is.api.Self().String(), "/RunState")
 			is.dchan <- core.NewEvent(
 				types.Event_DISCOVERY,
 				url,
@@ -765,6 +778,10 @@ func (is *ImageAPI) discover() {
 	// we also want at least a stub for anything in the cfg set
 	for name, cp := range isc.Images {
 		action := ia.Image_CREATE
+		if cur, ok := is.actions[name]; ok && cur == ia.Image_RELOAD {
+			// don't clobber the reload action
+			action = ia.Image_RELOAD
+		}
 		if cp.Container.State != ContainerState_RUNNING {
 			action = ia.Image_NONE
 		}
@@ -869,8 +886,9 @@ func (is *ImageAPI) deleteImage(name string, image *ia.Image) {
 		url = util.URLPush(url, u)
 	}
 	v, err := is.api.QueryGetValueDsc(is.api.Self().String(), url)
-	if err != nil {
+	if err != nil || v.(string) == ContainerState_DELETED {
 		// image must not exist, so our work is done
+		is.api.Logf(types.LLDDDEBUG, "refusing to delete an already deleted image: %s", name)
 		return
 	}
 	client := is.getAPIClient()
