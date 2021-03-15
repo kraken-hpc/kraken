@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/gogo/protobuf/proto"
 	pb "github.com/hpc/kraken/core/proto"
 	ct "github.com/hpc/kraken/core/proto/customtypes"
 	"github.com/hpc/kraken/lib/types"
@@ -165,11 +166,44 @@ func (n *StateDifferenceEngine) GetValueDsc(url string) (r reflect.Value, e erro
 	return n.dsc.GetValue(url)
 }
 
+func (n *StateDifferenceEngine) setValueDiff(url string, cur, v reflect.Value) (diff []string, err error) {
+	diff = []string{}
+	switch cur.Kind() {
+	case reflect.Struct: // maybe a message we can diff?
+		if m1, ok := cur.Addr().Interface().(proto.Message); ok {
+			// this is a proto message
+			if m2, ok := v.Addr().Interface().(proto.Message); ok {
+				return util.MessageDiff(m1, m2, url)
+			}
+			// if we reacch this m2 didn't convert
+			return diff, fmt.Errorf("invalid value passed to SetValue: %v", v)
+		}
+		fallthrough
+	case reflect.Slice, reflect.Map: // not comparable
+		// not comparable by normal means.  Our best bet now is just to deepequal them
+		if !reflect.DeepEqual(cur.Interface(), v.Interface()) {
+			diff = append(diff, url)
+		}
+	default: // should be comparable
+		if cur.Interface() != v.Interface() {
+			diff = append(diff, url)
+		}
+	}
+	return
+}
+
 // SetValue sets a specific sub-value in Cfg
 func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect.Value, e error) {
 	var cur reflect.Value
 	cur, e = n.cfg.GetValue(url)
-	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+	if e != nil { // this only happens if it's not a valid url
+		return
+	}
+	var diff []string
+	if diff, e = n.setValueDiff(url, cur, v); e != nil {
+		return
+	}
+	if len(diff) == 0 { // nothing new to set
 		n.Logf(DDEBUG, "SetValue called, but it's not a change: %s", url)
 		r = v
 		return
@@ -178,15 +212,30 @@ func (n *StateDifferenceEngine) SetValue(url string, v reflect.Value) (r reflect
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (cfg): %v", e)
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_CFG_UPDATE, url, r))
+	for _, d := range diff {
+		var dv reflect.Value
+		if d == url {
+			dv = r
+		} else {
+			dv, _ = n.cfg.GetValue(d)
+		}
+		go n.EmitOne(NewStateChangeEvent(StateChange_CFG_UPDATE, d, dv))
+	}
 	return
 }
 
-// SetValueDsc sets a specific sub-value in Cfg
+// SetValueDsc sets a specific sub-value in Dsc
 func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r reflect.Value, e error) {
 	var cur reflect.Value
 	cur, e = n.dsc.GetValue(url)
-	if e == nil && cur.Interface() == v.Interface() { // nothing new to set
+	if e != nil { // this only happens if it's not a valid url
+		return
+	}
+	var diff []string
+	if diff, e = n.setValueDiff(url, cur, v); e != nil {
+		return
+	}
+	if len(diff) == 0 { // nothing new to set
 		n.Logf(DDEBUG, "SetValueDsc called, but it's not a change: %s", url)
 		r = v
 		return
@@ -195,7 +244,15 @@ func (n *StateDifferenceEngine) SetValueDsc(url string, v reflect.Value) (r refl
 	if e != nil {
 		n.Logf(ERROR, "failed to set value (dsc): %v", e)
 	}
-	go n.EmitOne(NewStateChangeEvent(StateChange_UPDATE, url, r))
+	for _, d := range diff {
+		var dv reflect.Value
+		if d == url {
+			dv = r
+		} else {
+			dv, _ = n.dsc.GetValue(d)
+		}
+		go n.EmitOne(NewStateChangeEvent(StateChange_UPDATE, d, dv))
+	}
 	return
 }
 

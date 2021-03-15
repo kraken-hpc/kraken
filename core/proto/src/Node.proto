@@ -47,7 +47,12 @@ message Node {
     string arch = 5;
     string platform = 6;
     bytes parent_id = 7 [(gogoproto.customtype) = "github.com/hpc/kraken/core/proto/customtypes.NodeID"];
-    reserved 8 to 13;
+    enum FreeBusy {
+        FREE = 0; // I.e. we currently control states on this node
+        BUSY = 1; // Control of this node has been handed off to something else; we should leave it alone.
+    }
+    FreeBusy busy = 8;
+    reserved 9 to 13;
     repeated ServiceInstance services = 14;
     repeated google.protobuf.Any extensions = 15;
 }

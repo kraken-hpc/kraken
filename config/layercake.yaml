@@ -8,13 +8,13 @@ targets:
 extensions:
   - github.com/hpc/kraken/extensions/imageapi
   - github.com/hpc/kraken/extensions/ipv4
+  - github.com/hpc/kraken/extensions/powerapi
   - github.com/hpc/kraken/extensions/pxe
-  - github.com/hpc/kraken/extensions/vbox
 
 # included modules
 modules:
   - github.com/hpc/kraken/modules/imageapi
+  - github.com/hpc/kraken/modules/powerapi
   - github.com/hpc/kraken/modules/pxe
   - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/vboxmanage
   - github.com/hpc/kraken/modules/websocket

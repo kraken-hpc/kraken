@@ -148,6 +148,13 @@ func diffAny(a, b reflect.Value, pre string) (r []string, e error) {
 	case reflect.Slice:
 		return diffSlice(a, b, pre)
 	case reflect.Ptr:
+		if a.IsNil() || b.IsNil() {
+			if a.IsNil() && b.IsNil() {
+				return
+			}
+			r = append(r, pre)
+			return
+		}
 		return diffAny(a.Elem(), b.Elem(), pre)
 	case reflect.Map:
 		return diffMap(a, b, pre)

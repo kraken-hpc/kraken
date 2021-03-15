@@ -98,7 +98,7 @@ func (sm *ServiceManager) Run(ready chan<- interface{}) {
 		case v := <-sm.echan:
 			// state change for services
 			sm.log.Logf(types.LLDDEBUG, "processing state change event: %s", v.URL())
-			go sm.processStateChange(v.Data().(*StateChangeEvent))
+			sm.processStateChange(v.Data().(*StateChangeEvent))
 		case su := <-sm.wchan:
 			// si changed process state
 			sm.log.Logf(types.LLDDEBUG, "processing SI state update: %s -> %s", su.ID, su.State)
@@ -180,7 +180,7 @@ func (sm *ServiceManager) syncService(si string) {
 	d := sm.getServiceStateDsc(si)
 
 	if c == d { // nothing to do
-		sm.log.Logf(types.LLDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
+		sm.log.Logf(types.LLDDDEBUG, "service already synchronized: %s (%+v == %+v)", si, c, d)
 		return
 	}
 	if d == pb.ServiceInstance_ERROR { // don't clear errors
@@ -189,8 +189,9 @@ func (sm *ServiceManager) syncService(si string) {
 	switch c {
 	case pb.ServiceInstance_RUN: // we're supposed to be running
 		if d != pb.ServiceInstance_INIT { // did we already try to start?
+			sm.setServiceStateDsc(si, pb.ServiceInstance_INIT)
 			sm.log.Logf(types.LLDDEBUG, "starting service: %s", si)
-			srv.Start() // startup
+			go srv.Start() // startup
 		}
 	case pb.ServiceInstance_STOP: // we're supposed to be stopped
 		sm.log.Logf(types.LLDDEBUG, "stopping service: %s", si)
@@ -221,13 +222,11 @@ func (sm *ServiceManager) getServiceStateDsc(si string) pb.ServiceInstance_Servi
 }
 
 func (sm *ServiceManager) setServiceStateDsc(si string, state pb.ServiceInstance_ServiceState) {
-	n, _ := sm.query.ReadDsc(sm.ctx.Self)
-	_, e := n.SetValue(sm.stateURL(si), reflect.ValueOf(state))
+	_, e := sm.query.SetValueDsc(util.NodeURLJoin(sm.ctx.Self.String(), sm.stateURL(si)), reflect.ValueOf(state))
 	if e != nil {
 		sm.log.Logf(types.LLERROR, "failed to set dsc state value (%s): %s", sm.stateURL(si), e.Error())
 		return
 	}
-	sm.query.UpdateDsc(n)
 }
 
 func (sm *ServiceManager) stateURL(si string) string {

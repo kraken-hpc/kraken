@@ -113,7 +113,8 @@ type StateMutationEngine struct {
 	// stuff we can compute from muts
 	mutators    map[string]uint32 // ref count, all URLs that mutate
 	requires    map[string]uint32 // ref count, referenced (req/exc) urls that don't mutate
-	graph       *mutationNode     // graph start
+	deps        map[string]types.StateSpec
+	graph       *mutationNode // graph start
 	graphMutex  *sync.RWMutex
 	nodes       []*mutationNode // so we can search for matches
 	edges       []*mutationEdge
@@ -145,6 +146,7 @@ func NewStateMutationEngine(ctx Context, qc chan types.Query) *StateMutationEngi
 		activeMutex: &sync.Mutex{},
 		mutators:    make(map[string]uint32),
 		requires:    make(map[string]uint32),
+		deps:        make(map[string]types.StateSpec),
 		graph:       &mutationNode{spec: ctx.SME.RootSpec},
 		graphMutex:  &sync.RWMutex{},
 		nodes:       []*mutationNode{},
@@ -276,11 +278,17 @@ func mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 		label := ""
 
 		var reqKeys []string
+		var excKeys []string
 		var reqs = mn.spec.Requires()
 		for k := range reqs {
 			reqKeys = append(reqKeys, k)
 		}
 		sort.Strings(reqKeys)
+		var excs = mn.spec.Excludes()
+		for k := range excs {
+			excKeys = append(excKeys, k)
+		}
+		sort.Strings(excKeys)
 
 		for _, reqKey := range reqKeys {
 			reqValue := reqs[reqKey]
@@ -293,7 +301,17 @@ func mutationNodesToProto(nodes []*mutationNode) (r pb.MutationNodeList) {
 				label = fmt.Sprintf("%s\n%s: %s", label, trimKey, util.ValueToString(reqValue))
 			}
 		}
-
+		for _, excKey := range excKeys {
+			excValue := excs[excKey]
+			// Add req to label
+			trimKey := strings.Replace(excKey, "type.googleapis.com", "", -1)
+			trimKey = strings.Replace(trimKey, "/", "", -1)
+			if label == "" {
+				label = fmt.Sprintf("%s: !%s", trimKey, util.ValueToString(excValue))
+			} else {
+				label = fmt.Sprintf("%s\n%s: !%s", label, trimKey, util.ValueToString(excValue))
+			}
+		}
 		nmn.Label = label
 		r.MutationNodeList = append(r.MutationNodeList, &nmn)
 	}
@@ -691,11 +709,23 @@ func (sme *StateMutationEngine) collectURLs() {
 	}
 }
 
-func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode, mutOnly bool) []*mutationEdge {
+func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode, reqsOnly bool) []*mutationEdge {
 	var mutEqual func(*mutationEdge, *mutationEdge) bool
 
-	if mutOnly {
-		mutEqual = func(a *mutationEdge, b *mutationEdge) bool { return a.mut == b.mut }
+	// if reqsOnly we consider nodes the same if they have the same requirements
+	if reqsOnly {
+		mutEqual = func(a *mutationEdge, b *mutationEdge) bool {
+			if a.mut != b.mut {
+				return false
+			}
+			if !a.from.spec.ReqsEqual(b.from.spec) {
+				return false
+			}
+			if !a.to.spec.ReqsEqual(b.to.spec) {
+				return false
+			}
+			return true
+		}
 	} else {
 		mutEqual = func(a *mutationEdge, b *mutationEdge) bool { return a.Equal(b) }
 	}
@@ -712,18 +742,30 @@ func (sme *StateMutationEngine) remapToNode(root *mutationNode, to *mutationNode
 	rmEdges := []*mutationEdge{}
 	// we perform a union on in/out
 	for _, in := range root.in {
+		in.to = to
 		if !inSlice(to.in, in) {
-			in.to = to
 			to.in = append(to.in, in)
 		} else {
 			rmEdges = append(rmEdges, in)
+			// make sure the tail is cleared
+			for i, v := range in.from.out {
+				if v == in {
+					in.from.out = append(in.from.out[:i], in.from.out[i+1:]...)
+				}
+			}
 		}
 	}
 	for _, out := range root.out {
+		out.from = to
 		if !inSlice(to.out, out) {
-			out.from = to
 			to.out = append(to.out, out)
 		} else {
+			// make sure the head is cleared
+			for i, v := range out.to.in {
+				if v == out {
+					out.to.in = append(out.to.in[:i], out.to.in[i+1:]...)
+				}
+			}
 			rmEdges = append(rmEdges, out)
 		}
 	}
@@ -769,7 +811,10 @@ func (sme *StateMutationEngine) buildGraphStage1(root *mutationNode, edge *mutat
 	for sp, n := range seenNodes {
 		if sp.Equal(root.spec) {
 			// yes, we've seen this node, so we're done processing this chain.  Merge the nodes.
-			sme.remapToNode(root, n, true)
+			dead := sme.remapToNode(root, n, false)
+			if len(dead) != 0 {
+				fmt.Printf("dead edges was %d, expected 0!", len(dead))
+			}
 			return nodes, edges
 		}
 	}
@@ -800,6 +845,7 @@ OUTER:
 				in:   []*mutationEdge{newEdge},           // we know we have this in at least
 				out:  []*mutationEdge{},                  // for now, out is empty
 			}
+			newNode.spec.StripZeros()
 			newEdge.to = newNode
 			root.out = append(root.out, newEdge)
 			// ready to recurse
@@ -823,6 +869,7 @@ OUTER:
 				in:   []*mutationEdge{},
 				out:  []*mutationEdge{newEdge},
 			}
+			newNode.spec.StripZeros()
 			newEdge.from = newNode
 			root.in = append(root.in, newEdge)
 			ns, _ := sme.buildGraphStage1(newNode, newEdge, seenNodes)
@@ -932,7 +979,7 @@ func (sme *StateMutationEngine) buildGraphDiscoverDepends(edges []*mutationEdge)
 			if isDiscoverFor(url, e) { // this is one of our discovery edges
 				if spec == nil { // we need to start with a new, but populated spec
 					reqs := clone(e.from.spec.Requires())
-					excs := clone(e.from.spec.Excludes())
+					excs := make(map[string]reflect.Value) // stripping states based on excludes can have some strange results...
 					// we can't require something of our own url
 					// anything co-mutating should have mutation target as a requires
 					// should we also remove non-discoverables?
@@ -1034,14 +1081,14 @@ func (sme *StateMutationEngine) graphIsSane(nodes []*mutationNode, edges []*muta
 		ret = false
 	}
 	// 2. nodeEdges should have ref count 2
-	bad := 0
-	for _, c := range nodeEdges {
+	bad := []*mutationEdge{}
+	for e, c := range nodeEdges {
 		if c != 2 {
-			bad++
+			bad = append(bad, e)
 		}
 	}
-	if bad > 0 {
-		fmt.Printf("%d edges have ref count != 2\n", bad)
+	if len(bad) > 0 {
+		fmt.Printf("%d edges have ref count != 2: %v\n", len(bad), bad)
 		ret = false
 	}
 
@@ -1055,6 +1102,7 @@ func (sme *StateMutationEngine) graphIsSane(nodes []*mutationNode, edges []*muta
 // note: we can't really know discoverable dependencies for sure until we did stage1 build
 func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edges []*mutationEdge) ([]*mutationNode, []*mutationEdge) {
 	deps := sme.buildGraphDiscoverDepends(edges)
+	sme.deps = deps
 	sme.printDeps(deps) // print debugging output for deps
 
 	rmEdge := func(edges []*mutationEdge, edge *mutationEdge) []*mutationEdge {
@@ -1065,6 +1113,19 @@ func (sme *StateMutationEngine) buildGraphStripState(nodes []*mutationNode, edge
 			}
 		}
 		return edges
+	}
+
+	// does s1 contain more info than s2? (i.e. a mutator that's not in s2)
+	hasExtraInfo := func(s1, s2 types.StateSpec) bool {
+		r1 := s1.Requires()
+		r2 := s2.Requires()
+		for k := range r1 {
+			if _, ok := r2[k]; !ok {
+				// we gained info!
+				return true
+			}
+		}
+		return false
 	}
 
 	// 1. iterate through the nodes
@@ -1096,11 +1157,14 @@ OUTER_NODE:
 		n.spec = NewStateSpec(nr, ne)
 		// Now, has this node become redundant?  If so, remap it.
 		for _, nn := range newNodes {
-			if n.spec.Equal(nn.spec) { // duplicate node
-				dead := sme.remapToNode(n, nn, false)
+			// We only care that the requirements are the same
+			// It's OK if the excludes get broader
+			if n.spec.ReqsEqual(nn.spec) { // duplicate node
+				dead := sme.remapToNode(n, nn, true)
 				for _, e := range dead {
 					rmEdge(edges, e)
 				}
+				nn.spec.LeastCommon(n.spec) // strip extra excludes
 				continue OUTER_NODE
 			}
 		}
@@ -1119,7 +1183,7 @@ OUTER_EDGE:
 			continue
 		}
 		imp := e.from.spec.SpecMergeMust(e.mut.After())
-		if len(imp.Requires()) < len(e.to.spec.Requires()) { // we're not allowed to gain extra mutation information
+		if hasExtraInfo(e.to.spec, imp) { // we're not allowed to gain extra mutation information. FIXME: we should reconsider how we evaluate this
 			for u := range e.to.spec.Requires() {
 				if _, ok := imp.Requires()[u]; !ok { // outlier
 					if _, ok := sme.mutators[u]; ok { // and a mutator, delete
@@ -1130,10 +1194,29 @@ OUTER_EDGE:
 				}
 			}
 		}
-		if !e.mut.SpecCompatIn(e.to.spec, sme.mutators) || !e.mut.SpecCompatOut(e.from.spec, sme.mutators) { // this edge is no longer compatible
+		if !e.mut.SpecCompatOut(e.from.spec, sme.mutators) { // this edge is no longer compatible
 			e.from.out = rmEdge(e.from.out, e)
 			e.to.in = rmEdge(e.to.in, e)
 			continue
+		}
+		if !e.mut.SpecCompatIn(e.to.spec, sme.mutators) { // this edge is no longer compatible
+			// there is one special case where this is ok: we forgot our requirement on mutation
+			tmpNode := &mutationNode{
+				spec: e.to.spec.SpecMergeMust(NewStateSpec(e.mut.Requires(), map[string]reflect.Value{})),
+			}
+			r, _ := sme.nodeViolatesDeps(deps, tmpNode)
+			if len(r) != 0 {
+				if !e.mut.SpecCompatIn(tmpNode.spec, sme.mutators) {
+					e.from.out = rmEdge(e.from.out, e)
+					e.to.in = rmEdge(e.to.in, e)
+					continue
+				}
+			} else {
+				// no special case
+				e.from.out = rmEdge(e.from.out, e)
+				e.to.in = rmEdge(e.to.in, e)
+				continue
+			}
 		}
 		newEdges = append(newEdges, e)
 	}
@@ -1152,13 +1235,12 @@ func (sme *StateMutationEngine) buildGraph(root *mutationNode) (nodes []*mutatio
 		sme.graphIsSane(nodes, edges)
 	}
 
-	if sme.log.GetLoggerLevel() > types.LLDDEBUG {
-		sme.DumpJSONGraph(nodes, edges)
-	}
-
 	nodes, edges = sme.buildGraphStripState(nodes, edges)
 	if sme.log.GetLoggerLevel() > types.LLDEBUG {
 		sme.graphIsSane(nodes, edges)
+	}
+	if sme.log.GetLoggerLevel() > types.LLDDEBUG {
+		sme.DumpJSONGraph(nodes, edges)
 	}
 	return
 }
@@ -1194,6 +1276,10 @@ func (sme *StateMutationEngine) nodeSearch(node types.Node) (mns []*mutationNode
 	sme.graphMutex.RLock()
 	defer sme.graphMutex.RUnlock()
 	for _, n := range sme.nodes {
+		if n == sme.graph {
+			// the root node with match anything, but we don't want it...
+			continue
+		}
 		if n.spec.NodeMatch(node) {
 			mns = append(mns, n)
 		}
@@ -1216,9 +1302,11 @@ func (sme *StateMutationEngine) boundarySearch(start types.Node, end types.Node)
 	}
 	sme.graphMutex.RUnlock()
 	// there's one exception: we may be starting on the graph root (if nothing else matched)
+	/* actually, this is a bad idea
 	if len(gstart) == 0 {
 		gstart = append(gstart, sme.graph)
 	}
+	*/
 	return
 }
 
@@ -1564,68 +1652,29 @@ func (sme *StateMutationEngine) emitFail(start types.Node, p *mutationPath) {
 		return
 	}
 
-	// We couldn't devolve so...
-	// Create fake types.node with our failto and all non-mutators (sme.requires).
-	// These non-mutators do not exist in the dsc (platform for example) so we have to pull from the cfg node
-	fn := NewNodeWithID(n.ID().String())
-	sme.graphMutex.RLock()
-	for r := range sme.requires {
-		if r == d[1] {
-			continue
-		}
-		v, _ := n.GetValue(r)
-		if v.Interface() == reflect.Zero(v.Type()).Interface() {
-			v, _ = nc.GetValue(r)
-		}
-		fn.SetValue(r, v)
+	// this isn't a devolution
+	// our strategy is to:
+	//  0) create a spec that mimics the current state of the node
+	//  1) set the failto value
+	//  2) remove any values that violate epistemology
+	n.SetValue(d[1], val)
+	meld := sme.dscNodeMeld(nc, n)
+	ms := []string{}
+	for k := range sme.mutators {
+		ms = append(ms, k)
 	}
-	sme.graphMutex.RUnlock()
-	fn.SetValue(d[1], val)
-
-	// get all possible mutation nodes for this fake types.node
-	pns := sme.nodeSearch(fn)
-
-	if len(pns) == 0 {
-		// we didn't find any possible mutation nodes so let's give up and set all mutators to zero
-		sme.Logf(DEBUG, "failed to find possible mutation node for %s. Resetting all mutators to zero", nid)
-
-		// reset all mutators to zero, except the failure mutator
-		// FIXME: setting things without discovery isn't very polite
-		node, _ := sme.query.ReadDsc(nid)
-		sme.graphMutex.RLock()
-		for m := range sme.mutators {
-			if m == d[1] {
-				continue
-			}
-			v, _ := node.GetValue(m)
-			node.SetValue(m, reflect.Zero(v.Type()))
-		}
-		sme.graphMutex.RUnlock()
-		sme.query.UpdateDsc(node)
-
-	} else {
-		// we found some possible mutation nodes for our fake types.node. Lets just take the first one and force our types.node to match it.
-		sme.Logf(DEBUG, "found a matching mutation node for %s. Setting mutators to equal mutation node's requires: %v", nid, pns[0].spec.Requires())
-
-		// loop through all the mutators
-		// if the mutator is the failto, skip
-		// if the mutator is in the requires of this mutation node, set it to whatever it requires
-		// if the mutator isn't either of those, set it to zero
-		sme.graphMutex.RLock()
-		for m := range sme.mutators {
-			if m == d[1] {
-				continue
-			}
-			if val, ok := pns[0].spec.Requires()[m]; ok {
-				n.SetValue(m, val)
-			} else {
-				v, _ := n.GetValue(m)
-				n.SetValue(m, reflect.Zero(v.Type()))
-			}
-		}
-		sme.graphMutex.RUnlock()
-		sme.query.UpdateDsc(n)
-
+	for k := range sme.requires {
+		ms = append(ms, k)
+	}
+	reqs, _ := meld.GetValues(ms)
+	nn := &mutationNode{
+		spec: NewStateSpec(reqs, map[string]reflect.Value{}),
+	}
+	violations, _ := sme.nodeViolatesDeps(sme.deps, nn)
+	sme.Logf(DEBUG, "%s could not devolve, setting failure %s = %s and forgetting values: %v", nid, d[1], util.ValueToString(val), violations)
+	for _, r := range violations {
+		v, _ := n.GetValue(r)
+		sme.query.SetValueDsc(util.NodeURLJoin(nid.String(), r), reflect.Zero(v.Type()))
 	}
 
 	// now send a discover to whatever failed state
@@ -1836,7 +1885,9 @@ func (sme *StateMutationEngine) updateMutation(node string, url string, val refl
 			}
 		}
 		m.curSeen = []string{} // possibly redundant
-		m.timer.Stop()
+		if m.timer != nil {
+			m.timer.Stop()
+		}
 		// are we done?
 		if len(m.chain) == m.cur+1 {
 			// all done!
@@ -1894,6 +1945,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
@@ -1907,6 +1959,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()
@@ -1922,6 +1975,7 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 			if m.timer != nil {
 				m.timer.Stop()
 			}
+			sme.unwaitForService(m)
 			delete(sme.active, node)
 			m.mutex.Unlock()
 			sme.activeMutex.Unlock()

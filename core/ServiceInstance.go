@@ -144,6 +144,9 @@ func (si *ServiceInstance) start() (e error) {
 		return e
 	}
 	si.fork = fork.NewFork("ModuleExecute", ModuleExecute, os.Args[0], "["+si.id+"]")
+	si.fork.Stdin = os.Stdin
+	si.fork.Stdout = os.Stdout
+	si.fork.Stderr = os.Stderr
 	return si.fork.Fork(si.ID(), si.module, si.sock)
 }
 
