@@ -313,6 +313,10 @@ func (is *ImageAPI) Entry() {
 			ValueID: cpb.ServiceInstance_RUN.String(),
 		},
 	)
+	// clear any state discoverable info about images
+	is.api.QuerySetValueDsc(is.api.Self().String(), isURL, ia.ImageSet{
+		Images: map[string]*ia.Image{},
+	})
 	// setup a ticker for polling discovery
 	dur, _ := time.ParseDuration(is.cfg.GetPollingInterval())
 	is.pollTicker = time.NewTicker(dur)
@@ -696,7 +700,7 @@ func (is *ImageAPI) dscChange(name, sub string, value reflect.Value) {
 	ctnURL := util.URLPush(util.URLPush(isURL, "Images"), name)
 	// ok, we had a change in running state
 	v, err := is.api.QueryGetValueDsc(is.api.Self().String(), ctnURL)
-	if err != nil {
+	if err != nil || v == nil {
 		// image was deleted
 		is.fireTriggers(name, ContainerState_DELETED)
 		is.updateSetState()
@@ -710,19 +714,67 @@ func (is *ImageAPI) dscChange(name, sub string, value reflect.Value) {
 		return
 	}
 
-	if idc.Container.State == ContainerState_DEAD {
-		if idc.State != ia.ImageState_ERROR && idc.State != ia.ImageState_FATAL {
-			is.imageRaiseError(name, ia.Image_DIED)
+	if is.fireTriggers(name, idc.Container.State) {
+		// we were expecting this change and we had triggers to fire
+		is.updateSetState()
+		return
+	}
+
+	if sub == "/Container/State" || sub == "" {
+		// there was a change in container state and we weren't expecting it (no triggers)
+		// Let's update the Image state accordingly
+		is.unexpectedStateChange(name)
+		is.updateSetState()
+		return
+	}
+
+	// Action may have been included in a whole-image change
+	if sub == "" && idc.Action != is.getAction(name) {
+		is.activateImage(name)
+		return
+	}
+}
+
+func (is *ImageAPI) unexpectedStateChange(name string) {
+	ctnURL := util.URLPush(util.URLPush(isURL, "Images"), name)
+	dsc, err := is.api.QueryGetValueDsc(is.api.Self().String(), ctnURL)
+	if err != nil {
+		return
+	}
+	idsc := dsc.(ia.Image)
+	cfg, err := is.api.QueryGetValue(is.api.Self().String(), ctnURL)
+	if err != nil {
+		return
+	}
+	icfg := cfg.(ia.Image)
+	target := is.target
+	is.api.Logf(types.LLERROR, "got an unexpected state change for image container %s: %s", name, idsc.Container.State)
+
+	if target == ia.ImageState_IDLE {
+		if idsc.Container.State != ContainerState_DELETED {
+			// we need to delete it
+			is.setAction(name, ia.Image_DELETE)
+			is.deleteImage(name, &icfg)
+			is.setTrigger(name, ContainerState_DELETED, is.clearAction)
 		}
 		return
 	}
 
-	if is.fireTriggers(name, idc.Container.State) {
-		is.updateSetState()
-	}
-	// Action may have been included in a whole-image change
-	if sub == "" && idc.Action != is.getAction(name) {
-		is.activateImage(name)
+	switch idsc.Container.State {
+	case ContainerState_DEAD:
+		if idsc.State != ia.ImageState_ERROR && idsc.State != ia.ImageState_FATAL {
+			is.imageRaiseError(name, ia.Image_DIED)
+		}
+	case ContainerState_EXITED:
+		if icfg.Container.State != ContainerState_EXITED {
+			if idsc.State != ia.ImageState_ERROR && idsc.State != ia.ImageState_FATAL {
+				is.imageRaiseError(name, ia.Image_DIED)
+			}
+		}
+	case ContainerState_RUNNING:
+		// TODO: we should probably deal with unexpected running states
+	case ContainerState_STOPPING:
+	case ContainerState_CREATED:
 	}
 }
 
