@@ -502,7 +502,6 @@ func (is *ImageAPI) setValues(vs map[string]interface{}) {
 		is.api.Logf(types.LLERROR, "setvalues failed: %v: %v", err, vs)
 	}
 	is.mutex.Unlock()
-	is.updateSetState()
 }
 
 /////////////////////
@@ -642,6 +641,7 @@ func (is *ImageAPI) cfgChange(name, sub string) {
 			})
 		}
 	}
+	is.updateSetState()
 }
 
 // updateSetState looks at all of the individual image states and derives the set state
@@ -853,7 +853,6 @@ func (is *ImageAPI) discover() {
 	// we do a query instead of a discover because we're setting various values
 	is.api.QuerySetValueDsc(is.api.Self().String(), isURL, *dset)
 	is.mutex.Unlock()
-	is.updateSetState()
 }
 
 ////////////////////////
