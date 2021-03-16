@@ -495,7 +495,12 @@ func (sme *StateMutationEngine) Run(ready chan<- interface{}) {
 			_, url := util.NodeURLSplit(v.URL())
 			sme.graphMutex.RLock()
 			defer sme.graphMutex.RUnlock()
-			for m := range sme.mutators { // NOTE: doesn't fix beginning slashes, etc
+			for m := range sme.mutators {
+				if url == m {
+					return true
+				}
+			}
+			for m := range sme.requires {
 				if url == m {
 					return true
 				}
