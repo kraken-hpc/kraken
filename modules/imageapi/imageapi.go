@@ -366,15 +366,6 @@ func (is *ImageAPI) mUKtoIDLE(me *core.MutationEvent) {
 	is.mutex.Unlock()
 
 	is.discover()
-	url := util.NodeURLJoin(is.api.Self().String(), issURL)
-	is.dchan <- core.NewEvent(
-		types.Event_DISCOVERY,
-		url,
-		&core.DiscoveryEvent{
-			URL:     url,
-			ValueID: ia.ImageState_IDLE.String(),
-		},
-	)
 }
 
 func (is *ImageAPI) mANYtoACTIVE(me *core.MutationEvent) {
