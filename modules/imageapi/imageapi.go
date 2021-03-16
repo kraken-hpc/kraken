@@ -67,6 +67,10 @@ var discovers = map[string]map[string]reflect.Value{
 		cpb.Node_INIT.String():  reflect.ValueOf(cpb.Node_INIT),
 		cpb.Node_ERROR.String(): reflect.ValueOf(cpb.Node_ERROR),
 	},
+	"/Busy": { // we don't actually discover these, but we need them to be "Discoverable"
+		cpb.Node_BUSY.String(): reflect.ValueOf(cpb.Node_BUSY),
+		cpb.Node_FREE.String(): reflect.ValueOf(cpb.Node_FREE),
+	},
 }
 
 // ismut helps us succinctly define our mutations
