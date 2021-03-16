@@ -401,6 +401,17 @@ func (sse *StateSyncEngine) callParent(p string) {
 	if e != nil {
 		sse.Log(ERROR, e.Error())
 	}
+	// we also shouldn't clobber configured states from auto-loading with UNKNOWN states from the parent
+	curCfg, e := sse.query.Read(rp.Node.ID())
+	if e == nil {
+		for _, s := range rp.Node.GetServices() {
+			if s.State == pb.ServiceInstance_UNKNOWN {
+				// don't clobber
+				cs := curCfg.GetService(s.Id)
+				rp.Node.SetValue(util.URLPush(util.URLPush("/Services", s.Id), "State"), reflect.ValueOf(cs.State))
+			}
+		}
+	}
 	_, e = sse.query.Update(rp.Node)
 	if e != nil {
 		sse.Log(ERROR, e.Error())
@@ -733,7 +744,18 @@ func (sse *StateSyncEngine) processRecv(rp recvPacket) {
 	sse.sortQueue()
 	sse.Logf(DEBUG, "got a hello from: %s", rp.From.String())
 	if n.getParent() {
-		_, e := sse.query.Update(rp.Node)
+		// we shouldn't clobber services that were auto-started if we were given UNKNOWN
+		cur, e := sse.query.Read(rp.Node.ID())
+		if e == nil {
+			for _, s := range rp.Node.GetServices() {
+				if s.State == pb.ServiceInstance_UNKNOWN {
+					// don't clobber
+					cs := cur.GetService(s.Id)
+					rp.Node.SetValue(util.URLPush(util.URLPush("/Services", s.Id), "State"), reflect.ValueOf(cs.State))
+				}
+			}
+		}
+		_, e = sse.query.Update(rp.Node)
 		if e != nil {
 			sse.log.Logf(types.LLERROR, "Received Error while updating cfg: %v", e)
 		}
