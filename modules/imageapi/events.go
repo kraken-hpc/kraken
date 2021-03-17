@@ -163,51 +163,54 @@ func (is *ImageAPI) cfgChange(name, sub string) {
 }
 
 // dsc changes mean something about the container(s) changed
+// We handle four cases:
+// 1) /Action changes, in which case we activate
+// 2) /Container/State changes in which case we fire triggers or handle unexpected
+// 3) /State changes, in which case we call updateSetState
+// 4) "" change, in which case we assume everything changed
 func (is *ImageAPI) dscChange(name, sub string, value reflect.Value) {
-	// Note: currently sub always == "" because map value changes represent a single change
-	if sub == "/Action" {
-		is.activateImage(name)
-		return
-	}
-	if sub != "" && sub != "/State" && sub != "/Container/State" {
-		is.api.Logf(types.LLDDDEBUG, "unhandled dsc change path: %s", sub)
-	}
-	is.api.Logf(types.LLDDDEBUG, "processing dsc change path: %s", sub)
 	ctnURL := util.URLPush(util.URLPush(isURL, "Images"), name)
-	// ok, we had a change in running state
 	v, err := is.api.QueryGetValueDsc(is.api.Self().String(), ctnURL)
 	if err != nil || v == nil {
 		// image was deleted
+		is.api.Logf(types.LLDDDEBUG, "firing any triggers for no longer defined image: %s", name)
 		is.fireTriggers(name, ContainerState_DELETED)
 		is.updateSetState()
-		return
 	}
+
 	idc := v.(ia.Image)
-
-	if idc.Container == nil || idc.Container.State == "" { // deleted
+	if idc.Container == nil { // deleted
+		is.api.Logf(types.LLDDDEBUG, "firing any triggers for no longer defined container: %s", name)
 		is.fireTriggers(name, ContainerState_DELETED)
 		is.updateSetState()
 		return
 	}
 
-	if is.fireTriggers(name, idc.Container.State) {
-		// we were expecting this change and we had triggers to fire
-		is.updateSetState()
-		return
-	}
-
-	if sub == "/Container/State" || sub == "" {
-		// there was a change in container state and we weren't expecting it (no triggers)
-		// Let's update the Image state accordingly
-		is.unexpectedStateChange(name)
-		is.updateSetState()
-		return
-	}
-
-	// Action may have been included in a whole-image change
-	if sub == "" && idc.Action != is.getAction(name) {
+	switch sub {
+	case "/Action":
+		is.api.Logf(types.LLDDDEBUG, "processing dsc change path: %s", sub)
 		is.activateImage(name)
-		return
+	case "/State":
+		is.api.Logf(types.LLDDDEBUG, "processing dsc change path: %s", sub)
+		is.updateSetState()
+	case "":
+		// Action may have been included in a whole-image change
+		if idc.Action != is.getAction(name) {
+			is.activateImage(name)
+		}
+		fallthrough
+	case "/Container/State":
+		is.api.Logf(types.LLDDDEBUG, "processing dsc change path: %s", sub)
+		if is.fireTriggers(name, idc.Container.State) {
+			// we were expecting this change and we had triggers to fire
+			is.updateSetState()
+			return
+		} else {
+			is.unexpectedStateChange(name)
+			is.updateSetState()
+		}
+	default:
+		is.api.Logf(types.LLDDDEBUG, "not processing dsc change path: %s", sub)
 	}
 }
 
