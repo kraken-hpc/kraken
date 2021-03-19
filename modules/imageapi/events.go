@@ -176,6 +176,7 @@ func (is *ImageAPI) dscChange(name, sub string, value reflect.Value) {
 		is.api.Logf(types.LLDDDEBUG, "firing any triggers for no longer defined image: %s", name)
 		is.fireTriggers(name, ContainerState_DELETED)
 		is.updateSetState()
+		return
 	}
 
 	idc := v.(ia.Image)
