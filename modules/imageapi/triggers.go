@@ -10,8 +10,6 @@
 package imageapi
 
 import (
-	"time"
-
 	ia "github.com/hpc/kraken/extensions/imageapi"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
@@ -83,7 +81,6 @@ func (is *ImageAPI) fireTriggers(name, state string) bool {
 
 func (is *ImageAPI) tDelete(name string) {
 	// we use an empty image
-	time.Sleep(5 * time.Second) // FIXME: this is a hack to give rbd/fs time to flush.  This should be fixed in imageapi-server
 	is.deleteImage(name, &ia.Image{})
 }
 
