@@ -68,7 +68,7 @@ ARCH=$1
 # Commands to build into u-root busybox
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
-EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
+EXTRA_COMMANDS+=( github.com/kraken-hpc/uinit/cmds/uinit )
 EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z ${GOPATH+x} ]; then

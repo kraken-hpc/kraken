@@ -16,7 +16,7 @@ import (
 	ia "github.com/hpc/kraken/extensions/imageapi"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
-	"github.com/jlowellwofford/imageapi/client/containers"
+	"github.com/kraken-hpc/imageapi/client/containers"
 )
 
 ////////////////////////

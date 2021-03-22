@@ -79,7 +79,7 @@ fi
 # Commands to build into u-root busybox
 EXTRA_COMMANDS=()
 EXTRA_COMMANDS+=( github.com/jlowellwofford/entropy/cmd/entropy )
-EXTRA_COMMANDS+=( github.com/jlowellwofford/uinit/cmds/uinit )
+EXTRA_COMMANDS+=( github.com/kraken-hpc/uinit/cmds/uinit )
 EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
@@ -125,9 +125,9 @@ for c in "${EXTRA_COMMANDS[@]}"; do
 done
 
 # Resolve the u-root dependency conflict between local copy and that required by
-# github.com/jlowellwofford/uinit according to:
+# github.com/kraken-hpc/uinit according to:
 # https://github.com/u-root/gobusybox#common-dependency-conflicts
-go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root "$GOPATH"/src/github.com/jlowellwofford/uinit/go.mod
+go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root "$GOPATH"/src/github.com/kraken-hpc/uinit/go.mod
 
 # Delete vendor/ directory so that makebb will only see modules and not throw the error:
 # "busybox does not support mixed module/non-module compilation"

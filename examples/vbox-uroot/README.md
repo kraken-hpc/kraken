@@ -213,7 +213,7 @@ Making the image large will likely lead to unexpected problems.
 
 ### Adding a kernel module
 
-The [uinit](https://github.com/jlowellwofford/uinit) process that initializes nodes runs a utility called [modscan](https://github.com/bensallen/modscan) that will automatically add any modules needed for detected hardware.
+The [uinit](https://github.com/kraken-hpc/uinit) process that initializes nodes runs a utility called [modscan](https://github.com/bensallen/modscan) that will automatically add any modules needed for detected hardware.
 
 In the case that you need to add a non-hardware module, e.g. a filesystem driver:
 

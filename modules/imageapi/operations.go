@@ -19,9 +19,9 @@ import (
 	kjson "github.com/hpc/kraken/lib/json"
 	"github.com/hpc/kraken/lib/types"
 	"github.com/hpc/kraken/lib/util"
-	api "github.com/jlowellwofford/imageapi/client"
-	"github.com/jlowellwofford/imageapi/client/containers"
-	"github.com/jlowellwofford/imageapi/models"
+	api "github.com/kraken-hpc/imageapi/client"
+	"github.com/kraken-hpc/imageapi/client/containers"
+	"github.com/kraken-hpc/imageapi/models"
 )
 
 ////////////////////////
