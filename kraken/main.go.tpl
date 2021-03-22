@@ -24,7 +24,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/hpc/kraken/core"
 	"github.com/hpc/kraken/lib/types"
-	"github.com/jlowellwofford/go-fork"
+	"github.com/kraken-hpc/go-fork"
 	"gopkg.in/yaml.v2"
 
 	_ "net/http/pprof"
