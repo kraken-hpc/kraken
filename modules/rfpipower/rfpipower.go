@@ -33,11 +33,11 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	pipb "github.com/hpc/kraken/extensions/rpi3"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	pipb "github.com/kraken-hpc/kraken/extensions/rpi3"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -125,7 +125,7 @@ type RFPiPower struct {
 var _ types.Module = (*RFPiPower)(nil)
 
 // Name returns the FQDN of the module
-func (*RFPiPower) Name() string { return "github.com/hpc/kraken/modules/rfpipower" }
+func (*RFPiPower) Name() string { return "github.com/kraken-hpc/kraken/modules/rfpipower" }
 
 /*
  * types.ModuleWithConfig

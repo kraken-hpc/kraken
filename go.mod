@@ -1,4 +1,4 @@
-module github.com/hpc/kraken
+module github.com/kraken-hpc/kraken
 
 require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
@@ -11,9 +11,9 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/hpc/powerapi v0.0.0-20210204171234-b5c0625fdba5
-	github.com/kraken-hpc/imageapi v0.1.3
 	github.com/kraken-hpc/go-fork v0.1.1
+	github.com/kraken-hpc/imageapi v0.1.3
+	github.com/kraken-hpc/powerapi v0.1.1
 	github.com/mdlayher/raw v0.0.0-20191009151244-50f2db8cc065
 	github.com/pin/tftp v2.1.0+incompatible
 	github.com/satori/go.uuid v1.2.0

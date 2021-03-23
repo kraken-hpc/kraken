@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	"github.com/hpc/kraken/lib/types"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
 	"github.com/pin/tftp"
 )
 

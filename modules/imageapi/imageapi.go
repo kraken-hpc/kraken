@@ -25,11 +25,11 @@ import (
 
 	proto "github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	ia "github.com/hpc/kraken/extensions/imageapi"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	ia "github.com/kraken-hpc/kraken/extensions/imageapi"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 ////////////////////////////////////
@@ -221,7 +221,7 @@ type ImageAPI struct {
 var _ types.Module = (*ImageAPI)(nil)
 
 // Name returns the FQDN of the module
-func (*ImageAPI) Name() string { return "github.com/hpc/kraken/modules/imageapi" }
+func (*ImageAPI) Name() string { return "github.com/kraken-hpc/kraken/modules/imageapi" }
 
 /*
  * types.ModuleWithAllEvents

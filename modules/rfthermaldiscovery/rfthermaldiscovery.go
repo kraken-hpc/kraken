@@ -25,12 +25,12 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	thpb "github.com/hpc/kraken/extensions/rfthermal"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	thpb "github.com/kraken-hpc/kraken/extensions/rfthermal"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -72,7 +72,7 @@ type RFD struct {
 }
 
 // Name returns the FQDN of the module
-func (*RFD) Name() string { return "github.com/hpc/kraken/modules/rfthermaldiscovery" }
+func (*RFD) Name() string { return "github.com/kraken-hpc/kraken/modules/rfthermaldiscovery" }
 
 // NewConfig returns a fully initialized default config
 func (*RFD) NewConfig() proto.Message {

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	proto "github.com/gogo/protobuf/proto"
-	pb "github.com/hpc/kraken/core/proto"
+	pb "github.com/kraken-hpc/kraken/core/proto"
 )
 
 const ProtoUrlPrefix = "type.googleapis.com/"

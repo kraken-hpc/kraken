@@ -12,14 +12,14 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/ipv4
-  - github.com/hpc/kraken/extensions/rpi3
-  - github.com/hpc/kraken/extensions/rfthermal
-  - github.com/hpc/kraken/extensions/rfaggregatorserver
+  - github.com/kraken-hpc/kraken/extensions/ipv4
+  - github.com/kraken-hpc/kraken/extensions/rpi3
+  - github.com/kraken-hpc/kraken/extensions/rfthermal
+  - github.com/kraken-hpc/kraken/extensions/rfaggregatorserver
 
 # included modules
 modules:
-  - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/rfpipower
-  - github.com/hpc/kraken/modules/pipxe
-  - github.com/hpc/kraken/modules/rfthermaldiscovery
+  - github.com/kraken-hpc/kraken/modules/restapi
+  - github.com/kraken-hpc/kraken/modules/rfpipower
+  - github.com/kraken-hpc/kraken/modules/pipxe
+  - github.com/kraken-hpc/kraken/modules/rfthermaldiscovery

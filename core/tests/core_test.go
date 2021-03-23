@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/core/proto"
-	ct "github.com/hpc/kraken/core/proto/customtypes"
-	_ "github.com/hpc/kraken/extensions/ipv4"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
+	. "github.com/kraken-hpc/kraken/core"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	ct "github.com/kraken-hpc/kraken/core/proto/customtypes"
+	_ "github.com/kraken-hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
 )
 
 func TestNewNodeWithID(t *testing.T) {

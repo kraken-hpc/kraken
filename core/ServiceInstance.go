@@ -19,8 +19,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 
-	"github.com/hpc/kraken/lib/types"
 	fork "github.com/kraken-hpc/go-fork"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 ////////////////////////////

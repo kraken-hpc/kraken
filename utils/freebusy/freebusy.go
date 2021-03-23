@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib/util"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/lib/util"
 	"google.golang.org/grpc"
 )
 

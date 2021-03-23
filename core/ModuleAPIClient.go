@@ -18,9 +18,9 @@ import (
 
 	ptypes "github.com/gogo/protobuf/types"
 
-	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 	"google.golang.org/grpc"
 )
 

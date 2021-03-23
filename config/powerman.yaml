@@ -9,11 +9,11 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/ipv4
-  - github.com/hpc/kraken/extensions/powerman
+  - github.com/kraken-hpc/kraken/extensions/ipv4
+  - github.com/kraken-hpc/kraken/extensions/powerman
 
 # included modules
 modules:
-  - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/websocket
-  - github.com/hpc/kraken/modules/powermancontrol
+  - github.com/kraken-hpc/kraken/modules/restapi
+  - github.com/kraken-hpc/kraken/modules/websocket
+  - github.com/kraken-hpc/kraken/modules/powermancontrol

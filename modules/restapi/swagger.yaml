@@ -4,10 +4,10 @@ info:
   version: "1.0.0"
   title: "Kraken"
   contact:
-    url: "https://github.com/hpc/kraken"
+    url: "https://github.com/kraken-hpc/kraken"
   license:
     name: "BSD 3"
-    url: "https://raw.githubusercontent.com/hpc/kraken/master/LICENSE"
+    url: "https://raw.githubusercontent.com/kraken-hpc/kraken/main/LICENSE"
 tags:
   - name: "cfg"
     description: "Read and manipulate configuration state"
@@ -423,7 +423,7 @@ paths:
       tags:
         - "miscellaneous"
       summary: "Get url to start a websocket session"
-      description: "Returns an object with information to start a websocket connection with Kraken. From there you are able to subscribe to different events in kraken. See the [Kraken dashboard](https://github.com/hpc/kraken-dashboard) as an example"
+      description: "Returns an object with information to start a websocket connection with Kraken. From there you are able to subscribe to different events in kraken. See the [Kraken dashboard](https://github.com/kraken-hpc/kraken-dashboard) as an example"
       produces:
         - "application/json"
       responses:

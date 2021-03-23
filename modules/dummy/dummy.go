@@ -19,10 +19,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	corepb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	corepb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 // This is a simple module example
@@ -167,7 +167,7 @@ func (d *Dummy) Stop() {
 // Every module must have a name.
 // The URL to the module is a good choice.
 func (d *Dummy) Name() string {
-	return "github.com/hpc/kraken/modules/dummy"
+	return "github.com/kraken-hpc/kraken/modules/dummy"
 }
 
 /*

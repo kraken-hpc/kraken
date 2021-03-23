@@ -30,12 +30,12 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	scalpb "github.com/hpc/kraken/extensions/hostfrequencyscaler"
-	hostthpb "github.com/hpc/kraken/extensions/hostthermal"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	scalpb "github.com/kraken-hpc/kraken/extensions/hostfrequencyscaler"
+	hostthpb "github.com/kraken-hpc/kraken/extensions/hostthermal"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 // CPUPerfScalingReq is payload for RFAggregator API call
@@ -221,7 +221,7 @@ var _ types.ModuleWithDiscovery = (*HFS)(nil)
 var _ types.ModuleSelfService = (*HFS)(nil)
 
 // Name returns the FQDN of the module
-func (*HFS) Name() string { return "github.com/hpc/kraken/modules/hostfrequencyscaling" }
+func (*HFS) Name() string { return "github.com/kraken-hpc/kraken/modules/hostfrequencyscaling" }
 
 // NewConfig returns a fully initialized default config
 func (*HFS) NewConfig() proto.Message {

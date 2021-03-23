@@ -28,12 +28,12 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	rpipb "github.com/hpc/kraken/extensions/rpi3"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	rpipb "github.com/kraken-hpc/kraken/extensions/rpi3"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -172,7 +172,7 @@ func (px *PiPXE) NodeCreate(n types.Node) (e error) {
 var _ types.Module = (*PiPXE)(nil)
 
 // Name returns the FQDN of the module
-func (*PiPXE) Name() string { return "github.com/hpc/kraken/modules/pipxe" }
+func (*PiPXE) Name() string { return "github.com/kraken-hpc/kraken/modules/pipxe" }
 
 /*
  * types.ModuleWithConfig

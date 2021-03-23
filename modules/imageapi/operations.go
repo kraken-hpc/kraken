@@ -15,13 +15,13 @@ import (
 
 	transport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	ia "github.com/hpc/kraken/extensions/imageapi"
-	kjson "github.com/hpc/kraken/lib/json"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
 	api "github.com/kraken-hpc/imageapi/client"
 	"github.com/kraken-hpc/imageapi/client/containers"
 	"github.com/kraken-hpc/imageapi/models"
+	ia "github.com/kraken-hpc/kraken/extensions/imageapi"
+	kjson "github.com/kraken-hpc/kraken/lib/json"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 ////////////////////////
