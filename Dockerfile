@@ -9,33 +9,31 @@
 ################################################################################
 
 ### Build Arguments (override via "--build-arg")
-ARG GOARCH="${GOARCH:-amd64}"
-ARG GOOS="${GOOS:-linux}"
-ARG GOPATH="${GOPATH:-/go}"
 ARG GOVER="1.15"
+ARG ALPINE="3.13"
 
 ################################################################################
 ### Container #1:  Alpine-based Go dev env with Kraken built & installed
 ################################################################################
-FROM golang:${GOVER}-alpine AS kraken-build
+FROM docker.io/library/golang:${GOVER}-alpine AS kraken-build
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
-ARG GOOS
-ARG GOARCH
-ARG GOPATH
-ARG GOVER
+ARG GOARCH="${GOARCH:-amd64}"
+ARG GOOS="${GOOS:-linux}"
+ARG KRCFG="${KRCFG:-config/kraken.yaml}"
 
 WORKDIR "${GOPATH}/src/kraken"
 COPY . .
 
-#RUN go get -d -v ...
+RUN env \
+    && go build -v -o "${GOPATH}/bin/kraken-build-${GOOS}-${GOARCH}" kraken-build.go \
+    && cp -a "${GOPATH}/bin/kraken-build-${GOOS}-${GOARCH}" /sbin/ \
+    && ln -s "kraken-build-${GOOS}-${GOARCH}" /sbin/kraken-build
 
-RUN export GOARCH="${GOARCH:-amd64}" GOOS="${GOOS:-linux}" GOPATH="${GOPATH:-/go}" \
-        && go build -v -o "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" \
-        && go install -v \
-        && cp -a "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" /sbin/ \
-        && ln -s "kraken-${GOOS}-${GOARCH}" /sbin/kraken \
-        && rm -rf "${GOPATH}/pkg"
+RUN kraken-build -config "${KRCFG}" -dir "${GOPATH}/bin" \
+    && cp -a "${GOPATH}/bin/kraken-${GOOS}-${GOARCH}" /sbin/ \
+    && ln -s "kraken-${GOOS}-${GOARCH}" /sbin/kraken \
+    && rm -rf "${GOPATH}/pkg"
 
 ENTRYPOINT [ "/sbin/kraken" ]
 CMD [ "--help" ]
@@ -45,7 +43,7 @@ CMD [ "--help" ]
 ################################################################################
 ### Container #2:  Pure Alpine container (no Go) with Kraken copied in
 ################################################################################
-FROM alpine:3 AS kraken-alpine
+FROM docker.io/library/alpine:${ALPINE} AS kraken-alpine
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY --from=kraken-build /sbin/kraken /sbin/kraken
@@ -58,7 +56,7 @@ CMD [ "--help" ]
 ################################################################################
 ### Container #3:  Nothing but the Kraken executable (composable/sidecar)
 ################################################################################
-FROM scratch AS kraken-exe
+FROM scratch AS kraken
 LABEL maintainer="Michael Jennings <mej@lanl.gov>"
 
 COPY --from=kraken-build /sbin/kraken /sbin/kraken

@@ -20,7 +20,7 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/hpc/kraken/lib/types"
-	fork "github.com/jlowellwofford/go-fork"
+	fork "github.com/kraken-hpc/go-fork"
 )
 
 ////////////////////////////

@@ -10,6 +10,7 @@ extensions:
   - github.com/hpc/kraken/extensions/ipv4
   - github.com/hpc/kraken/extensions/vbox
   - github.com/hpc/kraken/extensions/pxe
+  - github.com/hpc/kraken/extensions/imageapi
 
 # included modules
 modules:
@@ -17,3 +18,4 @@ modules:
   - github.com/hpc/kraken/modules/websocket
   - github.com/hpc/kraken/modules/vboxmanage
   - github.com/hpc/kraken/modules/pxe
+  - github.com/hpc/kraken/modules/imageapi

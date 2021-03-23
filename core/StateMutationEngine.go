@@ -95,6 +95,36 @@ type mutationPath struct {
 	waitingFor string // the SI we're currently waiting for
 }
 
+// sme tests to see if a new path is really the same as an existing one
+// same tests if one of the following is true:
+// 1) these paths are the same
+// 2) sub is a subpath of mp and:
+//   a) subpath starts at mp.cur
+//   b) subpath ends at mp.gend
+func (mp *mutationPath) same(sub *mutationPath) bool {
+	mp.mutex.Lock()
+	defer mp.mutex.Unlock()
+	sub.mutex.Lock()
+	defer sub.mutex.Unlock()
+	if sub.gend != mp.gend {
+		// this must be true in either case
+		return false
+	}
+	if sub.gstart == mp.gstart {
+		return true
+	}
+	if mp.chain[mp.cur].from == sub.gstart {
+		return true
+	}
+	return false
+}
+
+// alreadyFired tests to see if the curren mp has already fired our first mutation for new mp
+func (mp *mutationPath) alreadyFired(nmp *mutationPath) bool {
+	// generall nmp.cur == 0, but no reason not to make this more generic
+	return mp.chain[mp.cur].mut == nmp.chain[nmp.cur].mut
+}
+
 // DefaultRootSpec provides a sensible root StateSpec to build the mutation graph off of
 func DefaultRootSpec() types.StateSpec {
 	return NewStateSpec(map[string]reflect.Value{"/PhysState": reflect.ValueOf(pb.Node_PHYS_UNKNOWN)}, map[string]reflect.Value{})
@@ -1504,13 +1534,35 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
 		return
 	}
+	sme.activeMutex.Lock()
+	alreadyFired := false
+	if cur, ok := sme.active[node]; ok {
+		// is this really a new path?
+		if cur.same(p) {
+			// this is not a change
+			sme.Logf(DDEBUG, "%s startNewMutation called, but found path is same as current path", nid.String())
+			sme.activeMutex.Unlock()
+			return
+		}
+		if cur.alreadyFired(p) {
+			// we're already performing the mut we need
+			alreadyFired = true
+		} else {
+			// we need to cleanup the old mutation
+			cur.mutex.Lock()
+			if cur.timer != nil {
+				cur.timer.Stop()
+			}
+			sme.unwaitForService(cur)
+			cur.mutex.Unlock()
+		}
+	}
 	// new mutation, record it, and start it in motion
 
 	// we need to hold the path mutex for the rest of this function
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	sme.activeMutex.Lock()
 	sme.active[node] = p
 	sme.activeMutex.Unlock()
 	sme.Logf(DEBUG, "started new mutation for %s (1/%d).", nid.String(), len(p.chain))
@@ -1518,14 +1570,19 @@ func (sme *StateMutationEngine) startNewMutation(node string) {
 		if sme.waitForServices(p) {
 			return
 		}
-		sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", p.chain[p.cur].mut.Timeout().String())
-		sme.emitMutation(end, start, p.chain[p.cur].mut)
-		if p.chain[p.cur].mut.Timeout() != 0 {
-			if p.timer != nil {
-				// Stop old timer if it exists
-				p.timer.Stop()
+		if !alreadyFired {
+			sme.Logf(DDEBUG, "firing mutation in context, timeout %s.", p.chain[p.cur].mut.Timeout().String())
+			sme.emitMutation(end, start, p.chain[p.cur].mut)
+			if p.chain[p.cur].mut.Timeout() != 0 {
+				if p.timer != nil {
+					// Stop old timer if it exists
+					p.timer.Stop()
+				}
+				p.timer = time.AfterFunc(p.chain[p.cur].mut.Timeout(), func() { sme.emitFail(start, p) })
 			}
-			p.timer = time.AfterFunc(p.chain[p.cur].mut.Timeout(), func() { sme.emitFail(start, p) })
+		} else {
+			// already fired
+			sme.Logf(DDEBUG, "%s starting new mutation chain, but current mutation was already fired by previous chain", nid.String())
 		}
 	} else {
 		sme.Log(DDEBUG, "mutation is not in our context.")
@@ -1826,7 +1883,8 @@ func (sme *StateMutationEngine) handleUnexpected(node, url string, val reflect.V
 			sme.Logf(DEBUG, "%s discovered that we're already where we want to be", nid.String())
 			return
 		}
-		// update the chain & increment
+
+		// update & advance
 		sme.Logf(DEBUG, "%s found a new path", node)
 		m.chain = append(m.chain[:m.cur+1], p.chain...)
 		sme.advanceMutation(node, m)
@@ -1994,18 +2052,6 @@ func (sme *StateMutationEngine) handleEvent(v types.Event) {
 		sme.updateMutation(node, url, sce.Value)
 	case StateChange_CFG_UPDATE:
 		// for a cfg update, we need to create a new chain
-		if ok {
-			sme.activeMutex.Lock()
-			m := sme.active[node]
-			m.mutex.Lock()
-			if m.timer != nil {
-				m.timer.Stop()
-			}
-			sme.unwaitForService(m)
-			delete(sme.active, node)
-			m.mutex.Unlock()
-			sme.activeMutex.Unlock()
-		}
 		sme.Logf(DEBUG, "our cfg has changed, creating new mutaiton path: %s:%s", node, url)
 		sme.startNewMutation(node)
 	default:
