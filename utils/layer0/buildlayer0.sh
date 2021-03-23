@@ -5,7 +5,7 @@
 # 
 # Notes:
 # - It's not very resilient.
-# - It expects you already have built kraken in $GOPATH/github.com/hpc/kraken/build
+# - It expects you already have built kraken in $GOPATH/github.com/kraken-hpc/kraken/build
 # - It will attempt to install u-root if it doesn't find it in $GOPATH/bin
 # - You can overlay a base directory by providing a second argument.
 # 
@@ -22,7 +22,7 @@ usage() {
         echo "  <out_file> is the file the image should be written to.  (default: initramfs.<date>.<img>.cpio.gz)"
         echo "  <base_dir> is an optional base directory containing file/directory structure (default: none)"
         echo "             that should be added to the image"
-        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/hpc/kraken)"
+        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/kraken-hpc/kraken)"
         echo "  <kraken_build_dir> is specifies an alternate path to where to look for built kraken binaries (default: kraken_source_dir/build)"
 }
 
@@ -77,7 +77,7 @@ if [ -z ${GOPATH+x} ]; then
 fi
 
 if [ -z ${KRAKEN_SOURCEDIR+x} ]; then
-    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
+    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/kraken-hpc/kraken"
     echo "Using kraken source dir $KRAKEN_SOURCEDIR"
 fi
 

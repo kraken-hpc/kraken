@@ -21,10 +21,10 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
-	"github.com/hpc/kraken/core"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 	"golang.org/x/net/ipv4"
 )
 

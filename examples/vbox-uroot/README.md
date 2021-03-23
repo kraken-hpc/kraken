@@ -59,7 +59,7 @@ When running in WSL mode, all commands should be run from the *Linux* side.
 You need a copy of Kraken to continue.  Choose a good working directory and run:
 
 ```bash
-$ git clone https://github.com/hpc/kraken
+$ git clone https://github.com/kraken-hpc/kraken
 Cloning into 'kraken'...
 remote: Enumerating objects: 43, done.
 remote: Counting objects: 100% (43/43), done.
@@ -194,7 +194,7 @@ There are a number of helper scripts in this directory.  Here's what they do:
 
 ## How to use your own fork/branch
 
-For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master".
+For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/kraken-hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master".
 
 ## Using custom kraken-build args
 

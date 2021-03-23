@@ -27,12 +27,12 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	pxepb "github.com/hpc/kraken/extensions/pxe"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	pxepb "github.com/kraken-hpc/kraken/extensions/pxe"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -166,7 +166,7 @@ func (px *PXE) NodeCreate(n types.Node) (e error) {
 var _ types.Module = (*PXE)(nil)
 
 // Name returns the FQDN of the module
-func (*PXE) Name() string { return "github.com/hpc/kraken/modules/pxe" }
+func (*PXE) Name() string { return "github.com/kraken-hpc/kraken/modules/pxe" }
 
 /*
  * types.ModuleWithConfig

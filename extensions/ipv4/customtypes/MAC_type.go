@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 var _ (types.ExtensionCustomType) = IP{}

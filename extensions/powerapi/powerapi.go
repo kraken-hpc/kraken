@@ -1,4 +1,4 @@
-/* PowerAPI.go: extenion to use PowerAI (github.com/hpc/powerapi)
+/* PowerAPI.go: extenion to use PowerAI (github.com/kraken-hpc/powerapi)
 *
 * Author: J. Lowell Wofford
 *
@@ -10,8 +10,8 @@
 package powerapi
 
 import (
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 //go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugins=grpc:. powerapi-node.proto

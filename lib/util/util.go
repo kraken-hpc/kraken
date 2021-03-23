@@ -17,7 +17,7 @@ import (
 
 	proto "github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 // MessageDiff compares a & b, returns a slice of differing field names

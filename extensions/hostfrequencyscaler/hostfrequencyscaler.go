@@ -1,8 +1,8 @@
 package hostfrequencyscaler
 
 import (
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 //go:generate protoc -I ../../core/proto/src -I . --gogo_out=plugin=grpc:. hostfrequencyscaler.proto

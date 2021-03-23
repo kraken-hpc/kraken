@@ -6,15 +6,15 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/imageapi
-  - github.com/hpc/kraken/extensions/ipv4
-  - github.com/hpc/kraken/extensions/powerapi
-  - github.com/hpc/kraken/extensions/pxe
+  - github.com/kraken-hpc/kraken/extensions/imageapi
+  - github.com/kraken-hpc/kraken/extensions/ipv4
+  - github.com/kraken-hpc/kraken/extensions/powerapi
+  - github.com/kraken-hpc/kraken/extensions/pxe
 
 # included modules
 modules:
-  - github.com/hpc/kraken/modules/imageapi
-  - github.com/hpc/kraken/modules/powerapi
-  - github.com/hpc/kraken/modules/pxe
-  - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/websocket
+  - github.com/kraken-hpc/kraken/modules/imageapi
+  - github.com/kraken-hpc/kraken/modules/powerapi
+  - github.com/kraken-hpc/kraken/modules/pxe
+  - github.com/kraken-hpc/kraken/modules/restapi
+  - github.com/kraken-hpc/kraken/modules/websocket

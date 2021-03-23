@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Kraken is a distributed state engine for scalable system boot and automation
 Group:          Applications/System
 License:        BSD-3
-URL:            https://github.com/hpc/kraken
+URL:            https://github.com/kraken-hpc/kraken
 Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  go, golang >= 1.15, golang-bin, golang-src %define  debug_package %{nil}
 
@@ -109,8 +109,8 @@ build/kraken-native -state "/etc/kraken/state.json" -noprefix -sdnotify -printrc
 %if %{with initramfs}
 # build initramfs
 export GOPATH=%{_builddir}/go
-mkdir -p $GOPATH/src/github.com/hpc
-ln -s $PWD $GOPATH/src/github.com/hpc/kraken
+mkdir -p $GOPATH/src/github.com/kraken-hpc
+ln -s $PWD $GOPATH/src/github.com/kraken-hpc/kraken
 bash utils/layer0/buildlayer0_uroot.sh -o initramfs-base-%{GoBuildArch}.gz %{GoBuildArch}
 
 chmod -R u+w $GOPATH

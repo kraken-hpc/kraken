@@ -12,8 +12,8 @@
 package ipv4
 
 import (
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 const Name = "type.googleapis.com/IPv4.IPv4OverEthernet"

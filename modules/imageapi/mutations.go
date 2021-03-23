@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hpc/kraken/core"
-	ia "github.com/hpc/kraken/extensions/imageapi"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	ia "github.com/kraken-hpc/kraken/extensions/imageapi"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 ////////////////////////

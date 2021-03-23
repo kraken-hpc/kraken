@@ -5,7 +5,7 @@
 #
 # Notes:
 # - It's not very resilient.
-# - It expects you already have built kraken in $GOPATH/github.com/hpc/kraken/build
+# - It expects you already have built kraken in $GOPATH/github.com/kraken-hpc/kraken/build
 # - It will attempt to install u-root if it doesn't find it in $GOPATH/bin
 # - You can overlay a base directory by providing a second argument.
 #
@@ -22,7 +22,7 @@ usage() {
         echo "  <out_file> is the file the image should be written to.  (default: initramfs.<date>.<img>.cpio.gz)"
         echo "  <base_dir> is an optional base directory containing file/directory structure (default: none)"
         echo "             that should be added to the image"
-        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/hpc/kraken)"
+        echo "  <kraken_source_dir> is the location of the kraken source (default: GOPATH/src/github.com/kraken-hpc/kraken)"
         echo "  <kraken_build_dir> specifies an alternate path where to look for the generated kraken source"
         echo "             tree to be used by u-root (default: <kraken_source_dir>/build)"
 }
@@ -83,7 +83,7 @@ EXTRA_COMMANDS+=( github.com/kraken-hpc/uinit/cmds/uinit )
 EXTRA_COMMANDS+=( github.com/bensallen/modscan/cmd/modscan )
 
 if [ -z "${KRAKEN_SOURCEDIR+x}" ]; then
-    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/hpc/kraken"
+    KRAKEN_SOURCEDIR="$GOPATH/src/github.com/kraken-hpc/kraken"
     echo "Using kraken source dir $KRAKEN_SOURCEDIR"
 fi
 
@@ -142,7 +142,7 @@ go mod edit -replace=github.com/u-root/u-root=../../u-root/u-root "$GOPATH"/src/
 
 # Generate the array of commands to add to BusyBox binary
 BB_COMMANDS=( "$GOPATH"/src/github.com/u-root/u-root/cmds/{core,boot,exp}/* )
-BB_COMMANDS+=( "$GOPATH"/src/github.com/hpc/kraken/build/u-root/kraken )
+BB_COMMANDS+=( "$GOPATH"/src/github.com/kraken-hpc/kraken/build/u-root/kraken )
 # shellcheck disable=SC2068
 for cmd in ${EXTRA_COMMANDS[@]}; do
     BB_COMMANDS+=( "$GOPATH"/src/"$cmd" )

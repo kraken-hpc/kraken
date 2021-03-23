@@ -3,8 +3,8 @@ package core
 import (
 	"fmt"
 
-	. "github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
+	. "github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 // TestEventDispatchEngine tests that NewEventDispatchEngine initializes correctly

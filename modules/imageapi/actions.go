@@ -9,7 +9,7 @@
 
 package imageapi
 
-import ia "github.com/hpc/kraken/extensions/imageapi"
+import ia "github.com/kraken-hpc/kraken/extensions/imageapi"
 
 //////////////////////
 // Action handling //

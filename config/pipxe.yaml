@@ -12,16 +12,16 @@ targets:
 
 # included extensions
 extensions:
-  - github.com/hpc/kraken/extensions/ipv4
-  - github.com/hpc/kraken/extensions/rpi3
-  - github.com/hpc/kraken/extensions/hostthermal
-  - github.com/hpc/kraken/extensions/hostfrequencyscaler
+  - github.com/kraken-hpc/kraken/extensions/ipv4
+  - github.com/kraken-hpc/kraken/extensions/rpi3
+  - github.com/kraken-hpc/kraken/extensions/hostthermal
+  - github.com/kraken-hpc/kraken/extensions/hostfrequencyscaler
 # included modules
 modules:
-  - github.com/hpc/kraken/modules/restapi
-  - github.com/hpc/kraken/modules/websocket
-  - github.com/hpc/kraken/modules/rfpipower
-  - github.com/hpc/kraken/modules/pipxe
-  - github.com/hpc/kraken/modules/hostthermaldiscovery
-  - github.com/hpc/kraken/modules/hostfrequencyscaling
-  - github.com/hpc/kraken/modules/cpuburn
+  - github.com/kraken-hpc/kraken/modules/restapi
+  - github.com/kraken-hpc/kraken/modules/websocket
+  - github.com/kraken-hpc/kraken/modules/rfpipower
+  - github.com/kraken-hpc/kraken/modules/pipxe
+  - github.com/kraken-hpc/kraken/modules/hostthermaldiscovery
+  - github.com/kraken-hpc/kraken/modules/hostfrequencyscaling
+  - github.com/kraken-hpc/kraken/modules/cpuburn

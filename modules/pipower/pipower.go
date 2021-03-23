@@ -32,11 +32,11 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	pipb "github.com/hpc/kraken/extensions/rpi3"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	pipb "github.com/kraken-hpc/kraken/extensions/rpi3"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -118,7 +118,7 @@ type PiPower struct {
 var _ types.Module = (*PiPower)(nil)
 
 // Name returns the FQDN of the module
-func (*PiPower) Name() string { return "github.com/hpc/kraken/modules/pipower" }
+func (*PiPower) Name() string { return "github.com/kraken-hpc/kraken/modules/pipower" }
 
 /*
  * types.ModuleWithConfig

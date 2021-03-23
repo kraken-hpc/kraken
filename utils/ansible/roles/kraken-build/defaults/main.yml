@@ -1,6 +1,6 @@
 ---
-kr_url: github.com/hpc/kraken
-kr_repo: https://github.com/hpc/kraken.git
+kr_url: github.com/kraken-hpc/kraken
+kr_repo: https://github.com/kraken-hpc/kraken.git
 kr_repo_version: master
 kr_build_args: "-v -force"
 kr_src_dir: "/home/vagrant/kraken-src"

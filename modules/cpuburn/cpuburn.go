@@ -24,11 +24,11 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 
-	cpb "github.com/hpc/kraken/core/proto"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
 )
 
 // SrvStateURL is the URL For this service instance
@@ -65,7 +65,7 @@ type CPUBurn struct {
 
 // Name returns a unique URL name for the module
 // Module
-func (*CPUBurn) Name() string { return "github.com/hpc/kraken/modules/cpuburn" }
+func (*CPUBurn) Name() string { return "github.com/kraken-hpc/kraken/modules/cpuburn" }
 
 // Entry provides the module entry point
 // ModuleSelfService

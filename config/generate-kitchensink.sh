@@ -13,7 +13,7 @@ fi
 
 KRAKEN_SRC="$1"
 
-PKG="github.com/hpc/kraken"
+PKG="github.com/kraken-hpc/kraken"
 CONFIG_FILE="$KRAKEN_SRC/config/kitchensink.yaml"
 EXTENSIONS_DIR="$KRAKEN_SRC/extensions"
 MODULES_DIR="$KRAKEN_SRC/modules"

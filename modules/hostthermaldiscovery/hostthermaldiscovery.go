@@ -23,12 +23,12 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	scalpb "github.com/hpc/kraken/extensions/hostfrequencyscaler"
-	thpb "github.com/hpc/kraken/extensions/hostthermal"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	scalpb "github.com/kraken-hpc/kraken/extensions/hostfrequencyscaler"
+	thpb "github.com/kraken-hpc/kraken/extensions/hostthermal"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 //CPUTempObj is strututure for node CPU temperature
@@ -76,7 +76,7 @@ type HostDisc struct {
 }
 
 // Name returns the FQDN of the module
-func (*HostDisc) Name() string { return "github.com/hpc/kraken/modules/hostthermaldiscovery" }
+func (*HostDisc) Name() string { return "github.com/kraken-hpc/kraken/modules/hostthermaldiscovery" }
 
 // NewConfig returns a fully initialized default config
 func (*HostDisc) NewConfig() proto.Message {

@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/hpc/kraken/lib/copy"
+	"github.com/kraken-hpc/kraken/lib/copy"
 )
 
 const (

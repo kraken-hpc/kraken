@@ -22,17 +22,17 @@ import (
 
 	"github.com/coreos/go-systemd/daemon"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
 	"github.com/kraken-hpc/go-fork"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 	"gopkg.in/yaml.v2"
 
 	_ "net/http/pprof"
 
-	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/extensions/ipv4"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	rpb "github.com/hpc/kraken/modules/restapi"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/extensions/ipv4"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	rpb "github.com/kraken-hpc/kraken/modules/restapi"
 	uuid "github.com/satori/go.uuid"
 )
 

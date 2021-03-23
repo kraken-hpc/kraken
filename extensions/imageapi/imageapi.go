@@ -10,8 +10,8 @@
 package imageapi
 
 import (
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 //go:generate protoc -I ../../core/proto/src -I proto/ --gogo_out=plugins=grpc:. proto/imageapi.proto proto/generated.proto

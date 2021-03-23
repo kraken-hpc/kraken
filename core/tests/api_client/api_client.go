@@ -7,9 +7,9 @@ import (
 	"time"
 
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	pbd "github.com/hpc/kraken/modules/dummy"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	pbd "github.com/kraken-hpc/kraken/modules/dummy"
 )
 
 func main() {

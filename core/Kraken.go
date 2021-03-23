@@ -18,9 +18,9 @@ import (
 	"time"
 
 	any "github.com/gogo/protobuf/types"
-	pb "github.com/hpc/kraken/core/proto"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	"github.com/hpc/kraken/lib/types"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 ////////////////////////

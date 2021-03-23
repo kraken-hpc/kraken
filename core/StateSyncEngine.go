@@ -23,11 +23,11 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/hpc/kraken/core/proto"
-	ct "github.com/hpc/kraken/core/proto/customtypes"
-	ipv4t "github.com/hpc/kraken/extensions/ipv4/customtypes"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	ct "github.com/kraken-hpc/kraken/core/proto/customtypes"
+	ipv4t "github.com/kraken-hpc/kraken/extensions/ipv4/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"

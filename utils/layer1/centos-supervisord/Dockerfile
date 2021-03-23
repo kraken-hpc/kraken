@@ -5,7 +5,7 @@
 # Pull base image.
 FROM centos:7
 
-LABEL org.label-schema.vcs-url="https://github.com/hpc/kraken" \
+LABEL org.label-schema.vcs-url="https://github.com/kraken-hpc/kraken" \
   org.label-schema.docker.cmd="docker run -dt -p 6818:6818 -p 3222:22 -h c1 --name layer1 --security-opt='seccomp=unconfined' kraken/layer1-supervisord:1.0" \
   org.label-schema.name="layer1-supervisord" \
   org.label-schema.description="Layer1 running CentOS 7 with supervisord" \

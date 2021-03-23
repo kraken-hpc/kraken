@@ -15,9 +15,9 @@ import (
 	"reflect"
 	"sync"
 
-	ct "github.com/hpc/kraken/core/proto/customtypes"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	ct "github.com/kraken-hpc/kraken/core/proto/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 //////////////////

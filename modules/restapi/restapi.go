@@ -27,11 +27,11 @@ import (
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 
-	cpb "github.com/hpc/kraken/core/proto"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
 )
 
 var _ types.Module = (*RestAPI)(nil)
@@ -63,7 +63,7 @@ func (r *RestAPI) Entry() {
 
 func (r *RestAPI) Stop() { os.Exit(0) }
 
-func (r *RestAPI) Name() string { return "github.com/hpc/kraken/modules/restapi" }
+func (r *RestAPI) Name() string { return "github.com/kraken-hpc/kraken/modules/restapi" }
 
 func (r *RestAPI) UpdateConfig(cfg proto.Message) (e error) {
 	if rc, ok := cfg.(*Config); ok {

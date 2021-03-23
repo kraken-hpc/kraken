@@ -28,10 +28,10 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
-	"github.com/hpc/kraken/core"
-	cpb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 const (
@@ -116,7 +116,7 @@ type VBM struct {
 var _ types.Module = (*VBM)(nil)
 
 // Name returns the FQDN of the module
-func (*VBM) Name() string { return "github.com/hpc/kraken/modules/vboxmanage" }
+func (*VBM) Name() string { return "github.com/kraken-hpc/kraken/modules/vboxmanage" }
 
 /*
  * types.ModuleWithConfig
