@@ -125,11 +125,28 @@ func (s *ModuleAPIServer) QueryUpdate(ctx context.Context, in *pb.Query) (out *p
 		return
 	}
 	nin := NewNodeFromMessage(pbin)
-	var nout types.Node
-	nout, e = s.query.Update(nin)
 	out.URL = in.URL
-	if nout != nil {
-		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
+	if in.Filter == nil || len(in.Filter) == 0 {
+		// whole node update
+		var nout types.Node
+		nout, e = s.query.Update(nin)
+		if nout != nil {
+			out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
+		}
+	} else {
+		// this is a setvalue update
+		out.Filter = []string{}
+		out.Payload = in.Payload // should we actually update this? seems unnecessarily costly
+		for _, f := range in.Filter {
+			v, e := nin.GetValue(f)
+			if e != nil {
+				return nil, e
+			}
+			if _, e = s.query.SetValue(util.NodeURLJoin(nin.ID().String(), f), v); e != nil {
+				continue
+			}
+			out.Filter = append(out.Filter, f)
+		}
 	}
 	return
 }
@@ -142,11 +159,28 @@ func (s *ModuleAPIServer) QueryUpdateDsc(ctx context.Context, in *pb.Query) (out
 		return
 	}
 	nin := NewNodeFromMessage(pbin)
-	var nout types.Node
-	nout, e = s.query.UpdateDsc(nin)
 	out.URL = in.URL
-	if nout != nil {
-		out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
+	if in.Filter == nil || len(in.Filter) == 0 {
+		// whole node update
+		var nout types.Node
+		nout, e = s.query.UpdateDsc(nin)
+		if nout != nil {
+			out.Payload = &pb.Query_Node{Node: nout.Message().(*pb.Node)}
+		}
+	} else {
+		// this is a setvalue update
+		out.Filter = []string{}
+		out.Payload = in.Payload // should we actually update this? seems unnecessarily costly
+		for _, f := range in.Filter {
+			v, e := nin.GetValue(f)
+			if e != nil {
+				return nil, e
+			}
+			if _, e = s.query.SetValueDsc(util.NodeURLJoin(nin.ID().String(), f), v); e != nil {
+				continue
+			}
+			out.Filter = append(out.Filter, f)
+		}
 	}
 	return
 }

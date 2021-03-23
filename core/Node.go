@@ -107,7 +107,10 @@ func (n *Node) JSON() []byte {
 	defer n.mutex.Unlock()
 
 	n.exportExtensions()
-	b, _ := n.pb.MarshalJSON()
+	b, e := n.pb.MarshalJSON()
+	if e != nil {
+		fmt.Printf("error marshalling JSON for node: %v\n", e)
+	}
 	n.importExtensions()
 	return b
 }
@@ -593,6 +596,7 @@ const nodeFixture string = `
 	"physState": "PHYS_UNKNOWN",
 	"arch": "",
 	"platform": "",
+	"busy": "FREE",
 	"extensions": [
 		]
 	  }

@@ -359,7 +359,10 @@ type StateSpec interface {
 	SpecMergeMust(StateSpec) StateSpec
 	Requires() map[string]reflect.Value
 	Excludes() map[string]reflect.Value
+	ReqsEqual(StateSpec) bool
+	ExcsEqual(StateSpec) bool
 	Equal(StateSpec) bool
+	StripZeros()
 	LeastCommon(StateSpec)
 	NodeMatchWithMutators(n Node, muts map[string]uint32) (r bool)  // how we find path starts
 	NodeCompatWithMutators(n Node, muts map[string]uint32) (r bool) // how we find path ends
@@ -614,5 +617,13 @@ type ModuleAPIClient interface {
 	QueryFreeze() error
 	QueryThaw() error
 	QueryFrozen() (bool, error)
+	QuerySetValues(string, map[string]interface{}) (map[string]interface{}, error)
+	QuerySetValuesDsc(string, map[string]interface{}) (map[string]interface{}, error)
+	QuerySetValue(string, string, interface{}) error
+	QuerySetValueDsc(string, string, interface{}) error
+	QueryGetValues(string, []string) (map[string]interface{}, error)
+	QueryGetValuesDsc(string, []string) (map[string]interface{}, error)
+	QueryGetValue(string, string) (interface{}, error)
+	QueryGetValueDsc(string, string) (interface{}, error)
 	ServiceInit(string, string) (<-chan ServiceControl, error)
 }

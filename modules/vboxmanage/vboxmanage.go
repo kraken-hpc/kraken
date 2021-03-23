@@ -55,6 +55,8 @@ type ppmut struct {
 	f       cpb.Node_PhysState // from
 	t       cpb.Node_PhysState // to
 	timeout string             // timeout
+	reqs    map[string]reflect.Value
+	excs    map[string]reflect.Value
 	// everything fails to PHYS_HANG
 }
 
@@ -75,6 +77,10 @@ var muts = map[string]ppmut{
 		f:       cpb.Node_POWER_ON,
 		t:       cpb.Node_POWER_OFF,
 		timeout: "10s",
+		excs: map[string]reflect.Value{
+			"/RunState": reflect.ValueOf(cpb.Node_SYNC),
+			"/Busy":     reflect.ValueOf(cpb.Node_BUSY),
+		},
 	},
 	"HANGtoOFF": {
 		f:       cpb.Node_PHYS_HANG,
@@ -494,8 +500,14 @@ func init() {
 	drstate := make(map[string]reflect.Value)
 	si := core.NewServiceInstance("vboxmanage", module.Name(), module.Entry)
 
-	for m := range muts {
+	for m, mut := range muts {
 		dur, _ := time.ParseDuration(muts[m].timeout)
+		if mut.reqs == nil {
+			mut.reqs = reqs
+		}
+		if mut.excs == nil {
+			mut.excs = excs
+		}
 		mutations[m] = core.NewStateMutation(
 			map[string][2]reflect.Value{
 				"/PhysState": {
@@ -503,8 +515,8 @@ func init() {
 					reflect.ValueOf(muts[m].t),
 				},
 			},
-			reqs,
-			excs,
+			mut.reqs,
+			mut.excs,
 			types.StateMutationContext_CHILD,
 			dur,
 			[3]string{si.ID(), "/PhysState", "PHYS_HANG"},
