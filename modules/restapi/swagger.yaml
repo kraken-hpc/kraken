@@ -7,7 +7,7 @@ info:
     url: "https://github.com/kraken-hpc/kraken"
   license:
     name: "BSD 3"
-    url: "https://raw.githubusercontent.com/hpc/kraken/master/LICENSE"
+    url: "https://raw.githubusercontent.com/kraken-hpc/kraken/main/LICENSE"
 tags:
   - name: "cfg"
     description: "Read and manipulate configuration state"

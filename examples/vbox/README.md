@@ -2,20 +2,28 @@
 
 ## Table of Contents
 
-- [Kraken vagrant/virtualbox example](#kraken-vagrantvirtualbox-example)
+- [Kraken Vagrant/Virtualbox Example](#kraken-vagrantvirtualbox-example)
+  - [Table of Contents](#table-of-contents)
   - [Dependencies](#dependencies)
+    - [WSL](#wsl)
   - [Instructions](#instructions)
+    - [Get Kraken](#get-kraken)
+    - [Setting up host-only networking](#setting-up-host-only-networking)
+      - [MacOS network creation](#macos-network-creation)
+      - [Linux network creation](#linux-network-creation)
+      - [WSL network creation](#wsl-network-creation)
+  - [Relase the Kraken](#relase-the-kraken)
   - [How it works](#how-it-works)
   - [Helper scripts](#helper-scripts)
   - [How to use your own fork/branch](#how-to-use-your-own-forkbranch)
   - [Using custom kraken-build args](#using-custom-kraken-build-args)
   - [How to add things to the image](#how-to-add-things-to-the-image)
     - [Adding a kernel module](#adding-a-kernel-module)
-- [*Now: $ go get kraken!*](#now--go-get-kraken)
+  - [_Now: `$ go get kraken`!_](#now--go-get-kraken)
 
 The contents of this directory can be used to generate a VirtualBox virtual Kraken cluster using Vagrant and Ansible.  It has been tested on a Mac, but should work on Linux as well.
 
-It will build a cluster with a master and four nodes.  The nodes run a minimal [u-root](https://github.com/u-root-/u-root) image.
+It will build a cluster with a kraken parent and four nodes.  The nodes run a minimal [u-root](https://github.com/u-root-/u-root) image.
 
 ## Dependencies
 
@@ -153,7 +161,7 @@ The `release-the-kraken.sh` script performs the following steps to bring up a vi
 1. It verifies that we have all of the dependencies and network settings we need.
 2. It calls the script `create-nodes.sh`, which further uses the `VagrantFile` to create nodes `kr[1-4]`.  `create-nodes.sh` also immediately shuts these off as we don't want them on yet.
 3. Starts the (included) `vboxapi.go`, which provides a ReST API for VirtualBox VM power control.  This allows Kraken to control the power atate of the VMs.
-4. It calls `vagrant up kraken`, which uses the included `VagrantFile` to create and provision the "kraken" (master) VM.  `Vagrant` calls `ansible` to handle provisioning.  `Ansible` performs a number of steps, but here are some of the more critical ones:
+4. It calls `vagrant up kraken`, which uses the included `VagrantFile` to create and provision the "kraken" (parent) VM.  `Vagrant` calls `ansible` to handle provisioning.  `Ansible` performs a number of steps, but here are some of the more critical ones:
    1. install necessary dependencies in the VM;
    2. get kraken, build the `kraken-builder`;
    3. build the kraken binaries;
@@ -194,7 +202,7 @@ There are a number of helper scripts in this directory.  Here's what they do:
 
 ## How to use your own fork/branch
 
-For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/kraken-hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "master".
+For testing purposes, it can be nice to use your own fork & branch of kraken.  You can easily do this by changing the host vars `kr_repo` and `kr_repo_version` in `kraken.yml`.  `kr_repo` should be the full URL for the repo (e.g. https://github.com/kraken-hpc/kraken.git).  `kr_repo_version` can be any branch or tag name.  `kr_repo_version` must be provided, even if it is "main".
 
 ## Using custom kraken-build args
 

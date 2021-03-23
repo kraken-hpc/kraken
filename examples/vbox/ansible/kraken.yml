@@ -2,7 +2,7 @@
 - hosts: kraken
   vars:
     kr_repo: https://github.com/kraken-hpc/kraken.git
-    kr_repo_version: "master"
+    kr_repo_version: "main"
     kr_build_args: "-v -force"
   roles:
     - common
