@@ -1,8 +1,0 @@
-.vagrant
-.vagrant.d
-*.retry
-**/.DS_Store
-**/.vscode
-log/*.log
-ssh-config
-kraken-state.json

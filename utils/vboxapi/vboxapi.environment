@@ -1,8 +1,0 @@
-# VBOXAPI_BASE specifies the URL root for the api
-VBOXAPI_BASE="/vboxmanage"
-# VBOXAPI_VBM specifies the vbox manage command to use
-VBOXAPI_VBM="/usr/local/bin/vboxmanage"
-# VBOXAPI_IP specifies the IP that the vboxapi will listen on
-VBOXAPI_IP="127.0.0.1"
-# VBOXAPI_PORT specifies the network port that vboxapi will listen on
-VBOXAPI_PORT=8269
