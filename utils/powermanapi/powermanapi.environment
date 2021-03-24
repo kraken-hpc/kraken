@@ -1,8 +1,0 @@
-# POWERMAN_BASE specifies the URL root for the api
-POWERMAN_BASE="/powermancontrol"
-# POWERMAN_PMC specifies the powerman command to use (e.g. pm vs powerman)
-POWERMAN_PMC="powerman"
-# POWERMAN_IP specifies the IP that the powermanapi will listen on
-POWERMAN_IP="127.0.0.1"
-# POWERMAN_PORT specifies the network port that powermanapi will listen on
-POWERMAN_PORT=8269

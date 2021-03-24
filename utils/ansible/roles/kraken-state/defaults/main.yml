@@ -1,4 +1,0 @@
----
-kraken_cfgdir: '/etc/kraken'
-kraken_state_file: "{{ kraken_cfgdir }}/state.json"
-kraken_nodes: []
