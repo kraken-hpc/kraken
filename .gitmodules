@@ -1,3 +1,6 @@
 [submodule "utils/kraken-dashboard"]
 	path = utils/kraken-dashboard
-	url = https://github.com/hpc/kraken-dashboard.git
+	url = ../kraken-dashboard.git
+[submodule "utils/krakenctl"]
+	path = utils/krakenctl
+	url = ../krakenctl.git
