@@ -1,7 +1,7 @@
 package core
 
 import (
-	_ "github.com/hpc/kraken/core"
+	_ "github.com/kraken-hpc/kraken/core"
 )
 
 /* FIXME: broken test

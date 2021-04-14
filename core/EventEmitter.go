@@ -12,7 +12,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 /////////////////////////

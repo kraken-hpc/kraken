@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/core/proto"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/core"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	"github.com/kraken-hpc/kraken/lib/types"
 
 	"google.golang.org/grpc"
 )

@@ -1,3 +1,0 @@
----
-kr_dashboard_version: "v0.1.0"
-kr_dashboard_url: "https://github.com/hpc/kraken-dashboard/releases/download/{{ kr_dashboard_version }}/build.zip"

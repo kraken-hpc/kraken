@@ -26,7 +26,7 @@ message NodeList {
 }
 
 message Node {
-    bytes id = 1 [(gogoproto.customtype) = "github.com/hpc/kraken/core/proto/customtypes.NodeID"];
+    bytes id = 1 [(gogoproto.customtype) = "github.com/kraken-hpc/kraken/core/proto/customtypes.NodeID"];
     string nodename = 2; /* may or may not be the hostname */
     enum RunState {
         UNKNOWN     = 0;
@@ -46,7 +46,7 @@ message Node {
     PhysState phys_state = 4;
     string arch = 5;
     string platform = 6;
-    bytes parent_id = 7 [(gogoproto.customtype) = "github.com/hpc/kraken/core/proto/customtypes.NodeID"];
+    bytes parent_id = 7 [(gogoproto.customtype) = "github.com/kraken-hpc/kraken/core/proto/customtypes.NodeID"];
     enum FreeBusy {
         FREE = 0; // I.e. we currently control states on this node
         BUSY = 1; // Control of this node has been handed off to something else; we should leave it alone.

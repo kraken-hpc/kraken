@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hpc/kraken/lib/copy"
-	"github.com/hpc/kraken/lib/copy/cmp"
+	"github.com/kraken-hpc/kraken/lib/copy"
+	"github.com/kraken-hpc/kraken/lib/copy/cmp"
 )
 
 const (

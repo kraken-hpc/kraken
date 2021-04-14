@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/hpc/kraken/core"
-	pb "github.com/hpc/kraken/core/proto"
-	ct "github.com/hpc/kraken/core/proto/customtypes"
-	"github.com/hpc/kraken/lib/types"
+	. "github.com/kraken-hpc/kraken/core"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	ct "github.com/kraken-hpc/kraken/core/proto/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
 	uuid "github.com/satori/go.uuid"
 )
 

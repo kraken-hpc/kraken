@@ -13,10 +13,10 @@ import (
 	"fmt"
 	reflect "reflect"
 
-	pb "github.com/hpc/kraken/core/proto"
-	ct "github.com/hpc/kraken/core/proto/customtypes"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	pb "github.com/kraken-hpc/kraken/core/proto"
+	ct "github.com/kraken-hpc/kraken/core/proto/customtypes"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 ////////////////////////

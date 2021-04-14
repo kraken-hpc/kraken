@@ -15,8 +15,8 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/hpc/kraken/lib/json"
-	"github.com/hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/json"
+	"github.com/kraken-hpc/kraken/lib/types"
 )
 
 //////////////////////

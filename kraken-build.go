@@ -24,12 +24,12 @@ import (
 	"strings"
 	"text/template"
 
-	libbuild "github.com/hpc/kraken/lib/build"
-	cp "github.com/hpc/kraken/lib/copy"
+	libbuild "github.com/kraken-hpc/kraken/lib/build"
+	cp "github.com/kraken-hpc/kraken/lib/copy"
 	yaml "gopkg.in/yaml.v2"
 )
 
-const KrModStr string = "module github.com/hpc/kraken"
+const KrModStr string = "module github.com/kraken-hpc/kraken"
 
 // globals (set by flags)
 var (
@@ -119,7 +119,7 @@ func compileTemplates(krakenDir, tmpDir string, forUroot bool) (targets []string
 					targPath := path.Join(tmpDir, target)
 					// TODO: Dynamically find kraken's import path
 					// instead of hard-coding it.
-					// See: https://github.com/hpc/kraken/issues/184
+					// See: https://github.com/kraken-hpc/kraken/issues/184
 					from := "hpc/kraken/"
 					to := "hpc/kraken/build/u-root/"
 					if *verbose {
@@ -247,7 +247,7 @@ func modifySources(dir string) (e error) {
 	// Replace regular import paths in all of the generated source files with
 	// import paths using the build dir path
 	var from, to, base string
-	base = "\"github.com/hpc/kraken/"
+	base = "\"github.com/kraken-hpc/kraken/"
 	from = base + "(?:build/u-root/)?"
 	to = base + "build/u-root/"
 	if *verbose {
@@ -411,7 +411,7 @@ func getModDir() (d string, e error) {
 
 	// couldn't open go.mod; obviously not in pwd, try for GOPATh
 	var p *build.Package
-	if p, e = build.Default.Import("github.com/hpc/kraken", "", build.FindOnly); e == nil {
+	if p, e = build.Default.Import("github.com/kraken-hpc/kraken", "", build.FindOnly); e == nil {
 		d = p.Dir
 		return
 	}

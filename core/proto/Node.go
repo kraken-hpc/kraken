@@ -10,8 +10,8 @@
 package proto
 
 import (
-	"github.com/hpc/kraken/core/proto/customtypes"
-	"github.com/hpc/kraken/lib/json"
+	"github.com/kraken-hpc/kraken/core/proto/customtypes"
+	"github.com/kraken-hpc/kraken/lib/json"
 )
 
 // MarshalJSON creats a JSON version of Node

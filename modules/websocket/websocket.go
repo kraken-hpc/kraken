@@ -23,16 +23,16 @@ import (
 	"strconv"
 	"time"
 
-	cpb "github.com/hpc/kraken/core/proto"
+	cpb "github.com/kraken-hpc/kraken/core/proto"
 
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/gogo/protobuf/types"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/hpc/kraken/core"
-	"github.com/hpc/kraken/lib/types"
-	"github.com/hpc/kraken/lib/util"
+	"github.com/kraken-hpc/kraken/core"
+	"github.com/kraken-hpc/kraken/lib/types"
+	"github.com/kraken-hpc/kraken/lib/util"
 )
 
 var _ types.Module = (*WebSocket)(nil)
@@ -173,7 +173,7 @@ func (w *WebSocket) handleEvent(ev types.Event) {
 
 func (w *WebSocket) Stop() { os.Exit(0) }
 
-func (w *WebSocket) Name() string { return "github.com/hpc/kraken/modules/websocket" }
+func (w *WebSocket) Name() string { return "github.com/kraken-hpc/kraken/modules/websocket" }
 
 // SetEventsChan sets the event channel
 // this is generally done by the API
