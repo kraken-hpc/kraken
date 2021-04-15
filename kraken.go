@@ -32,6 +32,14 @@ var debug bool
 var quiet bool
 var force bool
 
+type KrakenConfigType struct {
+	Version string
+}
+
+var KrakenConfig = &KrakenConfigType{
+	Version: "v0.2.0",
+}
+
 func pError(f string, args ...interface{}) {
 	log.Printf("ERROR: "+f, args...)
 }
@@ -61,6 +69,7 @@ func pDebug(f string, args ...interface{}) {
 
 // App generation
 type AppConfig struct {
+	Kraken     *KrakenConfigType
 	Name       string
 	Version    string
 	Pprof      bool
@@ -139,6 +148,7 @@ func appGenerate(args []string) {
 	if err = yaml.Unmarshal(cfgData, cfg); err != nil {
 		pFail("failed to parse config file %s: %v", configFile, err)
 	}
+	cfg.Kraken = KrakenConfig
 	if cfg.Name == "" {
 		pFail("an application name must be specified in the app config")
 	}
