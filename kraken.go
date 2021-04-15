@@ -122,7 +122,7 @@ func appGenerate(args []string) {
 	}
 
 	stat, err := os.Stat(outDir)
-	if !stat.IsDir() {
+	if err == nil && !stat.IsDir() {
 		pFail("output directory %s exists, but is not a directory", outDir)
 	}
 	if err != nil {
@@ -197,6 +197,8 @@ func main() {
 	var help = false
 	fs := flag.NewFlagSet("kraken", flag.ContinueOnError)
 	usage := func() {
+		fmt.Println("kraken is a code-generator for kraken-based applications, modules, and extensions")
+		fmt.Println()
 		fmt.Println("Usage: kraken [-fhqv] <command> [options]")
 		fmt.Println("Commands:")
 		fmt.Println("\tapp")
