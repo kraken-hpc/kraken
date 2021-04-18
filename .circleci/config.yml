@@ -10,14 +10,22 @@ jobs: # basic units of work in a run
 
       - checkout
       - run:
+          name: Build kraken code generator
+          command: go build .
+      - run:
           name: Create kitchen sink config
           command: bash config/generate-kitchensink.sh .
       - run:
-          name: Build kraken-build
-          command: go build kraken-build.go
+          name: Generate code for kitchen sink
+          command: ./kraken -f -v app generate -o kitchen-sink -c config/kitchensink.yaml
       - run:
-          name: Build kitchen sink recipe
-          command: ./kraken-build -force -v -config config/kitchensink.yaml
+          name: Build kitchen-sink
+          command: go build .
+          working_directory: ./kitchen-sink
+      - run:
+          name: Print kitchen-sink build version
+          command: ./kitchen-sink -version
+          working_directory: ./kitchen-sink
       - save_cache: # store cache in the /go/pkg directory
           key: v1-pkg-cache
           paths:
