@@ -19,25 +19,13 @@ EXTENSIONS_DIR="$KRAKEN_SRC/extensions"
 MODULES_DIR="$KRAKEN_SRC/modules"
 
 echo "Adding build targets"
-BUILD_TARGETS="
-targets:
-  'linux-amd64':
-    os: 'linux'
-    arch: 'amd64'
-  'linux-arm64':
-    os: 'linux'
-    arch: 'arm64'
-  'linux-ppc64':
-    os: 'linux'
-    arch: 'ppc64'
-  'darwin-amd64':
-    os: 'darwin'
-    arch: 'amd64'
-  'uroot':
+META="
+name: kitchen-sink
+version: v0.0.0
 "
 
 # start with our build targets
-echo "$BUILD_TARGETS" > "$CONFIG_FILE"
+echo "$META" > "$CONFIG_FILE"
 
 # include extensions
 echo "Adding extensions"
