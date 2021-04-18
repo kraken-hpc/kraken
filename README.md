@@ -42,6 +42,65 @@ Kraken is still a fledgling sea-monster, but it has show itself capable of some 
 
 Check back soon for more documentation, utilities, and demonstrations.
 
+## Generating a Kraken-based app
+
+A Kraken-based app consists of three core componenets (and maybe more):
+
+1. An application entry point, i.e. where a `main()` function lives.
+2. A set of extensions that specify extra state variables for nodes.
+3. A set of modules that define mutations and discover states.
+
+The `kraken` command can be used to generate source code for these components.
+
+First, get `kraken` with:
+
+```shell
+go get -u github.com/kraken-hpc/kraken
+```
+
+You'll also want to make sure `$GOPATH/bin` is in your executuion path, e.g. `export PATH=$PATH:$GOPATH/bin` .
+
+### Generating an entry-point
+
+You need an app definition to create an app.  This contains metadata about the app (like it's name and version) as well as references for what extensions and modules to include.
+
+Here's an example for an app called `tester`:
+
+```yaml
+name: tester
+version: "v0.1.1"
+extensions:
+  - "github.com/kraken-hpc/kraken/extensions/ipv4"
+modules:
+  - "github.com/kraken-hpc/kraken/modules/restapi"
+  - "github.com/kraken-hpc/kraken/modules/websocket"
+```
+
+The canonical structure is to place this file in the directory where the entrypoint code should live, and name it `kraken.yaml`, but the naming is optional.  Assuming this convention:
+
+```bash
+$ mkdir tester
+$ cd tester
+<create kraken.yaml>
+$ kraken app generate
+2021/04/15 10:39:02 INFO: app "tester" generated at "."
+```
+
+Now you can build your application:
+
+```bash
+$ go build .
+$ ./tester -version
+tester version: v0.1.1
+this kraken is built with extensions: 
+        type.googleapis.com/IPv4.IPv4OverEthernet
+this kraken is built with modules: 
+        github.com/kraken-hpc/kraken/modules/restapi
+        github.com/kraken-hpc/kraken/modules/websocket
+```
+
+Generating modules and extensions is not yet supported, but will be very soon!
+
 ## I want to get involved...
 
 Excellent!  It's our intention to make Kraken a community developed project.  To get started, you can:
