@@ -146,7 +146,7 @@ func ModuleGenerate(global *GlobalConfigType, args []string) {
 	fs.StringVar(&outDir, "o", ".", "output directory for app")
 	fs.BoolVar(&help, "h", false, "print this usage")
 	fs.Usage = func() {
-		fmt.Println("module generate will generate a kraken module based on a module config.")
+		fmt.Println("module [gen]erate will generate a kraken module based on a module config.")
 		fmt.Println("Usage: kraken <opts> module generate [-h] [-c <config_file>] [-o <out_dir>]")
 		fs.PrintDefaults()
 	}
@@ -209,7 +209,7 @@ func ModuleUpdate(global *GlobalConfigType, args []string) {
 	var outDir string
 	var help bool
 
-	fs := flag.NewFlagSet("module update", flag.ExitOnError)
+	fs := flag.NewFlagSet("module [up]date", flag.ExitOnError)
 	fs.StringVar(&configFile, "c", "module.yaml", "name of app config file to use")
 	fs.StringVar(&outDir, "o", ".", "output directory for app")
 	fs.BoolVar(&help, "h", false, "print this usage")
