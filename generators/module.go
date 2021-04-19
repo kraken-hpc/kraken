@@ -142,8 +142,8 @@ func ModuleGenerate(global *GlobalConfigType, args []string) {
 	var outDir string
 	var help bool
 	fs := flag.NewFlagSet("module generate", flag.ExitOnError)
-	fs.StringVar(&configFile, "c", "module.yaml", "name of app config file to use")
-	fs.StringVar(&outDir, "o", ".", "output directory for app")
+	fs.StringVar(&configFile, "c", "module.yaml", "name of module config file to use")
+	fs.StringVar(&outDir, "o", ".", "output directory for module")
 	fs.BoolVar(&help, "h", false, "print this usage")
 	fs.Usage = func() {
 		fmt.Println("module [gen]erate will generate a kraken module based on a module config.")
