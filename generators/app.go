@@ -12,11 +12,11 @@ package generators
 import (
 	"flag"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/kraken-hpc/kraken/generators/templates"
 	"gopkg.in/yaml.v2"
@@ -25,11 +25,11 @@ import (
 // App generation
 type AppConfig struct {
 	Global     *GlobalConfigType
-	Name       string
-	Version    string
-	Pprof      bool
-	Extensions []string
-	Modules    []string
+	Name       string   // Application name
+	Version    string   // Application version (not Kraken version)
+	Pprof      bool     // Build with pprof (default: false)?
+	Extensions []string // List of extensions to include (url paths)
+	Modules    []string // List of modules to include (url paths)
 }
 
 func appCompileTemplate(tplFile, tmpDir string, cfg *AppConfig) (target string, e error) {

@@ -11,11 +11,17 @@
 package {{ .PackageName }}
 
 import (
+	{{- if .WithConfig }}
 	"fmt"
+	{{ end }}
 	"os"
+	{{- if .WithPolling }}
 	"time"
+	{{ end }}
 
+	{{- if .WithConfig }}
 	proto "github.com/gogo/protobuf/proto"
+	{{ end }}
 	"github.com/kraken-hpc/kraken/lib/types"
 )
 
@@ -25,17 +31,19 @@ import (
 
 // These dummy declarations exist to ensure that we're adhering to all of our intended interfaces
 var _ types.Module = (*{{ .Name }})(nil)
-{{ if .WithConfig }}
-var _ types.ModuleWithConfig = (*{{ .Name }})(nil)
-{{ end }}
+{{- if .WithConfig }}
+var _ types.ModuleWithConfig = (*{{- .Name }})(nil)
+{{- end }}
 var _ types.ModuleWithMutations = (*{{ .Name }})(nil)
 var _ types.ModuleWithDiscovery = (*{{ .Name }})(nil)
 var _ types.ModuleSelfService = (*{{ .Name }})(nil)
 
 // {{ .Name }} is the primary object interface of the module
 type {{ .Name }} struct {
+	{{- if .WithConfig }}
 	cfg        *Config
-	{{ if .WithPolling }}
+	{{ end }}
+	{{- if .WithPolling }}
 	pollTicker *time.Ticker
 	{{ end }}
 	// TODO: You can add more internal variables here
@@ -49,11 +57,13 @@ type {{ .Name }} struct {
 func (mod *{{ .Name }}) Init(a types.ModuleAPIClient) {
 	api = a
 	self = api.Self()
+	{{- if .WithConfig }}
 	mod.cfg = mod.NewConfig().(*Config)
-	// TODO: You should set these mutation handlers to real functions
-	{{ range $name, $mutation := .Mutations }}
-	mutations["{{ $name }}"].handler = hNotImplemented
 	{{ end }}
+	// TODO: You should set these mutation handlers to real functions
+	{{- range $name, $mutation := .Mutations }}
+	mutations["{{- $name }}"].handler = hNotImplemented
+	{{- end }}
 	// TODO: You may need to initialize more things here
 	Log(DEBUG, "initialized")
 }
@@ -62,7 +72,7 @@ func (mod *{{ .Name }}) Init(a types.ModuleAPIClient) {
 func (mod *{{ .Name }}) Entry() {
 	Log(INFO, "starting")
 
-	{{ if .WithPolling }}
+	{{- if .WithPolling }}
 	// setup a ticker for polling discovery
 	dur, _ := time.ParseDuration(mod.cfg.GetPollingInterval())
 	mod.pollTicker = time.NewTicker(dur)
@@ -84,7 +94,7 @@ func (mod *{{ .Name }}) Stop() {
 	os.Exit(0)
 }
 
-{{ if .WithPolling }}
+{{- if .WithPolling }}
 //////////////
 // Polling //
 ////////////
@@ -97,7 +107,7 @@ func (mod *{{ .Name }}) Poll() {
 }
 
 {{ end }}
-{{ if .WithConfig }}
+{{- if .WithConfig }}
 //////////////////////
 // Config Handling //
 ////////////////////
@@ -106,7 +116,9 @@ func (mod *{{ .Name }}) Poll() {
 func (*{{ .Name }}) NewConfig() proto.Message {
 	// TODO: fill out this structure with default values for your config
 	r := &Config{
+		{{- if .WithPolling }}
 		PollingInterval: "10s",
+		{{ end }}
 	}
 	return r
 }
@@ -114,12 +126,14 @@ func (*{{ .Name }}) NewConfig() proto.Message {
 // UpdateConfig updates the running config
 func (mod *{{ .Name }}) UpdateConfig(cfg proto.Message) (e error) {
 	if cfgConfig, ok := cfg.(*Config); ok {
+		{{- if .WithPolling }}
 		// Update the polling ticker
 		if mod.pollTicker != nil {
 			mod.pollTicker.Stop()
 			dur, _ := time.ParseDuration(mod.cfg.GetPollingInterval())
 			mod.pollTicker = time.NewTicker(dur)
 		}
+		{{ end }}
 		// TODO: You made need to update other things here when your config is changed.
 		mod.cfg = cfgConfig
 		return

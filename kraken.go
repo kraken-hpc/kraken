@@ -40,16 +40,14 @@ func cmdApp(args []string) {
 	fs.Usage = func() {
 		fmt.Println("Usage: kraken <opts> app [-h] [command] [opts]")
 		fmt.Println("Commands:")
-		fmt.Println("\tgenerate")
+		fmt.Println("\tgenerate : generate an application entry point from a config")
 		fs.PrintDefaults()
 	}
 	fs.Parse(args)
-
 	if help {
 		fs.Usage()
 		os.Exit(0)
 	}
-
 	args = fs.Args()
 	if len(args) < 1 {
 		Log.Fatal("no app sub-command")
@@ -60,6 +58,40 @@ func cmdApp(args []string) {
 	switch cmd {
 	case "generate":
 		generators.AppGenerate(Global, args)
+	default:
+		Log.Errorf("unknown app sub-command: %s", cmd)
+		fs.Usage()
+		os.Exit(1)
+	}
+}
+
+func cmdModule(args []string) {
+	var help bool
+	fs := flag.NewFlagSet("module", flag.ExitOnError)
+	fs.BoolVar(&help, "h", false, "print this message")
+	fs.Usage = func() {
+		fmt.Println("Usage: kraken <opts> app [-h] [command] [opts]")
+		fmt.Println("Commands:")
+		fmt.Println("\tgenerate : generate a module from a config")
+		fmt.Println("\tupdate : update the <module>.mod.go file only")
+		fs.PrintDefaults()
+	}
+	fs.Parse(args)
+	if help {
+		fs.Usage()
+		os.Exit(0)
+	}
+	args = fs.Args()
+	if len(args) < 1 {
+		Log.Fatal("no app sub-command")
+	}
+	cmd := args[0]
+	args = args[1:]
+	switch cmd {
+	case "generate":
+		generators.ModuleGenerate(Global, args)
+	case "update":
+		generators.ModuleGenerate(Global, args)
 	default:
 		Log.Errorf("unknown app sub-command: %s", cmd)
 		fs.Usage()
@@ -80,9 +112,9 @@ func main() {
 		fmt.Println()
 		fmt.Println("Usage: kraken [-fv] [-l <log_level>] <command> [options]")
 		fmt.Println("Commands:")
-		fmt.Println("\tapp")
-		fmt.Println("\tmodule")
-		fmt.Println("\textension")
+		fmt.Println("\t[app]lication")
+		fmt.Println("\t[mod]ule")
+		fmt.Println("\t[ext]ension")
 		fmt.Println("For command help: kraken <command> -h")
 		fs.PrintDefaults()
 	}
@@ -115,11 +147,11 @@ func main() {
 	cmd := args[0]
 	args = args[1:]
 	switch cmd {
-	case "app":
+	case "app", "application":
 		cmdApp(args)
-	case "module":
-		Log.Fatal("module command is not yet supported")
-	case "extensions":
+	case "mod", "module":
+		cmdModule(args)
+	case "ext", "extensions":
 		Log.Fatal("extension command is not yet supported")
 	default:
 		Log.Fatal("unknown command: %s", cmd)
