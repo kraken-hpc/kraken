@@ -154,7 +154,7 @@ $ mkdir -p modules/test
 $ cd modules/test
 <create module.yaml>
 $ kraken module generate 
-INFO[0000] module "test" generated at modules/test      
+INFO[0000] module "test" generated at "."
 ```
 
 If we selected `with_config: true`, we will need to generate the protobuf code from the provided `proto` file.  You can add some variables to `test.config.proto` first, then:
@@ -180,7 +180,27 @@ This will *only* update `test.mod.go`.  Note: you may need to make manual change
 
 ### Generating an extension
 
-Extension generation is not yet supported.
+Extensions are the least complicated to generate.  The definition file for an extension looks like:
+
+```yaml
+---
+package_url: github.com/kraken-hpc/kraken/test
+name: TestMessage
+custom_types:
+  - "MySpecialType"  
+```
+
+This will generate an extension that will be referenced as `Test.TestMessage`.  Note that we support generating multiple extensions in the same proto package using multiple definition files.  E.g., you could also have `Test.AnotherMessage` defined in another file.
+
+The procedure is similar to the others.  The default file name for extensions is `extension.yaml`:
+
+```bash
+$ mkdir -p extensions/test
+$ cd extensions/test
+<create extension.yaml>
+$ kraken extension generate 
+INFO[0000] extension "Test.TestMessage" generated at "."  
+```
 
 ## I want to get involved...
 
