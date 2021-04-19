@@ -56,7 +56,7 @@ func cmdApp(args []string) {
 	cmd := args[0]
 	args = args[1:]
 	switch cmd {
-	case "generate":
+	case "gen", "generate":
 		generators.AppGenerate(Global, args)
 	default:
 		Log.Errorf("unknown app sub-command: %s", cmd)
@@ -88,10 +88,10 @@ func cmdModule(args []string) {
 	cmd := args[0]
 	args = args[1:]
 	switch cmd {
-	case "generate":
+	case "gen", "generate":
 		generators.ModuleGenerate(Global, args)
-	case "update":
-		generators.ModuleGenerate(Global, args)
+	case "up", "update":
+		generators.ModuleUpdate(Global, args)
 	default:
 		Log.Errorf("unknown app sub-command: %s", cmd)
 		fs.Usage()

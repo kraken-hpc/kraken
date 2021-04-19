@@ -141,14 +141,13 @@ func ModuleGenerate(global *GlobalConfigType, args []string) {
 	var configFile string
 	var outDir string
 	var help bool
-	fs := flag.NewFlagSet("app generate", flag.ExitOnError)
+	fs := flag.NewFlagSet("module generate", flag.ExitOnError)
 	fs.StringVar(&configFile, "c", "module.yaml", "name of app config file to use")
 	fs.StringVar(&outDir, "o", ".", "output directory for app")
 	fs.BoolVar(&help, "h", false, "print this usage")
 	fs.Usage = func() {
-		fmt.Println("Usage: kraken <opts> app [-h] [command] [opts]")
-		fmt.Println("Commands:")
-		fmt.Println("\tgenerate")
+		fmt.Println("module generate will generate a kraken module based on a module config.")
+		fmt.Println("Usage: kraken <opts> module generate [-h] [-c <config_file>] [-o <out_dir>]")
 		fs.PrintDefaults()
 	}
 	fs.Parse(args)
@@ -206,5 +205,52 @@ func ModuleGenerate(global *GlobalConfigType, args []string) {
 func ModuleUpdate(global *GlobalConfigType, args []string) {
 	Global = global
 	Log = global.Log
-	Log.Fatal("not yet implemented")
+	var configFile string
+	var outDir string
+	var help bool
+
+	fs := flag.NewFlagSet("module update", flag.ExitOnError)
+	fs.StringVar(&configFile, "c", "module.yaml", "name of app config file to use")
+	fs.StringVar(&outDir, "o", ".", "output directory for app")
+	fs.BoolVar(&help, "h", false, "print this usage")
+	fs.Usage = func() {
+		fmt.Println("module update will update the <module>.mod.go file, but leave other module files alone")
+		fmt.Println("Usage: kraken <opts> module update [-h] [-c <config_file>] [-o <out_dir>]")
+		fs.PrintDefaults()
+	}
+	fs.Parse(args)
+	if help {
+		fs.Usage()
+		os.Exit(0)
+	}
+	if len(fs.Args()) != 0 {
+		Log.Fatalf("unknown option: %s", fs.Args()[0])
+	}
+	cfg, err := moduleReadConfig(configFile)
+	if err != nil {
+		Log.Fatalf("failed to read config file: %v", err)
+	}
+	if _, err = os.Stat(filepath.Join(outDir, cfg.PackageName+".mod.go")); err != nil {
+		Log.Fatalf("could not find an existing generated module file: %v", err)
+	}
+	Log.Debugf("updating %s with %d discoveries and %d mutations, with_config=%t, with_polling=%t",
+		cfg.PackageName,
+		len(cfg.Discoveries),
+		len(cfg.Mutations),
+		cfg.WithConfig,
+		cfg.WithPolling)
+	cfg.Global = global
+	// Ok, that's all the prep, now fill/write the templates
+	common := []string{
+		"module/template.mod.go.tpl",
+	}
+	Global.Force = true
+	for _, f := range common {
+		written, err := moduleCompileTemplate(f, outDir, cfg)
+		if err != nil {
+			Log.Fatalf("failed to write template: %v", err)
+		}
+		Log.Debugf("wrote file: %s", written)
+	}
+	Log.Infof("updated \"%s\" at %s", cfg.PackageName, outDir)
 }
