@@ -1,4 +1,4 @@
-//go:generate go-bindata -o templates/templates.go -fs -pkg templates -prefix templates templates/app
+//go:generate go-bindata -o templates/templates.go -fs -pkg templates -prefix templates templates/app templates/module
 
 package generators
 
