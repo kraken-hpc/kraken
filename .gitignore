@@ -9,3 +9,4 @@ state.json
 **/.DS_Store
 /kraken-build
 **/*.swp
+/kraken
