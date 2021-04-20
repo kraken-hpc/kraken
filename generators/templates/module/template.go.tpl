@@ -62,7 +62,7 @@ func (mod *{{ .Name }}) Init(a types.ModuleAPIClient) {
 	{{ end }}
 	// TODO: You should set these mutation handlers to real functions
 	{{- range $name, $mutation := .Mutations }}
-	mutations["{{- $name }}"].handler = hNotImplemented
+	mutations["{{- $name }}"].Handler = hNotImplemented
 	{{- end }}
 	// TODO: You may need to initialize more things here
 	Log(DEBUG, "initialized")
