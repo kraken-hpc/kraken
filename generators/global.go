@@ -7,7 +7,7 @@
  * See LICENSE file for details.
  */
 
-//go:generate go-bindata -o templates/templates.go -fs -pkg templates -prefix templates templates/app templates/module
+//go:generate go-bindata -o templates/templates.go -fs -pkg templates -prefix templates templates/app templates/module templates/extension
 
 package generators
 
