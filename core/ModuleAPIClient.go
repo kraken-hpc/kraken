@@ -527,6 +527,62 @@ func (a *ModuleAPIClient) LoggerInit(si string) (e error) {
 	return
 }
 
+/*
+ * Module init helper functions
+ * These functions provide some common code needed for initializing modules.
+ * Note: because they are intended for module init, they will panic on error.
+ */
+
+// a mutation object records mutations as strings
+// we have to lookup types & values at runtime (with CreateMutation)
+// This helps generate more generic module objects, as we can perform lookups after
+// The node object with its various extensions is created.
+type Mutation struct {
+	Mutates  map[string][2]string
+	Requires map[string]string
+	Excludes map[string]string
+	Context  string
+	Timeout  string
+	FailTo   [2]string
+	Handler  func(mut string, cfg, dsc types.Node)
+}
+
+// createMutation turns a string mutation definition into a StateMutation
+func CreateMutation(si types.ServiceInstance, m *Mutation) (types.StateMutation, error) {
+	mut := map[string][2]reflect.Value{}
+	for url, vs := range m.Mutates {
+		mut[url] = [2]reflect.Value{
+			reflect.ValueOf(MustLookupEnumValue(url, vs[0])),
+			reflect.ValueOf(MustLookupEnumValue(url, vs[1])),
+		}
+	}
+	req := map[string]reflect.Value{}
+	for url, v := range m.Requires {
+		req[url] = MustValueFromString(url, v)
+	}
+	exc := map[string]reflect.Value{}
+	for url, v := range m.Excludes {
+		exc[url] = MustValueFromString(url, v)
+	}
+	timeout, err := time.ParseDuration(m.Timeout)
+	if err != nil {
+		panic("invalid time duration in mutation: " + m.Timeout)
+	}
+	return NewStateMutation(mut, req, exc, types.StateMutationContext_names[m.Context], timeout, [3]string{si.ID(), m.FailTo[0], m.FailTo[1]}), nil
+}
+
+func CreateDiscovers(url string) (map[string]reflect.Value, error) {
+	_, et, valueMap, err := LookupEnum(url)
+	if err != nil {
+		return nil, fmt.Errorf("%s isn't a valid enum: %v", url, err)
+	}
+	r := map[string]reflect.Value{}
+	for k, v := range valueMap {
+		r[k] = reflect.ValueOf(v).Convert(et)
+	}
+	return r, nil
+}
+
 // use reflection to call API methods by name and encapsulate
 // all of the one-time connection symantics
 // this is convoluted, but makes everything else DRYer
