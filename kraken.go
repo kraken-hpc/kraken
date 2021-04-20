@@ -38,7 +38,7 @@ func cmdApp(args []string) {
 	fs := flag.NewFlagSet("app", flag.ExitOnError)
 	fs.BoolVar(&help, "h", false, "print this usage")
 	fs.Usage = func() {
-		fmt.Println("Usage: kraken <opts> app [-h] [command] [opts]")
+		fmt.Println("Usage: kraken <opts> [app]lication [-h] [command] [opts]")
 		fmt.Println("Commands:")
 		fmt.Println("\tgenerate : generate an application entry point from a config")
 		fs.PrintDefaults()
@@ -70,7 +70,7 @@ func cmdModule(args []string) {
 	fs := flag.NewFlagSet("module", flag.ExitOnError)
 	fs.BoolVar(&help, "h", false, "print this message")
 	fs.Usage = func() {
-		fmt.Println("Usage: kraken <opts> app [-h] [command] [opts]")
+		fmt.Println("Usage: kraken <opts> [mod]ule [-h] [command] [opts]")
 		fmt.Println("Commands:")
 		fmt.Println("\tgenerate : generate a module from a config")
 		fmt.Println("\tupdate : update the <module>.mod.go file only")
@@ -83,7 +83,7 @@ func cmdModule(args []string) {
 	}
 	args = fs.Args()
 	if len(args) < 1 {
-		Log.Fatal("no app sub-command")
+		Log.Fatal("no module sub-command")
 	}
 	cmd := args[0]
 	args = args[1:]
@@ -93,7 +93,38 @@ func cmdModule(args []string) {
 	case "up", "update":
 		generators.ModuleUpdate(Global, args)
 	default:
-		Log.Errorf("unknown app sub-command: %s", cmd)
+		Log.Errorf("unknown module sub-command: %s", cmd)
+		fs.Usage()
+		os.Exit(1)
+	}
+}
+
+func cmdExtension(args []string) {
+	var help bool
+	fs := flag.NewFlagSet("extension", flag.ExitOnError)
+	fs.BoolVar(&help, "h", false, "print this message")
+	fs.Usage = func() {
+		fmt.Println("Usage: kraken <opts> [ext]ension [-h] [command] [opts]")
+		fmt.Println("Commands:")
+		fmt.Println("\tgenerate : generate an extension from a config")
+		fs.PrintDefaults()
+	}
+	fs.Parse(args)
+	if help {
+		fs.Usage()
+		os.Exit(0)
+	}
+	args = fs.Args()
+	if len(args) < 1 {
+		Log.Fatal("no extension sub-command")
+	}
+	cmd := args[0]
+	args = args[1:]
+	switch cmd {
+	case "gen", "generate":
+		generators.ExtensionGenerate(Global, args)
+	default:
+		Log.Errorf("unknown extension sub-command: %s", cmd)
 		fs.Usage()
 		os.Exit(1)
 	}
@@ -151,9 +182,9 @@ func main() {
 		cmdApp(args)
 	case "mod", "module":
 		cmdModule(args)
-	case "ext", "extensions":
-		Log.Fatal("extension command is not yet supported")
+	case "ext", "extension":
+		cmdExtension(args)
 	default:
-		Log.Fatal("unknown command: %s", cmd)
+		Log.Fatalf("unknown command: %s", cmd)
 	}
 }
