@@ -6,15 +6,13 @@ import (
 	"github.com/kraken-hpc/kraken/core"
 )
 
-const Name = "type.googleapis.com/{{ .ProtoPackage }}.{{ .Name }}"
-
 //////////////////////////
 // Boilerplate Methods //
 ////////////////////////
 
 
 func (*{{ .Name }}) Name() string {
-	return Name
+	return "type.googleapis.com/{{ .ProtoPackage }}.{{ .Name }}" 
 }
 
 func init() {

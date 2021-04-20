@@ -25,7 +25,7 @@ import (
 
 type ExtensionConfig struct {
 	// Global should not be specified on config; it will get overwritten regardless.
-	Global *GlobalConfigType `yaml:"__global,omitempty"`
+	Global *GlobalConfigType `yaml:""`
 	// URL of package, e.g. "github.com/kraken-hpc/kraken/extensions/ipv4" (required)
 	PackageUrl string `yaml:"package_url"`
 	// Go package name (default: last element of PackageUrl)
@@ -40,6 +40,8 @@ type ExtensionConfig struct {
 	// Declaring a custom type will create a stub to develop a gogo customtype on
 	// It will also include a commented example of linking a customtype in the proto
 	CustomTypes []string `yaml:"custom_types"`
+	// LowerName is intended for internal use only
+	LowerName string `yaml:""`
 }
 
 type CustomTypeConfig struct {
@@ -76,6 +78,7 @@ func extensionReadConfig(file string) (cfg *ExtensionConfig, err error) {
 		}
 		cfg.ProtoPackage = cname
 	}
+	cfg.LowerName = strings.ToLower(cfg.Name)
 	return
 }
 
@@ -84,7 +87,7 @@ func extensionCompileTemplate(tplFile, outDir string, cfg *ExtensionConfig) (tar
 	var out *os.File
 	parts := strings.Split(filepath.Base(tplFile), ".")
 	if parts[0] == "template" {
-		parts = append([]string{cfg.PackageName}, parts[1:len(parts)-1]...)
+		parts = append([]string{cfg.LowerName}, parts[1:len(parts)-1]...)
 	} else {
 		parts = parts[:len(parts)-1]
 	}

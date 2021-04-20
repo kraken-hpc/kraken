@@ -4,7 +4,7 @@
 // `kraken -f extension generate` *will* replace this file.
 // To generate your config protobuf run `go generate` (requires `protoc` and `gogo-protobuf`)
 
-//go:generate protoc -I $GOPATH/src -I . --gogo_out=plugins=grpc:. {{ .PackageName }}.proto
+//go:generate protoc -I $GOPATH/src -I . --gogo_out=plugins=grpc:. {{ .LowerName }}.proto
 
 package {{ .PackageName }}
 
