@@ -222,7 +222,9 @@ func (mod *{{- .Name }}) handleMutation(m types.Event) {
 // LookupEnum finds an enum and its value map based on URL
 func LookupEnum(url string) (enumName string, enumType reflect.Type, valueMap map[string]int32, err error) {
 	n := core.NewNodeWithID("00000000-0000-0000-0000-000000000000")
-	name, base := util.URLShift(url)
+	parts := util.URLToSlice(url)
+	name := parts[len(parts)-1]
+	base := util.SliceToURL(parts[:len(parts)-1])
 	v, err := n.GetValue(base)
 	if err != nil {
 		fmt.Println("HERE: " + err.Error())
