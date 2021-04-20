@@ -33,39 +33,27 @@ var interruptHandler = hInterruptUnhandled // set this in order to process mutat
 // Mutation Definitions //
 /////////////////////////
 
-// a mutation object records mutations as strings
-// we have to lookup types & values at runtime
-type mutation struct {
-	mutates  map[string][2]string
-	requires map[string]string
-	excludes map[string]string
-	context  string
-	timeout  string
-	failto   [2]string
-	handler  func(mut string, cfg, dsc types.Node)
-}
-
-var mutations = map[string]*mutation{
+var mutations = map[string]*core.Mutation{
 	{{- range $name, $mutation := .Mutations }}
 	"{{- $name }}": {
-		mutates: map[string][2]string{
+		Mutates: map[string][2]string{
 			{{- range $url, $values := $mutation.Mutates }}
 			"{{- $url }}": {"{{- $values.From }}", "{{- $values.To }}"},
 			{{- end }}
 		},
-		requires: map[string]string{
+		Requires: map[string]string{
 			{{- range $url, $value := $mutation.Requires }}
 			"{{- $url }}": "{{- $value }}",
 			{{- end }}
 		},
-		excludes: map[string]string{
+		Excludes: map[string]string{
 			{{- range $url, $value := $mutation.Excludes }}
 			"{{- $url }}": "{{- $value }}",
 			{{- end }}
 		},
-		context: "{{- $mutation.Context }}",
-		timeout: "{{- $mutation.Timeout }}",
-		failto:  [2]string{"{{- $mutation.FailTo.Url }}", "{{- $mutation.FailTo.Value }}"},
+		Context: "{{- $mutation.Context }}",
+		Timeout: "{{- $mutation.Timeout }}",
+		FailTo:  [2]string{"{{- $mutation.FailTo.Url }}", "{{- $mutation.FailTo.Value }}"},
 	},
 	{{- end }}
 }
@@ -219,165 +207,6 @@ func (mod *{{- .Name }}) handleMutation(m types.Event) {
 	}
 }
 
-// LookupEnum finds an enum and its value map based on URL
-func LookupEnum(url string) (enumName string, enumType reflect.Type, valueMap map[string]int32, err error) {
-	n := core.NewNodeWithID("00000000-0000-0000-0000-000000000000")
-	parts := util.URLToSlice(url)
-	name := parts[len(parts)-1]
-	base := util.SliceToURL(parts[:len(parts)-1])
-	v, err := n.GetValue(base)
-	if err != nil {
-		fmt.Println("HERE: " + err.Error())
-		return
-	}
-	switch v.Kind() {
-	case reflect.Struct:
-		props := proto.GetProperties(v.Type())
-		found := false
-		for _, p := range props.Prop {
-			if p.Name == name {
-				// found
-				if p.Enum == "" {
-					err = fmt.Errorf("property %s in %s is not an enum", name, base)
-					return
-				}
-				// ok, we found it
-				enumName = p.Enum
-				valueMap = proto.EnumValueMap(enumName)
-				if valueMap == nil {
-					err = fmt.Errorf("got nil value map for enum %s in %s", name, base)
-				}
-				sf := v.FieldByName(name)
-				enumType = sf.Type()
-				return
-			}
-		}
-		if !found {
-			err = fmt.Errorf("not found: no property by name %s in %s", name, base)
-			return
-		}
-	case reflect.Map, reflect.Slice:
-		err = fmt.Errorf("not found: looking up enums as slice or map elements is not yet supported: %s", url)
-		return
-	default:
-		err = fmt.Errorf("not found: url base is not a valid container type: %s", url)
-		return
-	}
-	return
-}
-
-// MustLookupEnum performs LookupEnum, but panics if enum lookup fails
-func MustLookupEnum(url string) (enumName string, enumType reflect.Type, valueMap map[string]int32) {
-	var err error
-	enumName, enumType, valueMap, err = LookupEnum(url)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
-// LookupEnumValue maps an enum value to a reflect.Value based on URL and value string
-func LookupEnumValue(url string, value string) (interface{}, error) {
-	if _, et, vm, err := LookupEnum(url); err == nil {
-		if v, ok := vm[value]; ok {
-			return reflect.ValueOf(v).Convert(et).Interface(), nil
-		} else {
-			return 0, fmt.Errorf("enum %s has not such value %s", url, value)
-		}
-	} else {
-		return 0, fmt.Errorf("enum %s not found", url)
-	}
-}
-
-// MustLookupEnumValue performs LookupEnumValue, but panics if lookup fails
-func MustLookupEnumValue(url string, value string) interface{} {
-	v, err := LookupEnumValue(url, value)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-var StateMutationContext_names = map[string]types.StateMutationContext{
-	"SELF":  types.StateMutationContext_SELF,
-	"CHILD": types.StateMutationContext_CHILD,
-	"ALL":   types.StateMutationContext_ALL,
-}
-
-func valueFromString(url, value string) (v reflect.Value, err error) {
-	n := core.NewNodeWithID("00000000-0000-0000-0000-000000000000")
-	var rv reflect.Value
-	if rv, err = n.GetValue(url); err != nil {
-		return
-	}
-	nys := fmt.Errorf("valueFromString: type not yet supported")
-	switch rv.Kind() {
-	case reflect.Int, reflect.Int32, reflect.Int16, reflect.Int64:
-		if rv.Kind() == reflect.Int32 {
-			// might be an enum
-			if i, err := LookupEnumValue(url, value); err == nil {
-				return reflect.ValueOf(i), nil
-			}
-		}
-		return v, nys
-	case reflect.Uint, reflect.Uint32, reflect.Uint16, reflect.Uint64:
-		return v, nys
-	case reflect.Float32, reflect.Float64:
-		return v, nys
-	case reflect.String:
-		// the easy one...
-		return reflect.ValueOf(value), nil
-	case reflect.Bool:
-		return v, nys
-	default:
-		return v, fmt.Errorf("unsupported kind: %s", rv.Kind())
-	}
-}
-
-func mustValueFromString(url, value string) reflect.Value {
-	v, err := valueFromString(url, value)
-	if err != nil {
-		panic(fmt.Sprintf("mustValueFromString error: url=%s, value=%s, err=%v", url, value, err))
-	}
-	return v
-}
-
-// createMutation turns a string mutation definition into a StateMutation
-func createMutation(m *mutation) (types.StateMutation, error) {
-	mut := map[string][2]reflect.Value{}
-	for url, vs := range m.mutates {
-		mut[url] = [2]reflect.Value{
-			reflect.ValueOf(MustLookupEnumValue(url, vs[0])),
-			reflect.ValueOf(MustLookupEnumValue(url, vs[1])),
-		}
-	}
-	req := map[string]reflect.Value{}
-	for url, v := range m.requires {
-		req[url] = mustValueFromString(url, v)
-	}
-	exc := map[string]reflect.Value{}
-	for url, v := range m.excludes {
-		exc[url] = mustValueFromString(url, v)
-	}
-	timeout, err := time.ParseDuration(m.timeout)
-	if err != nil {
-		panic("invalid time duration in mutation: " + m.timeout)
-	}
-	return core.NewStateMutation(mut, req, exc, StateMutationContext_names[m.context], timeout, [3]string{si.ID(), m.failto[0], m.failto[1]}), nil
-}
-
-func createDiscovers(url string) (map[string]reflect.Value, error) {
-	_, et, valueMap, err := LookupEnum(url)
-	if err != nil {
-		return nil, fmt.Errorf("%s isn't a valid enum: %v", url, err)
-	}
-	r := map[string]reflect.Value{}
-	for k, v := range valueMap {
-		r[k] = reflect.ValueOf(v).Convert(et)
-	}
-	return r, nil
-}
-
 // initialization.  We rely on this to declare ourselves with Kraken.
 func init() {
 	module := &{{- .Name }}{}
@@ -389,7 +218,7 @@ func init() {
 	// Build list of mutations
 	muts := make(map[string]types.StateMutation)
 	for mid, mdef := range mutations {
-		mut, err := createMutation(mdef)
+		mut, err := core.CreateMutation(si, mdef)
 		if err != nil {
 			panic(err)
 		}
@@ -404,7 +233,7 @@ func init() {
 	// Build list of discoveries
 	discs := make(map[string]map[string]reflect.Value)
 	for _, url := range discoveries {
-		d, err := createDiscovers(url)
+		d, err := core.CreateDiscovers(url)
 		if err != nil {
 			panic(err)
 		}
