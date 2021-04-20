@@ -586,6 +586,131 @@ func (n *Node) indexServices() {
 	}
 }
 
+///////////////////////
+// Lookup Functions //
+/////////////////////
+
+// LookupEnum finds an enum and its value map based on URL
+func LookupEnum(url string) (enumName string, enumType reflect.Type, valueMap map[string]int32, err error) {
+	n := NewNodeWithID("00000000-0000-0000-0000-000000000000")
+	parts := util.URLToSlice(url)
+	name := parts[len(parts)-1]
+	base := util.SliceToURL(parts[:len(parts)-1])
+	v, err := n.GetValue(base)
+	if err != nil {
+		fmt.Println("HERE: " + err.Error())
+		return
+	}
+	switch v.Kind() {
+	case reflect.Struct:
+		props := proto.GetProperties(v.Type())
+		found := false
+		for _, p := range props.Prop {
+			if p.Name == name {
+				// found
+				if p.Enum == "" {
+					err = fmt.Errorf("property %s in %s is not an enum", name, base)
+					return
+				}
+				// ok, we found it
+				enumName = p.Enum
+				valueMap = proto.EnumValueMap(enumName)
+				if valueMap == nil {
+					err = fmt.Errorf("got nil value map for enum %s in %s", name, base)
+				}
+				sf := v.FieldByName(name)
+				enumType = sf.Type()
+				return
+			}
+		}
+		if !found {
+			err = fmt.Errorf("not found: no property by name %s in %s", name, base)
+			return
+		}
+	case reflect.Map, reflect.Slice:
+		err = fmt.Errorf("not found: looking up enums as slice or map elements is not yet supported: %s", url)
+		return
+	default:
+		err = fmt.Errorf("not found: url base is not a valid container type: %s", url)
+		return
+	}
+	return
+}
+
+// MustLookupEnum performs LookupEnum, but panics if enum lookup fails
+func MustLookupEnum(url string) (enumName string, enumType reflect.Type, valueMap map[string]int32) {
+	var err error
+	enumName, enumType, valueMap, err = LookupEnum(url)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// LookupEnumValue maps an enum value to a reflect.Value based on URL and value string
+func LookupEnumValue(url string, value string) (interface{}, error) {
+	if _, et, vm, err := LookupEnum(url); err == nil {
+		if v, ok := vm[value]; ok {
+			return reflect.ValueOf(v).Convert(et).Interface(), nil
+		} else {
+			return 0, fmt.Errorf("enum %s has not such value %s", url, value)
+		}
+	} else {
+		return 0, fmt.Errorf("enum %s not found", url)
+	}
+}
+
+// MustLookupEnumValue performs LookupEnumValue, but panics if lookup fails
+func MustLookupEnumValue(url string, value string) interface{} {
+	v, err := LookupEnumValue(url, value)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// ValueFromString conversion requires special knowledge of the Node structure, so it lives here
+
+// ValueFromString tries to convert a string to a reflect.Value based on URL
+func ValueFromString(url, value string) (v reflect.Value, err error) {
+	n := NewNodeWithID("00000000-0000-0000-0000-000000000000")
+	var rv reflect.Value
+	if rv, err = n.GetValue(url); err != nil {
+		return
+	}
+	nys := fmt.Errorf("valueFromString: type not yet supported")
+	switch rv.Kind() {
+	case reflect.Int, reflect.Int32, reflect.Int16, reflect.Int64:
+		if rv.Kind() == reflect.Int32 {
+			// might be an enum
+			if i, err := LookupEnumValue(url, value); err == nil {
+				return reflect.ValueOf(i), nil
+			}
+		}
+		return v, nys
+	case reflect.Uint, reflect.Uint32, reflect.Uint16, reflect.Uint64:
+		return v, nys
+	case reflect.Float32, reflect.Float64:
+		return v, nys
+	case reflect.String:
+		// the easy one...
+		return reflect.ValueOf(value), nil
+	case reflect.Bool:
+		return v, nys
+	default:
+		return v, fmt.Errorf("unsupported kind: %s", rv.Kind())
+	}
+}
+
+// MustValueFromString wraps ValueFromString, but panics on error
+func MustValueFromString(url, value string) reflect.Value {
+	v, err := ValueFromString(url, value)
+	if err != nil {
+		panic(fmt.Sprintf("mustValueFromString error: url=%s, value=%s, err=%v", url, value, err))
+	}
+	return v
+}
+
 //FIXME: hack to get the default extension, need a better way:
 
 const nodeFixture string = `
