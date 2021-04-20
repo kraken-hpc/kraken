@@ -4,11 +4,8 @@
 package {{ .PackageName }}
 
 import (
-	fmt "fmt"
 	"reflect"
-	"time"
 
-	proto "github.com/gogo/protobuf/proto"
 	{{- if .WithConfig }}
 	ptypes "github.com/gogo/protobuf/types"
 	{{ end }}
@@ -193,8 +190,8 @@ func (mod *{{- .Name }}) handleMutation(m types.Event) {
 	case core.MutationEvent_MUTATE:
 		mid := me.Mutation[1]
 		if mdef, ok := mutations[mid]; ok {
-			if mdef.handler != nil {
-				mdef.handler(mid, me.NodeCfg, me.NodeDsc)
+			if mdef.Handler != nil {
+				mdef.Handler(mid, me.NodeCfg, me.NodeDsc)
 			} else {
 				Logf(ERROR, "hanlder for mutation %s is nil", mid)
 			}
@@ -224,7 +221,7 @@ func init() {
 		}
 		muts[mid] = mut
 		// add mutators to discoverables
-		for url := range mdef.mutates {
+		for url := range mdef.Mutates {
 			discoveries = append(discoveries, url)
 		}
 	}
