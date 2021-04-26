@@ -172,7 +172,6 @@ func ModuleExecute(id, module, sock string) {
 	fmt.Printf("I am: %s\n", id)
 
 	api := NewModuleAPIClient(sock)
-	mss.Init(api)
 	// call in, and get a control chan
 	cc, e := api.ServiceInit(id, module)
 	if e != nil {
@@ -242,6 +241,7 @@ func ModuleExecute(id, module, sock string) {
 		mc.UpdateConfig(defaults)
 	}
 
+	mss.Init(api)
 	if config {
 		updateConfig()
 	}
