@@ -304,7 +304,6 @@ func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {
 	for _, n := range ns {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
-
 	b, e := json.Marshal(&rsp)
 	if e != nil {
 		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
