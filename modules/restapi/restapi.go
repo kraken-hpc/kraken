@@ -214,7 +214,13 @@ func (r *RestAPI) readAll(w http.ResponseWriter, req *http.Request) {
 	for _, n := range ns {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
-	b, _ := json.Marshal(&rsp)
+	b, e := json.Marshal(&rsp)
+	if e != nil {
+		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -223,6 +229,7 @@ func (r *RestAPI) getAllEnums(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	nself, e := r.api.QueryRead(r.api.Self().String())
 	if e != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(e.Error()))
 		return
 	}
@@ -288,6 +295,8 @@ func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	ns, e := r.api.QueryReadAllDsc()
 	if e != nil {
+		r.api.Logf(types.LLERROR, "Error querying internal api: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(e.Error()))
 		return
 	}
@@ -295,7 +304,14 @@ func (r *RestAPI) readAllDsc(w http.ResponseWriter, req *http.Request) {
 	for _, n := range ns {
 		rsp.Nodes = append(rsp.Nodes, n.Message().(*cpb.Node))
 	}
-	b, _ := json.Marshal(&rsp)
+
+	b, e := json.Marshal(&rsp)
+	if e != nil {
+		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -519,7 +535,13 @@ func (r *RestAPI) updateMulti(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := json.Marshal(&rsp)
+	b, e := json.Marshal(&rsp)
+	if e != nil {
+		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -563,7 +585,13 @@ func (r *RestAPI) updateMultiDsc(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := json.Marshal(&rsp)
+	b, e := json.Marshal(&rsp)
+	if e != nil {
+		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -619,7 +647,13 @@ func (r *RestAPI) createMulti(w http.ResponseWriter, req *http.Request) {
 			rsp.Nodes = append(rsp.Nodes, nn.Message().(*cpb.Node))
 		}
 	}
-	b, _ := json.Marshal(&rsp)
+	b, e := json.Marshal(&rsp)
+	if e != nil {
+		r.api.Logf(types.LLERROR, "Error marshalling response: %v", e)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(e.Error()))
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(b)
 }
@@ -637,7 +671,7 @@ func (r *RestAPI) freeze(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(types.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshalling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -657,7 +691,7 @@ func (r *RestAPI) thaw(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(types.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshalling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -678,7 +712,7 @@ func (r *RestAPI) frozen(w http.ResponseWriter, req *http.Request) {
 	}
 	json, err := json.Marshal(resp)
 	if err != nil {
-		r.api.Logf(types.LLERROR, "Error marshaling response")
+		r.api.Logf(types.LLERROR, "Error marshalling response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
