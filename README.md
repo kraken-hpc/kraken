@@ -1,7 +1,7 @@
 # Kraken
 
 ## Reorganization notice
-***Please excuse our dust.  Kraken has been subdivided into different repos.  This repo now only contains core components for the kraken framework; most modules and extensions have been moved elsewhere.***
+***The Kraken project has been subdivided into different repos.  This repo now only contains core components for the kraken framework; most modules and extensions have been moved elsewhere.***
 
 - If you're trying to provision clusters, you probably want [kraken-layercake](https://github.com/kraken-hpc/kraken-layercake)
 - If you're looking for thermal control or Raspberry Pi modules/extensions, try [kraken-legacy](https://github.com/kraken-hpc/kraken-legacy)
