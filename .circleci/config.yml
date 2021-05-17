@@ -17,7 +17,7 @@ jobs: # basic units of work in a run
           command: bash config/generate-kitchensink.sh .
       - run:
           name: Generate code for kitchen sink
-          command: ./kraken -f -v app generate -o kitchen-sink -c config/kitchensink.yaml
+          command: ./kraken -f -l debug app generate -o kitchen-sink -c config/kitchensink.yaml
       - run:
           name: Build kitchen-sink
           command: go build .
