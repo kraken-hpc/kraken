@@ -377,6 +377,12 @@ const (
 	StateMutationContext_ALL   StateMutationContext = 2
 )
 
+var StateMutationContext_names = map[string]StateMutationContext{
+	"SELF":  StateMutationContext_SELF,
+	"CHILD": StateMutationContext_CHILD,
+	"ALL":   StateMutationContext_ALL,
+}
+
 // StateMutation describes a mutation of state.  It does not define how this
 // mutation is performed, only the mutation itself.
 // It can determine if the mutation will mutate a given node, as well as
