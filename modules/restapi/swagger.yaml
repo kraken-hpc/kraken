@@ -359,6 +359,12 @@ paths:
         - "graph"
       summary: "Get graph info for a node"
       description: "Returns the same graph from `/graph/json` except with color coded edges and nodes to show the current mutation path and current active mutation for this node."
+      parameters:
+        - in: path
+          name: id
+          required: true
+          type: string
+          description: The ID of the node you want to get graph info for.
       produces:
         - "application/json"
       responses:
